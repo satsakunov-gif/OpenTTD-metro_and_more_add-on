@@ -77,3 +77,9 @@
 - `src/metro_ai_gui.cpp` — окно «Итоги года».
 - `src/sl/metro_ai_sl.cpp` — сейв (чанки MTAI, MTYR).
 - `src/table/metro_ai_tables.h` — характеры мэров, веса изменений города.
+- `src/metro_city.h`, `src/metro_city.cpp` — активные города, службы (команда постройки, пассажиры, рост, больница), пожарные посты, пожары и машины (поиск пути по дорогам), туристы, достопримечательности, матчи, хук отрисовки `MetroCityDrawTile`, консоль `metro_city`.
+- `src/metro_city_gui.cpp` — окно «Службы» города и окно службы по клику.
+- `src/metro_city_cmd.h` — команды `MetroBuildService`, `MetroRemoveFirePost`.
+- `src/sl/metro_city_sl.cpp` — сейв (чанки MTCT, MTFP, MTFR, MTFT).
+- `src/table/metro_city_tables.h` — службы, пожары, туристы, достопримечательности, уровни матчей.
+- Объекты служб — типы 5–8 в `src/object_type.h` и `src/table/object_land.h`; сдвиг NewGRF-объектов старых сейвов — `src/sl/object_sl.cpp`, `src/sl/afterload.cpp`.
