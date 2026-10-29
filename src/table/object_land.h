@@ -27,11 +27,33 @@ static const DrawTileSeqStruct _object_owned_land_seq[] = {
 	{   8,  8,  0,  1,  1,  6, {SPR_BOUGHT_LAND    | (1 << PALETTE_MODIFIER_COLOUR), PAL_NONE}},
 };
 
+/* Metro mod services, temporarily drawn with vanilla house sprites (flats, hotel, office block, town houses). */
+static const DrawTileSeqStruct _object_metro_school_seq[] = {
+	{   0,  0,  0, 16, 16, 22, {0x5f3, PAL_NONE}},
+};
+
+static const DrawTileSeqStruct _object_metro_hospital_seq[] = {
+	{   0,  0,  0, 16, 16, 45, {0x5aa, PALETTE_TO_STRUCT_WHITE}},
+};
+
+static const DrawTileSeqStruct _object_metro_university_seq[] = {
+	{   0,  0,  0, 16, 16, 42, {0x5b4, PAL_NONE}},
+};
+
+static const DrawTileSeqStruct _object_metro_fire_station_seq[] = {
+	{   0,  0,  0, 16, 16, 16, {0x5a6, PALETTE_TO_STRUCT_RED}},
+};
+
 extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_transmitter_seq },
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_lighthouse_seq  },
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_statue_seq      },
 	{ { SPR_FLAT_BARE_LAND,          PAL_NONE }, _object_owned_land_seq  },
+	{ { SPR_FLAT_BARE_LAND,          PAL_NONE } }, // OBJECT_HQ, drawn from _object_hq
+	{ { 0x5f2,                       PAL_NONE }, _object_metro_school_seq       },
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_hospital_seq     },
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_university_seq   },
+	{ { 0x5a7,                       PAL_NONE }, _object_metro_fire_station_seq },
 };
 
 
@@ -123,6 +145,11 @@ extern const ObjectSpec _original_objects[] = {
 	M(STR_TOWN_BUILDING_NAME_STATUE_1,                 0x11,   0,   0,  5, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::CannotRemove, ObjectFlag::OnlyInGame, ObjectFlag::OnlyInScenedit}), ObjectCtrlFlags{}), // Yes, we disallow building this everywhere. Happens in "special" case!
 	M(STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND,   0x11,  10,  10,  0, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::Autoremove, ObjectFlag::OnlyInGame, ObjectFlag::ClearIncome, ObjectFlag::HasNoFoundation}), ObjectCtrlFlags({ObjectCtrlFlag::UseLandGround})), // Only non-silly use case is to use it when you cannot build a station, so disallow bridges
 	M(STR_LAI_OBJECT_DESCRIPTION_COMPANY_HEADQUARTERS, 0x22,   0,   0,  7, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::CannotRemove, ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	/* Metro mod services: built only by CmdMetroBuildService, which computes the cost itself. */
+	M(STR_METRO_SERVICE_SCHOOL,                        0x11,   0,  20,  3, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_SERVICE_HOSPITAL,                      0x11,   0,  20,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_SERVICE_UNIVERSITY,                    0x11,   0,  20,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_SERVICE_FIRE_STATION,                  0x11,   0,  20,  2, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 };
 
 #undef M

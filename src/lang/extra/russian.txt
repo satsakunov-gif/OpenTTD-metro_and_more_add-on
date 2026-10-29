@@ -2373,7 +2373,7 @@ STR_METRO_SERVICE_RADIUS                                        :{BLACK}Защи
 STR_METRO_SERVICE_NO_ROAD                                       :{RED}Рядом с больницей нет дороги: рейтинг в городе падает каждый месяц
 STR_METRO_SERVICE_TOWN_INACTIVE                                 :{SILVER}Город не активен: служба не работает
 STR_METRO_SERVICE_REMOVE                                        :{BLACK}Снести
-STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Снести пожарный пост
+STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Снести здание службы или пожарный пост
 STR_METRO_CITY_ERR_CANT_BUILD                                   :{WHITE}Здесь нельзя построить службу...
 STR_METRO_CITY_ERR_CANT_REMOVE                                  :{WHITE}Нельзя снести пожарный пост...
 STR_METRO_CITY_ERR_NO_TOWN                                      :{WHITE}... слишком далеко от города

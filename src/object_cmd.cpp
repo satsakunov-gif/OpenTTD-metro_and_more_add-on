@@ -8,6 +8,7 @@
 /** @file object_cmd.cpp Handling of object tiles. */
 
 #include "stdafx.h"
+#include "metro_city.h"
 #include "clear_map.h"
 #include "landscape.h"
 #include "landscape_cmd.h"
@@ -423,7 +424,11 @@ CommandCost CmdBuildObject(DoCommandFlags flags, TileIndex tile, ObjectType type
 		}
 
 		case OBJECT_STATUE:
-			/* This may never be constructed using this method. */
+		case OBJECT_METRO_SCHOOL:
+		case OBJECT_METRO_HOSPITAL:
+		case OBJECT_METRO_UNIVERSITY:
+		case OBJECT_METRO_FIRE_STATION:
+			/* This may never be constructed using this method. Metro services: CmdMetroBuildService. */
 			return CMD_ERROR;
 
 		default: { // i.e. NewGRF provided.
@@ -644,7 +649,9 @@ static void DrawTile_Object(TileInfo *ti, DrawTileProcParams params)
 
 		if (!IsInvisibilitySet(TransparencyOption::Structures)) {
 			for (const DrawTileSeqStruct &dtss : dts->GetSequence()) {
-				AddSortableSpriteToDraw(dtss.image.sprite, palette, *ti, dtss, IsTransparencySet(TransparencyOption::Structures));
+				/* Metro mod services use recoloured house sprites. */
+				PaletteID pal = (IsMetroServiceObject(type) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;
+				AddSortableSpriteToDraw(dtss.image.sprite, pal, *ti, dtss, IsTransparencySet(TransparencyOption::Structures));
 			}
 		}
 	} else {
@@ -824,6 +831,7 @@ static CommandCost ClearTile_Object(TileIndex tile, DoCommandFlags flags)
 /** @copydoc AddAcceptedCargoProc */
 static void AddAcceptedCargo_Object(TileIndex tile, CargoArray &acceptance, CargoTypes &always_accepted)
 {
+	if (MetroCityAddAcceptedCargo(tile, acceptance, always_accepted)) return;
 	if (!IsObjectType(tile, OBJECT_HQ)) return;
 
 	/* HQ accepts passenger and mail; but we have to divide the values
@@ -854,6 +862,7 @@ static void AddAcceptedCargo_Object(TileIndex tile, CargoArray &acceptance, Carg
 /** @copydoc AddProducedCargoProc */
 static void AddProducedCargo_Object(TileIndex tile, CargoArray &produced)
 {
+	if (MetroCityAddProducedCargo(tile, produced)) return;
 	if (!IsObjectType(tile, OBJECT_HQ)) return;
 
 	CargoType pass = GetCargoTypeByLabel(CT_PASSENGERS);
@@ -1038,6 +1047,7 @@ static void TileLoop_Object(TileIndex tile)
 /** @copydoc ClickTileProc */
 static bool ClickTile_Object(TileIndex tile)
 {
+	if (MetroCityClickTile(tile)) return true;
 	if (!IsObjectType(tile, OBJECT_HQ)) return false;
 
 	ShowCompany(GetTileOwner(tile));
@@ -1262,7 +1272,7 @@ static void ChangeTileOwner_Object(TileIndex tile, Owner old_owner, Owner new_ow
 	bool do_clear = false;
 
 	ObjectType type = GetObjectType(tile);
-	if ((type == OBJECT_OWNED_LAND || type >= NEW_OBJECT_OFFSET) && new_owner != INVALID_OWNER) {
+	if ((type == OBJECT_OWNED_LAND || type >= NEW_OBJECT_OFFSET || IsMetroServiceObject(type)) && new_owner != INVALID_OWNER) {
 		SetTileOwner(tile, new_owner);
 		if (GetWaterClass(tile) == WaterClass::Canal) {
 			Company::Get(old_owner)->infrastructure.water--;

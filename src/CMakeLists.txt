@@ -297,6 +297,8 @@ add_files(
     metro_ai_gui.cpp
     metro_city.cpp
     metro_city.h
+    metro_city_cmd.h
+    metro_city_gui.cpp
     misc.cpp
     misc_cmd.cpp
     misc_cmd.h

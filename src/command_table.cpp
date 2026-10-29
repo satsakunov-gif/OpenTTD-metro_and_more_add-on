@@ -23,6 +23,7 @@
 #include "industry_cmd.h"
 #include "landscape_cmd.h"
 #include "league_cmd.h"
+#include "metro_city_cmd.h"
 #include "misc_cmd.h"
 #include "news_cmd.h"
 #include "object_cmd.h"

@@ -284,6 +284,8 @@ static void InitializeWindowsAndCaches()
 
 	/* Count number of objects per type */
 	for (Object *o : Object::Iterate()) {
+		/* Metro mod: object types 5..8 are town services since metro_city v2, older NewGRF objects move up. */
+		if (!SlXvIsFeaturePresent(XSLFI_METRO_CITY, 2) && o->type >= OBJECT_METRO_SCHOOL && o->type < NUM_OBJECTS - METRO_OBJECT_COUNT) o->type += METRO_OBJECT_COUNT;
 		if (o->type >= NUM_OBJECTS) SlErrorCorrupt("Invalid object type");
 		Object::IncTypeCount(o->type);
 	}

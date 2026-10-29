@@ -20,8 +20,13 @@ static const ObjectType OBJECT_LIGHTHOUSE   =   1;    ///< The nice lighthouse
 static const ObjectType OBJECT_STATUE       =   2;    ///< Statue in towns
 static const ObjectType OBJECT_OWNED_LAND   =   3;    ///< Owned land 'flag'
 static const ObjectType OBJECT_HQ           =   4;    ///< HeadQuarter of a player
+static const ObjectType OBJECT_METRO_SCHOOL       = 5; ///< Metro mod: school of a town
+static const ObjectType OBJECT_METRO_HOSPITAL     = 6; ///< Metro mod: hospital of a town
+static const ObjectType OBJECT_METRO_UNIVERSITY   = 7; ///< Metro mod: university of a town
+static const ObjectType OBJECT_METRO_FIRE_STATION = 8; ///< Metro mod: fire station of a town
+static const ObjectType METRO_OBJECT_COUNT        = 4; ///< Metro mod: number of service objects (NewGRF objects of older saves are moved up by this)
 
-static const ObjectType NEW_OBJECT_OFFSET   =   5;    ///< Offset for new objects
+static const ObjectType NEW_OBJECT_OFFSET   =   9;    ///< Offset for new objects
 static const ObjectType NUM_OBJECTS         = 64000;  ///< Number of supported objects overall
 static const ObjectType NUM_OBJECTS_PER_GRF = NUM_OBJECTS; ///< Number of supported objects per NewGRF
 static const ObjectType INVALID_OBJECT_TYPE = 0xFFFF; ///< An invalid object

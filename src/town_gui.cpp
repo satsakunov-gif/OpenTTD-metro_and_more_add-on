@@ -620,6 +620,7 @@ public:
 	{
 		extern const Town *_viewport_highlight_town;
 		this->SetWidgetLoweredState(WID_TV_CATCHMENT, _viewport_highlight_town == this->town);
+		if (this->GetWidget<NWidgetBase>(WID_TV_METRO_LANDMARKS) != nullptr) this->SetWidgetLoweredState(WID_TV_METRO_LANDMARKS, _metro_show_landmarks);
 		this->SetWidgetDisabledState(WID_TV_CHANGE_NAME, IsNonAdminNetworkClient() &&
 				!(_local_company != COMPANY_SPECTATOR && _settings_game.difficulty.rename_towns_in_multiplayer));
 
@@ -766,6 +767,15 @@ public:
 				ShowTownCargoGraph(this->window_number);
 				break;
 			}
+
+			case WID_TV_METRO_SERVICES:
+				ShowMetroTownServicesWindow(this->town->index);
+				break;
+
+			case WID_TV_METRO_LANDMARKS:
+				MetroCityToggleLandmarks();
+				SetWindowClassesDirty(WindowClass::TownView);
+				break;
 		}
 	}
 
@@ -898,6 +908,10 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widge
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_CATCHMENT), SetMinimalSize(40, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_BUTTON_CATCHMENT, STR_TOOLTIP_CATCHMENT),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_GRAPH), SetFill(1, 0), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_CARGO_GRAPH, STR_TOWN_VIEW_CARGO_GRAPH_TOOLTIP),
 		NWidget(WWT_RESIZEBOX, Colours::Brown),
+	EndContainer(),
+	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_SERVICES), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_SERVICES_BUTTON, STR_METRO_CITY_SERVICES_TOOLTIP),
+		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_METRO_LANDMARKS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_LANDMARKS_BUTTON, STR_METRO_CITY_LANDMARKS_TOOLTIP),
 	EndContainer(),
 };
 

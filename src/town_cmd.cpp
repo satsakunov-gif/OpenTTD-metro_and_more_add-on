@@ -4407,7 +4407,7 @@ static uint GetNormalGrowthRate(Town *t)
 		m = ((uint64_t) UINT32_MAX * 100) / total;
 	}
 
-	return TownTicksToGameTicks(m / (t->cache.num_houses / 50 + 1));
+	return TownTicksToGameTicks(MetroCityAdjustGrowthRate(t, m / (t->cache.num_houses / 50 + 1)));
 }
 
 /**

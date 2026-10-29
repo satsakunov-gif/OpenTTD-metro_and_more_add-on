@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "road.h"
 #include "road_internal.h"
 #include "viewport_func.h"
@@ -2785,6 +2786,7 @@ static void TileLoop_Road(TileIndex tile)
 /** @copydoc ClickTileProc */
 static bool ClickTile_Road(TileIndex tile)
 {
+	if (MetroCityClickTile(tile)) return true;
 	if (!IsRoadDepot(tile)) return false;
 
 	ShowDepotWindow(tile, VehicleType::Road);

@@ -139,6 +139,8 @@
 #include "table/strings.h"
 #include "table/string_colours.h"
 
+#include "metro_city.h"
+
 #include "safeguards.h"
 
 Point _tile_fract_coords;
@@ -1978,6 +1980,7 @@ static void ViewportAddLandscape()
 				if (_cur_ti.tile != INVALID_TILE && min_visible_height <= 0) {
 					DrawTileSelection(&_cur_ti);
 					DrawTileZoning(&_cur_ti);
+					MetroCityDrawTile(&_cur_ti);
 				}
 			}
 		}

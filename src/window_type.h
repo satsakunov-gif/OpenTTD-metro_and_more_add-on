@@ -855,6 +855,18 @@ enum class WindowClass : uint16_t {
 	 */
 	MetroYearReport,
 
+	/**
+	 * Metro mod services of a town; %Window numbers:
+	 *   - #TownID = #MetroTownServicesWidgets
+	 */
+	MetroTownServices,
+
+	/**
+	 * Metro mod window of a service building; %Window numbers:
+	 *   - #TileIndex = #MetroServiceWidgets
+	 */
+	MetroService,
+
 	End,              ///< End sentinel.
 	Invalid = 0xFFFF, ///< Invalid window.
 };

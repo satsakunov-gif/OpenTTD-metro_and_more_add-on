@@ -2692,7 +2692,7 @@ STR_METRO_SERVICE_RADIUS                                        :{BLACK}Protects
 STR_METRO_SERVICE_NO_ROAD                                       :{RED}No road next to the hospital: the town rating falls every month
 STR_METRO_SERVICE_TOWN_INACTIVE                                 :{SILVER}The town is not active: the service does not work
 STR_METRO_SERVICE_REMOVE                                        :{BLACK}Remove
-STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Remove the fire post
+STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Remove the service building or fire post
 STR_METRO_CITY_ERR_CANT_BUILD                                   :{WHITE}Can't build the service here...
 STR_METRO_CITY_ERR_CANT_REMOVE                                  :{WHITE}Can't remove the fire post...
 STR_METRO_CITY_ERR_NO_TOWN                                      :{WHITE}... too far from a town
