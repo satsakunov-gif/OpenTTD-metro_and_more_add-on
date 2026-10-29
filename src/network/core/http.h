@@ -24,6 +24,13 @@ struct HTTPCallback {
 	virtual void OnFailure() = 0;
 
 	/**
+	 * Metro mod: details of a failure, called just before OnFailure().
+	 * @param status HTTP status code, or 0 for a connection error.
+	 * @param body   start of the response body for an HTTP error, or the error message for a connection error.
+	 */
+	virtual void OnHTTPError([[maybe_unused]] int status, [[maybe_unused]] std::string body) {}
+
+	/**
 	 * We're receiving data.
 	 * @param data   the received data, nullptr when all data has been received.
 	 * @param length the amount of received data, 0 when all data has been received.

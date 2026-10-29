@@ -37,6 +37,15 @@ enum class MetroTownChange : uint8_t {
 
 static constexpr uint METRO_TOWN_CHANGE_COUNT = static_cast<uint>(MetroTownChange::End);
 
+/** Why the last AI request failed. */
+enum class MetroAiFailure : uint8_t {
+	None,      ///< No failure.
+	Http,      ///< The server answered with an HTTP error status.
+	Network,   ///< No connection to the server.
+	Timeout,   ///< The server did not answer in time.
+	BadAnswer, ///< The answer is not the expected JSON.
+};
+
 /** AI state of one town (saved in the MTAI chunk). */
 struct MetroTownAiState {
 	uint16_t town = 0;                 ///< Town index.
@@ -54,7 +63,9 @@ struct MetroTownAiState {
 
 	/* Not saved. */
 	bool pending = false;              ///< A request for this town is queued or running.
-	bool failed = false;               ///< The last request failed; the old review is kept.
+	MetroAiFailure failure = MetroAiFailure::None; ///< Why the last request failed; the old review is kept.
+	int failure_status = 0;            ///< HTTP status of an #MetroAiFailure::Http failure.
+	std::string failure_text;          ///< Error message of a #MetroAiFailure::Network failure.
 
 	uint ChangeWeight() const;
 };

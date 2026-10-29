@@ -2627,7 +2627,14 @@ STR_METRO_AI_EXPLANATION                                        :{ORANGE}"{RAW_S
 STR_METRO_AI_NEEDS                                              :{BLACK}The town needs:
 STR_METRO_AI_NEED_ITEM                                          :{BLACK}  - {RAW_STRING}
 STR_METRO_AI_PENDING                                            :{YELLOW}Waiting for the mayor's answer...
-STR_METRO_AI_FAILED                                             :{RED}The last request failed, the previous assessment is kept.
+STR_METRO_AI_FAILED_HTTP                                        :{RED}Request failed: the server answered HTTP {NUM}{STRING}. The previous assessment is kept.
+STR_METRO_AI_FAILED_NETWORK                                     :{RED}Request failed: no connection to the server ({RAW_STRING}). The previous assessment is kept.
+STR_METRO_AI_FAILED_TIMEOUT                                     :{RED}Request failed: the server did not answer in time. The previous assessment is kept.
+STR_METRO_AI_FAILED_ANSWER                                      :{RED}Request failed: the answer is not in the expected format. The previous assessment is kept.
+STR_METRO_AI_HINT_KEY                                           :{RED} - the key is not accepted (api_key)
+STR_METRO_AI_HINT_URL                                           :{RED} - check base_url and model
+STR_METRO_AI_HINT_RATE                                          :{RED} - too many requests
+STR_METRO_AI_HINT_SERVER                                        :{RED} - server error
 STR_METRO_AI_CHANGES                                            :{BLACK}Changes since the last review: {NUM} point{P "" s}
 STR_METRO_AI_MAYOR_STRICT                                       :strict
 STR_METRO_AI_MAYOR_KIND                                         :kind

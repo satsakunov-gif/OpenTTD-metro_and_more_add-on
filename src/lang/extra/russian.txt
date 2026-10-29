@@ -2308,7 +2308,14 @@ STR_METRO_AI_EXPLANATION                                        :{ORANGE}«{RAW_
 STR_METRO_AI_NEEDS                                              :{BLACK}Городу нужно:
 STR_METRO_AI_NEED_ITEM                                          :{BLACK}  - {RAW_STRING}
 STR_METRO_AI_PENDING                                            :{YELLOW}Ждём ответа мэра...
-STR_METRO_AI_FAILED                                             :{RED}Последний запрос не удался, сохранена прежняя оценка.
+STR_METRO_AI_FAILED_HTTP                                        :{RED}Запрос не удался: сервер ответил HTTP {NUM}{STRING}. Сохранена прежняя оценка.
+STR_METRO_AI_FAILED_NETWORK                                     :{RED}Запрос не удался: нет связи с сервером ({RAW_STRING}). Сохранена прежняя оценка.
+STR_METRO_AI_FAILED_TIMEOUT                                     :{RED}Запрос не удался: сервер не ответил вовремя. Сохранена прежняя оценка.
+STR_METRO_AI_FAILED_ANSWER                                      :{RED}Запрос не удался: ответ не в ожидаемом формате. Сохранена прежняя оценка.
+STR_METRO_AI_HINT_KEY                                           :{RED} - ключ не принят (api_key)
+STR_METRO_AI_HINT_URL                                           :{RED} - проверьте base_url и model
+STR_METRO_AI_HINT_RATE                                          :{RED} - слишком много запросов
+STR_METRO_AI_HINT_SERVER                                        :{RED} - ошибка сервера
 STR_METRO_AI_CHANGES                                            :{BLACK}Изменений с прошлой оценки: {NUM} балл{P "" а ов}
 STR_METRO_AI_MAYOR_STRICT                                       :строгий
 STR_METRO_AI_MAYOR_KIND                                         :добродушный

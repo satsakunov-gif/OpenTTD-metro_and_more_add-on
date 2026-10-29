@@ -28,9 +28,13 @@ private:
 		 */
 		Callback(UniqueBuffer<char> data) : data(std::move(data)), failure(false) {}
 		Callback() : data({}), failure(true) {}
+		Callback(int status, std::string error) : data({}), failure(false), error_status(status), error(std::move(error)), is_error(true) {}
 
 		UniqueBuffer<char> data; ///< The data of the callback.
 		bool failure; ///< Whether the callback denotes a failure.
+		int error_status = 0; ///< Metro mod: HTTP status of an error detail.
+		std::string error; ///< Metro mod: body or message of an error detail.
+		bool is_error = false; ///< Metro mod: whether this is an error detail.
 	};
 
 public:
@@ -41,6 +45,16 @@ public:
 	{
 		std::lock_guard<std::mutex> lock(this->mutex);
 		this->queue.emplace_back();
+	}
+
+	/**
+	 * Similar to HTTPCallback::OnHTTPError, but thread-safe.
+	 * @copydoc HTTPCallback::OnHTTPError
+	 */
+	void OnHTTPError(int status, std::string body)
+	{
+		std::lock_guard<std::mutex> lock(this->mutex);
+		this->queue.emplace_back(status, std::move(body));
 	}
 
 	/**
@@ -65,7 +79,9 @@ public:
 		std::lock_guard<std::mutex> lock(this->mutex);
 
 		for (auto &item : this->queue) {
-			if (item.failure) {
+			if (item.is_error) {
+				this->callback->OnHTTPError(item.error_status, std::move(item.error));
+			} else if (item.failure) {
 				this->callback->OnFailure();
 			} else {
 				this->callback->OnReceiveData(std::move(item.data));

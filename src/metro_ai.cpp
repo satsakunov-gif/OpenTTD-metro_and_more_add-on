@@ -59,13 +59,16 @@ static constexpr int METRO_AI_MAX_STEP = 200;          ///< Maximum rating chang
 static constexpr int METRO_AI_TIMEOUT_SECONDS = 60;    ///< Timeout of one request.
 static constexpr int METRO_AI_MAX_STATIONS = 8;        ///< Stations listed in the prompt.
 static constexpr uint METRO_AI_MAX_NEEDS = 3;          ///< Needs kept from an answer.
+/* Limits, not usage: reasoning models (deepseek-v4-flash) spend ~300 tokens thinking before the JSON. */
+static constexpr int METRO_AI_TOWN_MAX_TOKENS = 2000;  ///< Token limit of a town review answer.
+static constexpr int METRO_AI_YEAR_MAX_TOKENS = 3000;  ///< Token limit of a yearly report answer.
 
 /** Settings from the [metro_ai] group of secrets.cfg. */
 struct MetroAiConfig {
 	std::string provider = "deepseek"; ///< "deepseek" (or any OpenAI-compatible API) or "gemini" (Google AI Studio, Gemma).
 	std::string api_key;               ///< API key; empty disables the AI.
 	std::string model;                 ///< Model name; empty for the provider default.
-	std::string endpoint;              ///< Endpoint override; empty for the provider default.
+	std::string base_url;              ///< Full URL of an OpenAI-compatible chat completions endpoint; empty for the provider default.
 	uint max_requests_per_quarter = 20; ///< Town reviews per quarter at most.
 	uint window_threshold = 5;          ///< Change weight that triggers a review when the authority window is opened.
 
@@ -80,11 +83,14 @@ struct MetroAiConfig {
 	std::string GetUrl() const
 	{
 		if (this->IsGemini()) {
-			std::string base = this->endpoint.empty() ? fmt::format("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", this->GetModel()) : this->endpoint;
+			std::string base = this->base_url.empty() ? fmt::format("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", this->GetModel()) : this->base_url;
 			return fmt::format("{}?key={}", base, this->api_key);
 		}
-		return this->endpoint.empty() ? "https://api.deepseek.com/chat/completions" : this->endpoint;
+		return this->base_url.empty() ? "https://api.deepseek.com/chat/completions" : this->base_url;
 	}
+
+	/** The official DeepSeek API supports JSON mode; other OpenAI-compatible servers (Open WebUI etc.) may reject it. */
+	bool IsOfficialDeepSeek() const { return !this->IsGemini() && this->base_url.empty(); }
 };
 
 static MetroAiConfig _metro_ai_config;
@@ -103,11 +109,11 @@ static void LoadMetroAiConfig()
 	IniGroup *group = ini.GetGroup("metro_ai");
 	if (group == nullptr) {
 		IniGroup &g = ini.GetOrCreateGroup("metro_ai");
-		g.comment = "; Metro mod: AI town rating. provider = deepseek or gemini (Gemma via Google AI Studio).\n; Leave api_key empty to use the standard rating formula only.\n";
+		g.comment = "; Metro mod: AI town rating. provider = deepseek or gemini (Gemma via Google AI Studio).\n; base_url: full URL of any OpenAI-compatible chat completions endpoint (empty = api.deepseek.com).\n; Leave api_key empty to use the standard rating formula only.\n";
 		g.GetOrCreateItem("provider").SetValue(_metro_ai_config.provider);
 		g.GetOrCreateItem("api_key").SetValue("");
 		g.GetOrCreateItem("model").SetValue("");
-		g.GetOrCreateItem("endpoint").SetValue("");
+		g.GetOrCreateItem("base_url").SetValue("");
 		g.GetOrCreateItem("max_requests_per_quarter").SetValue(fmt::format("{}", _metro_ai_config.max_requests_per_quarter));
 		g.GetOrCreateItem("window_threshold").SetValue(fmt::format("{}", _metro_ai_config.window_threshold));
 		ini.SaveToDisk(_secrets_file);
@@ -126,10 +132,12 @@ static void LoadMetroAiConfig()
 	get("provider", _metro_ai_config.provider);
 	get("api_key", _metro_ai_config.api_key);
 	get("model", _metro_ai_config.model);
-	get("endpoint", _metro_ai_config.endpoint);
+	get("endpoint", _metro_ai_config.base_url); // name used by the first version
+	get("base_url", _metro_ai_config.base_url);
 	get_uint("max_requests_per_quarter", _metro_ai_config.max_requests_per_quarter);
 	get_uint("window_threshold", _metro_ai_config.window_threshold);
-	Debug(misc, 1, "[metro_ai] provider={} model={} key={}", _metro_ai_config.provider, _metro_ai_config.GetModel(), _metro_ai_config.api_key.empty() ? "none" : "set");
+	Debug(misc, 1, "[metro_ai] provider={} model={} url={} key={}", _metro_ai_config.provider, _metro_ai_config.GetModel(),
+			_metro_ai_config.IsGemini() ? "Google AI Studio" : _metro_ai_config.GetUrl(), _metro_ai_config.api_key.empty() ? "none" : "set");
 }
 
 static const MetroAiConfig &GetMetroAiConfig()
@@ -370,12 +378,21 @@ public:
 	std::string response;
 	bool finished = false;
 	bool success = false;
+	bool timed_out = false;
+	int error_status = 0;     ///< HTTP status of a failure, 0 for a connection error.
+	std::string error_body;   ///< Server answer or error message of a failure.
 
 	MetroAiCallback(const MetroAiJob &job, uint32_t generation) : job(job), generation(generation) {}
 
 	void OnFailure() override
 	{
 		this->finished = true;
+	}
+
+	void OnHTTPError(int status, std::string body) override
+	{
+		this->error_status = status;
+		this->error_body = std::move(body);
 	}
 
 	void OnReceiveData(UniqueBuffer<char> data) override
@@ -430,7 +447,8 @@ static std::string BuildRequestBody(const std::string &system_prompt, const std:
 			{{"role", "system"}, {"content", system_prompt}},
 			{{"role", "user"}, {"content", user_prompt}},
 		});
-		body["response_format"] = {{"type", "json_object"}};
+		if (config.IsOfficialDeepSeek()) body["response_format"] = {{"type", "json_object"}};
+		body["stream"] = false;
 		body["max_tokens"] = max_tokens;
 		body["temperature"] = 0.8;
 	}
@@ -455,7 +473,7 @@ static void SendNextRequest()
 			}
 			system_prompt = BuildTownSystemPrompt();
 			user_prompt = BuildTownUserPrompt(t, GetTownState(t));
-			max_tokens = 450;
+			max_tokens = METRO_AI_TOWN_MAX_TOKENS;
 		} else {
 			if (!Company::IsValidID(_local_company)) {
 				Debug(misc, 1, "[metro_ai] skipping year report {}: no company", job.year);
@@ -463,7 +481,7 @@ static void SendNextRequest()
 			}
 			system_prompt = BuildYearSystemPrompt();
 			user_prompt = BuildYearUserPrompt(job.year);
-			max_tokens = 700;
+			max_tokens = METRO_AI_YEAR_MAX_TOKENS;
 		}
 		Debug(misc, 2, "[metro_ai] request:\n{}", user_prompt);
 
@@ -561,7 +579,7 @@ static bool ApplyTownReview(Town *t, MetroTownAiState &state, const nlohmann::js
 	}
 
 	state.has_review = true;
-	state.failed = false;
+	state.failure = MetroAiFailure::None;
 	state.ai_rating = target;
 	state.last_delta = delta;
 	state.review_date = CalTime::CurDate().base();
@@ -594,18 +612,38 @@ static bool ApplyYearReport(int32_t year, const nlohmann::json &j)
 	return true;
 }
 
+/** First @p length characters of a server answer on one line, for the console and the window. */
+static std::string ShortForConsole(const std::string &text, size_t length = 200)
+{
+	std::string s = StrMakeValid(text.substr(0, length), StringValidationSetting::ReplaceTabCrNlWithSpace);
+	if (text.size() > length) s += "...";
+	return s;
+}
+
 /** Process a finished request in the game thread. */
 static void FinishRequest(MetroAiCallback &cb)
 {
 	if (cb.generation != _metro_ai_generation) return;
 
 	std::optional<nlohmann::json> j;
+	MetroAiFailure failure = MetroAiFailure::None;
 	if (cb.success) {
 		std::optional<std::string> text = ExtractModelText(cb.response);
 		if (text.has_value()) j = ParseModelJson(*text);
-		if (!j.has_value()) Debug(misc, 0, "[metro_ai] could not parse answer: {}", cb.response.substr(0, 500));
+		if (!j.has_value()) {
+			failure = MetroAiFailure::BadAnswer;
+			bool cut = cb.response.find("\"finish_reason\":\"length\"") != std::string::npos || cb.response.find("\"finishReason\": \"MAX_TOKENS\"") != std::string::npos;
+			IConsolePrint(CC_ERROR, "[metro_ai] could not parse the answer{}: {}", cut ? " (cut off by the token limit)" : "", ShortForConsole(cb.response));
+		}
+	} else if (cb.timed_out) {
+		failure = MetroAiFailure::Timeout;
+		IConsolePrint(CC_ERROR, "[metro_ai] request timed out after {} seconds", METRO_AI_TIMEOUT_SECONDS + 15);
+	} else if (cb.error_status != 0) {
+		failure = MetroAiFailure::Http;
+		IConsolePrint(CC_ERROR, "[metro_ai] request failed: HTTP {}: {}", cb.error_status, ShortForConsole(cb.error_body));
 	} else {
-		Debug(misc, 0, "[metro_ai] request failed (no internet, wrong key or server error); keeping the old assessment");
+		failure = MetroAiFailure::Network;
+		IConsolePrint(CC_ERROR, "[metro_ai] request failed: no connection: {}", ShortForConsole(cb.error_body));
 	}
 
 	if (cb.job.kind == MetroAiJob::Kind::TownReview) {
@@ -613,9 +651,14 @@ static void FinishRequest(MetroAiCallback &cb)
 		if (t == nullptr) return;
 		MetroTownAiState &state = GetTownState(t);
 		state.pending = false;
-		if (!j.has_value() || !Company::IsValidID(_local_company) || !ApplyTownReview(t, state, *j)) {
-			if (j.has_value()) Debug(misc, 0, "[metro_ai] answer has wrong fields, keeping the old assessment");
-			state.failed = true;
+		if (j.has_value() && Company::IsValidID(_local_company) && !ApplyTownReview(t, state, *j)) {
+			failure = MetroAiFailure::BadAnswer;
+			IConsolePrint(CC_ERROR, "[metro_ai] the answer has wrong fields: {}", ShortForConsole(cb.response));
+		}
+		if (failure != MetroAiFailure::None) {
+			state.failure = failure;
+			state.failure_status = cb.error_status;
+			state.failure_text = ShortForConsole(cb.error_body, 80);
 		}
 		InvalidateWindowData(WindowClass::TownAuthority, t->index);
 	} else if (j.has_value()) {
@@ -631,8 +674,7 @@ static const IntervalTimer<TimerGameRealtime> _metro_ai_pump({std::chrono::milli
 	if (_metro_ai_running != nullptr) {
 		if (!_metro_ai_running->finished) {
 			if (std::chrono::steady_clock::now() - _metro_ai_started < std::chrono::seconds(METRO_AI_TIMEOUT_SECONDS + 15)) return;
-			Debug(misc, 0, "[metro_ai] request timed out");
-			_metro_ai_running->generation = UINT32_MAX; // drop a late answer
+			_metro_ai_running->timed_out = true;
 			_metro_ai_running->success = false;
 		}
 		MetroAiCallback *cb = _metro_ai_running;
@@ -754,8 +796,21 @@ std::vector<std::string> MetroAiGetAuthorityLines(const Town *t)
 	}
 	if (state.pending) {
 		lines.push_back(GetString(STR_METRO_AI_PENDING));
-	} else if (state.failed) {
-		lines.push_back(GetString(STR_METRO_AI_FAILED));
+	} else if (state.failure != MetroAiFailure::None) {
+		switch (state.failure) {
+			case MetroAiFailure::Http: {
+				StringID hint = STR_EMPTY;
+				if (state.failure_status == 401 || state.failure_status == 403) hint = STR_METRO_AI_HINT_KEY;
+				if (state.failure_status == 400 || state.failure_status == 404) hint = STR_METRO_AI_HINT_URL;
+				if (state.failure_status == 429) hint = STR_METRO_AI_HINT_RATE;
+				if (state.failure_status >= 500) hint = STR_METRO_AI_HINT_SERVER;
+				lines.push_back(GetString(STR_METRO_AI_FAILED_HTTP, state.failure_status, hint));
+				break;
+			}
+			case MetroAiFailure::Network: lines.push_back(GetString(STR_METRO_AI_FAILED_NETWORK, state.failure_text)); break;
+			case MetroAiFailure::Timeout: lines.push_back(GetString(STR_METRO_AI_FAILED_TIMEOUT)); break;
+			default: lines.push_back(GetString(STR_METRO_AI_FAILED_ANSWER)); break;
+		}
 	} else if (state.ChangeWeight() > 0) {
 		lines.push_back(GetString(STR_METRO_AI_CHANGES, state.ChangeWeight()));
 	}

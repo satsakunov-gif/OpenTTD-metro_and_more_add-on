@@ -255,6 +255,7 @@ void HttpThread()
 
 			/* No need to be verbose about rate limiting. */
 			Debug(net, (request->callback.cancelled || _http_thread_exit || status_code == HTTP_429_TOO_MANY_REQUESTS) ? 1 : 0, "HTTP request failed: status_code: {}, error: {}", status_code, curl_easy_strerror(res));
+			request->callback.OnHTTPError(static_cast<int>(status_code), curl_easy_strerror(res));
 			request->callback.OnFailure();
 		}
 

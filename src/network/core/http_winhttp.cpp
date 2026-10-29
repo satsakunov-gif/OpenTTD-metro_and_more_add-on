@@ -30,6 +30,8 @@ private:
 	const std::string data; ///< Data to send, if any.
 	const std::wstring headers; ///< Extra headers, "\r\n" separated.
 	const int timeout_seconds; ///< Receive timeout override, 0 for the session default.
+	DWORD error_status = 0; ///< HTTP error status; the body is then read into #error_body instead of the callback.
+	std::string error_body; ///< Start of the body of an HTTP error response.
 
 	HINTERNET connection = nullptr;      ///< Current connection object.
 	HINTERNET request = nullptr;         ///< Current request object.
@@ -74,14 +76,13 @@ NetworkHTTPRequest::NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callbac
 }
 
 /**
- * Gets the last error from Windows as a string.
- * @return The human readable form of the last error.
+ * Gets a WinHTTP error as a string.
+ * @param error_code The error code.
+ * @return The human readable form of the error.
  */
-static std::string GetLastErrorAsString()
+static std::string GetErrorAsString(DWORD error_code)
 {
 	wchar_t buffer[512];
-
-	DWORD error_code = GetLastError();
 
 	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS, GetModuleHandle(L"winhttp.dll"), error_code,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, static_cast<DWORD>(std::size(buffer)), nullptr) == 0) {
@@ -89,6 +90,15 @@ static std::string GetLastErrorAsString()
 	}
 
 	return FS2OTTD(buffer);
+}
+
+/**
+ * Gets the last error from Windows as a string.
+ * @return The human readable form of the last error.
+ */
+static std::string GetLastErrorAsString()
+{
+	return GetErrorAsString(GetLastError());
 }
 
 /**
@@ -127,6 +137,7 @@ void NetworkHTTPRequest::WinHttpCallback(DWORD code, void *info, DWORD length)
 			/* Make sure we are not in a redirect loop. */
 			if (this->depth++ > 5) {
 				Debug(net, 0, "HTTP request failed: too many redirects");
+				this->callback.OnHTTPError(0, "too many redirects");
 				this->callback.OnFailure();
 				this->finished = true;
 				return;
@@ -146,13 +157,11 @@ void NetworkHTTPRequest::WinHttpCallback(DWORD code, void *info, DWORD length)
 			WinHttpQueryHeaders(this->request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status_code, &status_code_size, WINHTTP_NO_HEADER_INDEX);
 			Debug(net, 3, "HTTP request status code: {}", status_code);
 
-			/* If there is any error, we simply abort the request. */
+			/* On an error the body is still read (it often explains the error), then the request fails. */
 			if (status_code >= 400) {
 				/* No need to be verbose about rate limiting. */
 				Debug(net, status_code == HTTP_429_TOO_MANY_REQUESTS ? 1 : 0, "HTTP request failed: status-code {}", status_code);
-				this->callback.OnFailure();
-				this->finished = true;
-				return;
+				this->error_status = status_code;
 			}
 
 			/* Next step: query for any data. */
@@ -173,6 +182,19 @@ void NetworkHTTPRequest::WinHttpCallback(DWORD code, void *info, DWORD length)
 		case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
 			Debug(net, 6, "HTTP callback: {} bytes", length);
 
+			if (this->error_status != 0) {
+				std::unique_ptr<char[]> data(static_cast<char *>(info));
+				if (length != 0) {
+					if (this->error_body.size() < 4096) this->error_body.append(data.get(), length);
+					WinHttpQueryDataAvailable(this->request, nullptr);
+					break;
+				}
+				this->callback.OnHTTPError(static_cast<int>(this->error_status), std::move(this->error_body));
+				this->callback.OnFailure();
+				this->finished = true;
+				break;
+			}
+
 			this->callback.OnReceiveData(UniqueBuffer<char>(std::unique_ptr<char[]>(static_cast<char *>(info)), length));
 
 			if (length == 0) {
@@ -187,11 +209,14 @@ void NetworkHTTPRequest::WinHttpCallback(DWORD code, void *info, DWORD length)
 			break;
 
 		case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
-		case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
-			Debug(net, 0, "HTTP request failed: {}", GetLastErrorAsString());
+		case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR: {
+			std::string error = (code == WINHTTP_CALLBACK_STATUS_REQUEST_ERROR) ? GetErrorAsString(static_cast<WINHTTP_ASYNC_RESULT *>(info)->dwError) : "secure connection failed";
+			Debug(net, 0, "HTTP request failed: {}", error);
+			this->callback.OnHTTPError(0, std::move(error));
 			this->callback.OnFailure();
 			this->finished = true;
 			break;
+		}
 
 		default:
 			Debug(net, 0, "HTTP request failed: unexpected callback code 0x{:x}", code);
@@ -245,7 +270,9 @@ void NetworkHTTPRequest::Connect()
 	/* Create the HTTP connection. */
 	this->connection = WinHttpConnect(_winhttp_session, url_components.lpszHostName, url_components.nPort, 0);
 	if (this->connection == nullptr) {
-		Debug(net, 0, "HTTP request failed: {}", GetLastErrorAsString());
+		std::string error = GetLastErrorAsString();
+		Debug(net, 0, "HTTP request failed: {}", error);
+		this->callback.OnHTTPError(0, std::move(error));
 		this->callback.OnFailure();
 		this->finished = true;
 		return;
@@ -255,7 +282,9 @@ void NetworkHTTPRequest::Connect()
 	if (this->request == nullptr) {
 		WinHttpCloseHandle(this->connection);
 
-		Debug(net, 0, "HTTP request failed: {}", GetLastErrorAsString());
+		std::string error = GetLastErrorAsString();
+		Debug(net, 0, "HTTP request failed: {}", error);
+		this->callback.OnHTTPError(0, std::move(error));
 		this->callback.OnFailure();
 		this->finished = true;
 		return;
@@ -375,7 +404,13 @@ void NetworkHTTPInitialize()
 {
 	/* We create a single session, from which we build up every other request. */
 	std::string user_agent = fmt::format("OpenTTD/{}", GetNetworkRevisionString());
-	_winhttp_session = WinHttpOpen(std::wstring(user_agent.begin(), user_agent.end()).c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
+	std::wstring user_agent_w(user_agent.begin(), user_agent.end());
+	/* Metro mod: use the proxy settings of the system like browsers do (Windows 8.1+). DEFAULT_PROXY only reads the
+	 * separate "netsh winhttp" setting, which is often stale and then makes every request fail. */
+	_winhttp_session = WinHttpOpen(user_agent_w.c_str(), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
+	if (_winhttp_session == nullptr) {
+		_winhttp_session = WinHttpOpen(user_agent_w.c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
+	}
 
 	/* Set the callback function for all requests. The "context" maps it back into the actual request instance. */
 	WinHttpSetStatusCallback(_winhttp_session, StaticWinHttpCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
