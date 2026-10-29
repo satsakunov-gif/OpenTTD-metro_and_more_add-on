@@ -130,8 +130,9 @@ struct MetroTownServicesWindow : Window {
 			ResetObjectToPlace();
 			return;
 		}
-		this->selected = type;
+		/* Switching from another service aborts its placement first, which clears the selection; select afterwards. */
 		SetObjectToPlaceWnd(SPR_CURSOR_HQ, PAL_NONE, HT_RECT, this);
+		this->selected = type;
 		this->UpdateCoverageHighlight();
 		this->SetDirty();
 	}
