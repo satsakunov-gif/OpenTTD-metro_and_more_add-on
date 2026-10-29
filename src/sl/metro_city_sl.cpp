@@ -69,6 +69,8 @@ static const NamedSaveLoad _metro_fire_desc[] = {
 	NSL("town",       SLE_VAR(MetroFire, town,       SLE_UINT16)),
 	NSL("ticks_left", SLE_VAR(MetroFire, ticks_left, SLE_UINT32)),
 	NSL("controlled", SLE_VAR(MetroFire, controlled, SLE_BOOL)),
+	NSL("stage",          SLE_VAR(MetroFire, stage,          SLE_UINT8)),  // metro_city v3; table chunk, absent in older saves
+	NSL("smoulder_ticks", SLE_VAR(MetroFire, smoulder_ticks, SLE_UINT16)), // metro_city v3
 };
 
 /** Description of a fire engine within the savegame. */

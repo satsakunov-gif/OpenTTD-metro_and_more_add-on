@@ -11,6 +11,7 @@
 #define METRO_CITY_TABLES_H
 
 #include "../metro_city.h"
+#include "../effectvehicle_func.h"
 #include "../object_type.h"
 #include "sprites.h"
 #include "strings.h"
@@ -52,8 +53,37 @@ static constexpr int METRO_HOSPITAL_NO_ROAD_MIN_RATING = -200;
 static constexpr uint32_t METRO_FIRE_TIMER_TICKS = 4000;      ///< 120 seconds at 30 ms per tick until the house burns down.
 static constexpr uint32_t METRO_FIRE_DAILY_CHANCE = 150;      ///< Each day an active town catches fire with chance 1 / this.
 static constexpr uint16_t METRO_FIRE_EXTINGUISH_TICKS = 300;  ///< Ticks the engine needs on site to put the fire out.
-static constexpr uint16_t METRO_FIRE_SMOKE_INTERVAL = 24;     ///< Ticks between smoke clouds over a burning house.
-static constexpr uint16_t METRO_FIRE_SMOKE_LIFETIME = 64;     ///< Ticks one smoke cloud lives.
+static constexpr uint16_t METRO_FIRE_SMOKE_LIFETIME = 64;     ///< Ticks one cloud of breakdown smoke lives (its creator must set it).
+static constexpr uint16_t METRO_FIRE_SMOULDER_TICKS = 200;    ///< A put out house smokes for this many ticks (~6 seconds).
+static constexpr uint8_t METRO_FIRE_SMOULDER_INTERVAL = 16;   ///< Ticks between smoke clouds of a put out house.
+static constexpr uint8_t METRO_FIRE_DAMAGE_STAGE = 2;         ///< A fire put out at this stage (the third) damages the house.
+static constexpr uint8_t METRO_FIRE_REPAIR_BUILDING_STAGE = 1; ///< A damaged house is rebuilt from this construction stage (0..2); while rebuilt, it has no residents.
+static constexpr uint8_t METRO_FIRE_FLAME_FRAMES = 4;         ///< Animation frames of an own flame overlay.
+static constexpr uint8_t METRO_FIRE_FLAME_FRAME_TICKS = 8;    ///< Ticks per frame of the flame overlay.
+
+/**
+ * Stage of a fire. The fire timer is split evenly between the stages (40 seconds each).
+ * Until there are own sprites, vanilla effects show the stage: their kind, how often and how many.
+ */
+struct MetroFireStageSpec {
+	StringID name;              ///< Stage in the town window, the tile info and the news.
+	EffectVehicleType smoke;    ///< Smoke over the house.
+	uint8_t smoke_interval;     ///< Ticks between smoke clouds.
+	uint8_t smoke_clouds;       ///< Clouds each time, over random tiles of the building.
+	uint8_t flame_interval;     ///< Ticks between flame bursts (small explosions) on the roof, 0 for none.
+	uint8_t spark_interval;     ///< Ticks between sparks, 0 for none.
+	uint8_t blaze_interval;     ///< Ticks between large explosions over the building, 0 for none.
+	SpriteID flame_sprite;      ///< First of #METRO_FIRE_FLAME_FRAMES frames of an own flame overlay over the house; 0 while there are no own sprites.
+};
+
+/** Fire stages: light smoke from a window, flames on the roof and thick smoke, the house ablaze with sparks. */
+static const MetroFireStageSpec _metro_fire_stage_specs[] = {
+	{ STR_METRO_CITY_FIRE_STAGE_SMOKE,  EV_STEAM_SMOKE,     20, 1,  0,  0,  0, 0 },
+	{ STR_METRO_CITY_FIRE_STAGE_ROOF,   EV_BREAKDOWN_SMOKE, 10, 2, 24,  0,  0, 0 },
+	{ STR_METRO_CITY_FIRE_STAGE_ABLAZE, EV_BREAKDOWN_SMOKE,  5, 3,  8, 10, 40, 0 },
+};
+static constexpr uint8_t METRO_FIRE_STAGE_COUNT = static_cast<uint8_t>(std::size(_metro_fire_stage_specs));
+static_assert(METRO_FIRE_DAMAGE_STAGE < METRO_FIRE_STAGE_COUNT);
 static constexpr uint16_t METRO_TRUCK_TICKS_PER_TILE = 12;    ///< Speed of a fire engine (a 100 km/h bus needs ~20 ticks per tile).
 static constexpr uint METRO_TRUCK_MAX_SEARCH = 20000;         ///< Maximum road tiles visited when looking for a route.
 static constexpr SpriteID METRO_TRUCK_SPRITE = 0xCD4;         ///< Vanilla bus sprite (8 directions), temporary.

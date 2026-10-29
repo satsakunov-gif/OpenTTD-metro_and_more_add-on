@@ -26,6 +26,7 @@
 
 struct Town;
 struct TileInfo;
+struct TileDesc;
 struct Station;
 
 /** Services the player can build in an active town. Data: table/metro_city_tables.h. */
@@ -80,6 +81,10 @@ struct MetroFire {
 	uint16_t town = 0;             ///< Town of the house.
 	uint32_t ticks_left = 0;       ///< Game ticks until the house burns down.
 	bool controlled = false;       ///< A fire engine arrived and is putting the fire out.
+	uint8_t stage = 0;             ///< Stage of the fire (0..2) announced so far, see _metro_fire_stage_specs.
+	uint16_t smoulder_ticks = 0;   ///< The fire is out and the house still smokes for this many ticks; 0 while it burns.
+
+	bool IsBurning() const { return this->smoulder_ticks == 0; }
 };
 
 /** State of a fire engine. */
@@ -134,6 +139,7 @@ uint MetroCityAdjustGrowthRate(const Town *t, uint rate);
 
 /* Drawing. */
 void MetroCityDrawTile(const TileInfo *ti);
+void MetroCityAdjustHouseTileDesc(TileIndex tile, TileDesc &td);
 
 /* Tourists and matches. */
 Money MetroCityDeliveryBonus(const Station *st, CargoType cargo, uint amount, Money profit);

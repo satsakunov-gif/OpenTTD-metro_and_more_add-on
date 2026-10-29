@@ -2662,7 +2662,7 @@ STR_METRO_CITY_TOWN_INACTIVE                                    :{SILVER}Not act
 STR_METRO_CITY_TOWN_SERVICES                                    :{BLACK}Schools: {NUM}, hospitals: {NUM}, universities: {NUM}, fire stations: {NUM}, fire posts: {NUM}
 STR_METRO_CITY_TOWN_NO_SCHOOL                                   :{ORANGE}No school: the town grows slower
 STR_METRO_CITY_TOWN_FIRES                                       :{BLACK}Fires put out: {NUM}, houses burned: {NUM}
-STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}A house is on fire! {NUM} s left
+STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}A house is on fire: {STRING}! {NUM} s left
 STR_METRO_CITY_TOWN_TOURISTS                                    :{BLACK}Tourists last month: {NUM}, extra income: {CURRENCY_LONG}
 STR_METRO_CITY_TOWN_MATCH                                       :{BLACK}Next match: {STRING}, {DATE_LONG}
 STR_METRO_CITY_SERVICES_BUTTON                                  :{BLACK}Services
@@ -2701,10 +2701,17 @@ STR_METRO_CITY_ERR_POPULATION                                   :{WHITE}... the 
 STR_METRO_CITY_ERR_HOUSE_TOO_BIG                                :{WHITE}... only a small house of this town can be replaced
 STR_METRO_CITY_ERR_STRAIGHT_ROAD                                :{WHITE}... a fire post needs a straight road without junctions
 STR_METRO_CITY_ERR_POST_EXISTS                                  :{WHITE}... there is already a fire post here
-STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Fire in {TOWN}!{}A fire engine is on its way
-STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Fire in {TOWN}!{}No fire engine can reach the house
-STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Firefighters put out the fire in {TOWN}
+STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Fire in {TOWN}: {STRING}!{}A fire engine is on its way
+STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Fire in {TOWN}: {STRING}!{}No fire engine can reach the house
+STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Firefighters put out the fire in {TOWN} ({STRING})
 STR_METRO_CITY_NEWS_BURNED                                      :{BIG_FONT}{BLACK}House burned down in {TOWN}: firefighters were too late
+STR_METRO_CITY_NEWS_FIRE_STAGE                                  :{BIG_FONT}{BLACK}The fire in {TOWN} grows: {STRING}!
+STR_METRO_CITY_NEWS_FIRE_OUT_DAMAGED                            :{BIG_FONT}{BLACK}Firefighters put out the fire in {TOWN} ({STRING}){}The house is damaged: fewer residents until it is repaired
+STR_METRO_CITY_TOWN_FIRE_FIGHTING                               :{RED}A house is on fire: {STRING}. Firefighters are at work
+STR_METRO_CITY_FIRE_STAGE_SMOKE                                 :smoke from a window
+STR_METRO_CITY_FIRE_STAGE_ROOF                                  :flames on the roof
+STR_METRO_CITY_FIRE_STAGE_ABLAZE                                :the house is ablaze
+STR_METRO_LAI_HOUSE_ON_FIRE                                     :{STRING} (on fire: {STRING})
 STR_METRO_CITY_NEWS_MATCH_ANNOUNCE                              :{BIG_FONT}{BLACK}In a month at the {TOWN} stadium: {STRING}!{}Fans travel from: {RAW_STRING}
 STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLACK}Match day in {TOWN}: {STRING}!{}Fans travel from: {RAW_STRING}
 STR_METRO_CITY_MATCH_LOCAL                                      :local match

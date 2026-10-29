@@ -2343,7 +2343,7 @@ STR_METRO_CITY_TOWN_INACTIVE                                    :{SILVER}Не а
 STR_METRO_CITY_TOWN_SERVICES                                    :{BLACK}Школ: {NUM}, больниц: {NUM}, университетов: {NUM}, пожарных частей: {NUM}, постов: {NUM}
 STR_METRO_CITY_TOWN_NO_SCHOOL                                   :{ORANGE}Нет школы: город растёт медленнее
 STR_METRO_CITY_TOWN_FIRES                                       :{BLACK}Потушено пожаров: {NUM}, сгорело домов: {NUM}
-STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}Горит дом! Осталось {NUM} с
+STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}Горит дом: {STRING}! Осталось {NUM} с
 STR_METRO_CITY_TOWN_TOURISTS                                    :{BLACK}Туристов за прошлый месяц: {NUM}, доп. доход: {CURRENCY_LONG}
 STR_METRO_CITY_TOWN_MATCH                                       :{BLACK}Следующий матч: {STRING}, {DATE_LONG}
 STR_METRO_CITY_SERVICES_BUTTON                                  :{BLACK}Службы
@@ -2382,10 +2382,17 @@ STR_METRO_CITY_ERR_POPULATION                                   :{WHITE}... в �
 STR_METRO_CITY_ERR_HOUSE_TOO_BIG                                :{WHITE}... заменить можно только маленький дом этого города
 STR_METRO_CITY_ERR_STRAIGHT_ROAD                                :{WHITE}... посту нужна прямая дорога без перекрёстков
 STR_METRO_CITY_ERR_POST_EXISTS                                  :{WHITE}... здесь уже есть пожарный пост
-STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Пожар в городе {TOWN}!{}Пожарная машина уже едет
-STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Пожар в городе {TOWN}!{}Ни одна пожарная машина не может доехать
-STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Пожарные потушили пожар в городе {TOWN}
+STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Пожар в городе {TOWN}: {STRING}!{}Пожарная машина уже едет
+STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Пожар в городе {TOWN}: {STRING}!{}Ни одна пожарная машина не может доехать
+STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Пожарные потушили пожар в городе {TOWN} ({STRING})
 STR_METRO_CITY_NEWS_BURNED                                      :{BIG_FONT}{BLACK}В городе {TOWN} сгорел дом: пожарные не успели
+STR_METRO_CITY_NEWS_FIRE_STAGE                                  :{BIG_FONT}{BLACK}Пожар в городе {TOWN} разгорается: {STRING}!
+STR_METRO_CITY_NEWS_FIRE_OUT_DAMAGED                            :{BIG_FONT}{BLACK}Пожарные потушили пожар в городе {TOWN} ({STRING}){}Дом повреждён: жителей меньше, пока идёт ремонт
+STR_METRO_CITY_TOWN_FIRE_FIGHTING                               :{RED}Горит дом: {STRING}. Пожарные тушат
+STR_METRO_CITY_FIRE_STAGE_SMOKE                                 :дым из окна
+STR_METRO_CITY_FIRE_STAGE_ROOF                                  :пламя на крыше
+STR_METRO_CITY_FIRE_STAGE_ABLAZE                                :дом охвачен огнём
+STR_METRO_LAI_HOUSE_ON_FIRE                                     :{STRING} (пожар: {STRING})
 STR_METRO_CITY_NEWS_MATCH_ANNOUNCE                              :{BIG_FONT}{BLACK}Через месяц на стадионе города {TOWN}: {STRING}!{}Болельщики едут из: {RAW_STRING}
 STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLACK}День матча в городе {TOWN}: {STRING}!{}Болельщики едут из: {RAW_STRING}
 STR_METRO_CITY_MATCH_LOCAL                                      :местный матч

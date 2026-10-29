@@ -488,7 +488,7 @@ void ClearAllTownCachedNames()
  * @param t The town which has changed.
  * @param mod The population change (can be positive or negative).
  */
-static void ChangePopulation(Town *t, int mod)
+void ChangePopulation(Town *t, int mod)
 {
 	t->cache.population += mod;
 	if (_generating_town) [[unlikely]] return;
@@ -927,6 +927,7 @@ static void GetTileDesc_Town(TileIndex tile, TileDesc &td)
 		td.dparam[0] = td.str;
 		td.str = STR_LAI_TOWN_INDUSTRY_DESCRIPTION_UNDER_CONSTRUCTION;
 	}
+	MetroCityAdjustHouseTileDesc(tile, td);
 
 	if (hs->grf_prop.HasGrfFile()) {
 		const GRFConfig *gc = GetGRFConfig(hs->grf_prop.grfid);
