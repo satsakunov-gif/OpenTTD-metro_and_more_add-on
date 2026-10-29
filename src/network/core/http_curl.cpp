@@ -59,10 +59,12 @@ public:
 	 * @param callback the callback to send data back on.
 	 * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
 	 */
-	NetworkHTTPRequest(std::string_view uri, HTTPCallback *callback, std::string data) :
+	NetworkHTTPRequest(std::string_view uri, HTTPCallback *callback, std::string data, std::string headers, int timeout_seconds) :
 		uri(uri),
 		callback(callback),
-		data(std::move(data))
+		data(std::move(data)),
+		headers(std::move(headers)),
+		timeout_seconds(timeout_seconds)
 	{
 		std::lock_guard<std::mutex> lock(_new_http_callback_mutex);
 		_new_http_callbacks.push_back(&this->callback);
@@ -77,6 +79,8 @@ public:
 	const std::string uri; ///< URI to connect to.
 	HTTPThreadSafeCallback callback; ///< Callback to send data back on.
 	const std::string data; ///< Data to send, if any.
+	const std::string headers; ///< Extra headers, "\r\n" separated.
+	const int timeout_seconds; ///< Total timeout, 0 for none.
 };
 
 static std::thread _http_thread; ///< The thread running the HTTP requests.
@@ -90,7 +94,7 @@ static std::string _http_ca_path = ""; ///< Folder with certificate authority da
 #endif /* UNIX */
 
 
-/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data)
+/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data, std::string &&headers, int timeout_seconds)
 {
 #if defined(UNIX)
 	if (_http_ca_file.empty() && _http_ca_path.empty()) {
@@ -100,7 +104,7 @@ static std::string _http_ca_path = ""; ///< Folder with certificate authority da
 #endif /* UNIX */
 
 	std::lock_guard<std::mutex> lock(_http_mutex);
-	_http_requests.push(std::make_unique<NetworkHTTPRequest>(uri, callback, std::move(data)));
+	_http_requests.push(std::make_unique<NetworkHTTPRequest>(uri, callback, std::move(data), std::move(headers), timeout_seconds));
 	_http_cv.notify_one();
 }
 
@@ -199,8 +203,15 @@ void HttpThread()
 
 			CurlSetOption(curl, CURLOPT_POST, 1L);
 			CurlSetOption(curl, CURLOPT_POSTFIELDS, request->data.c_str());
-			CurlSetOption(curl, CURLOPT_HTTPHEADER, headers);
 		}
+		for (std::string_view rest = request->headers; !rest.empty();) {
+			size_t end = rest.find("\r\n");
+			std::string line(rest.substr(0, end));
+			if (!line.empty()) headers = curl_slist_append(headers, line.c_str());
+			rest = (end == std::string_view::npos) ? std::string_view{} : rest.substr(end + 2);
+		}
+		if (headers != nullptr) CurlSetOption(curl, CURLOPT_HTTPHEADER, headers);
+		if (request->timeout_seconds > 0) CurlSetOption(curl, CURLOPT_TIMEOUT, static_cast<long>(request->timeout_seconds));
 		CurlSetOption(curl, CURLOPT_URL, request->uri.c_str());
 
 		/* Setup our (C-style) callback function which we pipe back into the callback. */

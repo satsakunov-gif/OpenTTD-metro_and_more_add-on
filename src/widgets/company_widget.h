@@ -79,6 +79,7 @@ enum CompanyFinancesWidgets : WidgetID {
 	WID_CF_INCREASE_LOAN,  ///< Increase loan.
 	WID_CF_REPAY_LOAN,     ///< Decrease loan..
 	WID_CF_INFRASTRUCTURE, ///< View company infrastructure.
+	WID_CF_METRO_YEAR_REPORT, ///< Metro mod: "Results of the year" article.
 };
 
 

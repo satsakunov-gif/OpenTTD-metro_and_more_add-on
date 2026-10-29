@@ -11,6 +11,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "newgrf_object.h"
 #include "viewport_func.h"
 #include "command_func.h"
@@ -533,6 +534,7 @@ CommandCost CmdBuildBridge(DoCommandFlags flags, TileIndex tile_end, TileIndex t
 					return CommandCostWithParam(STR_ERROR_LOCAL_AUTHORITY_REFUSES_TO_ALLOW_THIS, t->index);
 				} else {
 					ChangeTownRating(t, RATING_TUNNEL_BRIDGE_UP_STEP, RATING_MAXIMUM, flags);
+					MetroAiNoteTownChange(t, MetroTownChange::TunnelBridgeImproved, flags);
 				}
 			}
 		}
@@ -1356,6 +1358,7 @@ static CommandCost DoClearTunnel(TileIndex tile, DoCommandFlags flags)
 	 * you have a "Poor" (0) town rating */
 	if (IsTileOwner(tile, OWNER_TOWN) && _game_mode != GameMode::Editor) {
 		ChangeTownRating(t, RATING_TUNNEL_BRIDGE_DOWN_STEP, RATING_TUNNEL_BRIDGE_MINIMUM, flags);
+		MetroAiNoteTownChange(t, MetroTownChange::TunnelBridgeRemoved, flags);
 	}
 
 	const bool is_chunnel = Tunnel::GetByTile(tile)->is_chunnel;
@@ -1466,6 +1469,7 @@ static CommandCost DoClearBridge(TileIndex tile, DoCommandFlags flags)
 	 * you have a "Poor" (0) town rating */
 	if (IsTileOwner(tile, OWNER_TOWN) && _game_mode != GameMode::Editor) {
 		ChangeTownRating(t, RATING_TUNNEL_BRIDGE_DOWN_STEP, RATING_TUNNEL_BRIDGE_MINIMUM, flags);
+		MetroAiNoteTownChange(t, MetroTownChange::TunnelBridgeRemoved, flags);
 	}
 
 	CommandCost cost(ExpensesType::Construction);

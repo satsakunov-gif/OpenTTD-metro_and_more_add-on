@@ -8,6 +8,7 @@
 /** @file road_cmd.cpp Commands related to road tiles. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "road.h"
 #include "road_internal.h"
 #include "viewport_func.h"
@@ -617,6 +618,7 @@ CommandCost CheckAllowRemoveRoad(TileIndex tile, RoadBits remove, Owner owner, R
 		rating_decrease = RATING_ROAD_DOWN_STEP_INNER;
 	}
 	ChangeTownRating(t, rating_decrease, RATING_ROAD_MINIMUM, flags);
+	MetroAiNoteTownChange(t, MetroTownChange::RoadRemoved, flags);
 
 	return CommandCost();
 }

@@ -8,6 +8,7 @@
 /** @file town_gui.cpp GUI for towns. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "town.h"
 #include "viewport_func.h"
 #include "error.h"
@@ -71,6 +72,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_authority_widge
 		NWidget(WWT_STICKYBOX, Colours::Brown),
 	EndContainer(),
 	NWidget(WWT_PANEL, Colours::Brown, WID_TA_RATING_INFO), SetMinimalSize(317, 92), SetResize(1, 1), EndContainer(),
+	NWidget(WWT_PANEL, Colours::Brown, WID_TA_METRO_AI), SetMinimalSize(317, 24), SetResize(1, 0), EndContainer(),
 	NWidget(WWT_PANEL, Colours::Brown, WID_TA_COMMAND_LIST), SetMinimalSize(317, 52), SetResize(1, 0), SetToolTip(STR_LOCAL_AUTHORITY_ACTIONS_TOOLTIP), EndContainer(),
 	NWidget(WWT_PANEL, Colours::Brown, WID_TA_ACTION_INFO), SetMinimalSize(317, 52), SetResize(1, 0), EndContainer(),
 	NWidget(NWID_HORIZONTAL),
@@ -143,6 +145,7 @@ public:
 		this->town = Town::Get(window_number);
 		this->UpdateActionMask(false);
 		this->InitNested(window_number);
+		MetroAiOnAuthorityWindowOpened(this->town);
 	}
 
 	void OnInit() override
@@ -314,6 +317,14 @@ public:
 	void DrawWidget(const Rect &r, WidgetID widget) const override
 	{
 		switch (widget) {
+			case WID_TA_METRO_AI: {
+				Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+				for (const std::string &line : MetroAiGetAuthorityLines(this->town)) {
+					ir.top = DrawStringMultiLine(ir, line);
+				}
+				break;
+			}
+
 			case WID_TA_ACTION_INFO:
 				if (this->sel_index != -1) {
 					auto [text, colour] = this->PrepareActionInfoString(this->sel_index);
@@ -389,6 +400,14 @@ public:
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
 	{
 		switch (widget) {
+			case WID_TA_METRO_AI: {
+				int width = size.width - padding.width;
+				uint height = 0;
+				for (const std::string &line : MetroAiGetAuthorityLines(this->town)) height += GetStringHeight(line, width);
+				size.height = std::max<uint>(size.height, height + padding.height);
+				break;
+			}
+
 			case WID_TA_ACTION_INFO: {
 				assert(size.width > padding.width && size.height > padding.height);
 				Dimension d = {0, 0};
@@ -538,6 +557,12 @@ public:
 	void OnHundredthTick() override
 	{
 		this->SetDirty();
+	}
+
+	void OnInvalidateData([[maybe_unused]] int data = 0, bool gui_scope = true) override
+	{
+		/* Metro mod: the review text changed, so its panel may need another height. */
+		if (gui_scope) this->ReInit();
 	}
 };
 

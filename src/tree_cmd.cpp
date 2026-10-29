@@ -8,6 +8,7 @@
 /** @file tree_cmd.cpp Handling of tree tiles. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "clear_map.h"
 #include "landscape.h"
 #include "landscape_cmd.h"
@@ -803,6 +804,7 @@ struct CmdPlantTreeHelper {
 				if (_game_mode != GameMode::Editor && Company::IsValidID(_current_company)) {
 					Town *t = ClosestTownFromTile(tile, _settings_game.economy.dist_local_authority);
 					if (t != nullptr) ChangeTownRating(t, RATING_TREE_UP_STEP, RATING_TREE_MAXIMUM, this->flags);
+					MetroAiNoteTownChange(t, MetroTownChange::TreePlanted, this->flags);
 				}
 
 				if (this->flags.Test(DoCommandFlag::Execute)) {
@@ -1142,6 +1144,7 @@ static CommandCost ClearTile_Trees(TileIndex tile, DoCommandFlags flags)
 	if (Company::IsValidID(_current_company)) {
 		Town *t = ClosestTownFromTile(tile, _settings_game.economy.dist_local_authority);
 		if (t != nullptr) ChangeTownRating(t, RATING_TREE_DOWN_STEP, RATING_TREE_MINIMUM, flags);
+		MetroAiNoteTownChange(t, MetroTownChange::TreeRemoved, flags);
 	}
 
 	uint num = GetTreeCount(tile);

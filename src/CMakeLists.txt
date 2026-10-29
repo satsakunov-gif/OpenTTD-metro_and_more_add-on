@@ -292,6 +292,9 @@ add_files(
     map.cpp
     map_func.h
     map_type.h
+    metro_ai.cpp
+    metro_ai.h
+    metro_ai_gui.cpp
     misc.cpp
     misc_cmd.cpp
     misc_cmd.h

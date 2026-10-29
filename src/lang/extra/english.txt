@@ -2617,3 +2617,31 @@ STR_CONFIG_SETTING_NEWS_CARGO_FLOW                              :Overflowing car
 STR_CONFIG_SETTING_NEWS_CARGO_FLOW_HELPTEXT                     :Warn about stations where cargo is accumulating.{}The detection is based on shape of the cargo history graph, not on specific amount threshold.
 
 STR_STATION_CARGO_OVERFLOW                                      :{WHITE}{CARGO_LIST} overflowing at {STATION}
+
+# metro mod: AI town rating and year report
+STR_METRO_AI_DISABLED                                           :{SILVER}Mayor's review is off: no AI key in secrets.cfg (group [metro_ai], api_key). The standard rating formula is used.
+STR_METRO_AI_NO_REVIEW                                          :{BLACK}The mayor has not reviewed your company yet. A review comes once a quarter after you change something in the town.
+STR_METRO_AI_MAYOR                                              :{BLACK}Mayor: {GOLD}{STRING}
+STR_METRO_AI_VERDICT                                            :{BLACK}Verdict: {WHITE}{RAW_STRING}{BLACK} (assessment {NUM}, your rating changed by {NUM}), {DATE_LONG}
+STR_METRO_AI_EXPLANATION                                        :{ORANGE}"{RAW_STRING}"
+STR_METRO_AI_NEEDS                                              :{BLACK}The town needs:
+STR_METRO_AI_NEED_ITEM                                          :{BLACK}  - {RAW_STRING}
+STR_METRO_AI_PENDING                                            :{YELLOW}Waiting for the mayor's answer...
+STR_METRO_AI_FAILED                                             :{RED}The last request failed, the previous assessment is kept.
+STR_METRO_AI_CHANGES                                            :{BLACK}Changes since the last review: {NUM} point{P "" s}
+STR_METRO_AI_MAYOR_STRICT                                       :strict
+STR_METRO_AI_MAYOR_KIND                                         :kind
+STR_METRO_AI_MAYOR_BUREAUCRAT                                   :bureaucrat
+STR_METRO_AI_MAYOR_ECOLOGIST                                    :ecologist
+STR_METRO_AI_MAYOR_PRAGMATIST                                   :pragmatist
+STR_METRO_AI_MAYOR_POPULIST                                     :populist
+STR_FINANCES_METRO_YEAR_REPORT_BUTTON                           :{BLACK}Year results
+STR_FINANCES_METRO_YEAR_REPORT_TOOLTIP                          :{BLACK}Show the "Results of the year" newspaper article
+STR_METRO_YEAR_REPORT_CAPTION                                   :{WHITE}Results of the year {NUM}
+STR_METRO_YEAR_REPORT_TITLE                                     :{GOLD}{RAW_STRING}
+STR_METRO_YEAR_REPORT_TEXT                                      :{BLACK}{RAW_STRING}
+STR_METRO_YEAR_REPORT_NONE                                      :{BLACK}No article for this year. It is written in the last days of December when an AI key is set in secrets.cfg.
+STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Previous year
+STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Next year >
+STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Show the article of the previous year
+STR_METRO_YEAR_REPORT_NEXT_TOOLTIP                              :{BLACK}Show the article of the next year

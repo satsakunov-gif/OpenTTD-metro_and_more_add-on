@@ -8,6 +8,7 @@
 /** @file town_cmd.cpp Handling of town tiles. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "misc/history_type.hpp"
 #include "misc/history_func.hpp"
 #include "road.h"
@@ -124,6 +125,8 @@ Town::Town(TownID index, TileIndex tile) : PoolItemBase(index), xy(tile) {}
 Town::~Town()
 {
 	if (CleaningPool()) return;
+
+	MetroAiOnTownDeleted(this->index);
 
 	/* Delete town authority window
 	 * and remove from list of sorted towns */
@@ -776,6 +779,7 @@ static CommandCost ClearTile_Town(TileIndex tile, DoCommandFlags flags)
 	}
 
 	ChangeTownRating(t, -rating, RATING_HOUSE_MINIMUM, flags);
+	MetroAiNoteTownChange(t, MetroTownChange::HouseDemolished, flags);
 	if (flags.Test(DoCommandFlag::Execute)) {
 		ClearTownHouse(t, tile);
 	}
@@ -4168,6 +4172,7 @@ CommandCost CmdDoTownAction(DoCommandFlags flags, TownID town_id, TownAction act
 	if (flags.Test(DoCommandFlag::Execute)) {
 		SetWindowDirty(WindowClass::TownAuthority, town_id);
 	}
+	MetroAiNoteTownChange(t, MetroTownChange::TownAction, flags);
 
 	return cost;
 }

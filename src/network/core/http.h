@@ -53,8 +53,10 @@ public:
 	 * @param uri      the URI to connect to (https://.../..).
 	 * @param callback the callback to send data back on.
 	 * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
+	 * @param headers  extra request headers, each line "Name: value" terminated by "\r\n" (metro mod).
+	 * @param timeout_seconds total timeout for the request, 0 for the backend default (metro mod).
 	 */
-	static void Connect(std::string_view uri, HTTPCallback *callback, std::string &&data = {});
+	static void Connect(std::string_view uri, HTTPCallback *callback, std::string &&data = {}, std::string &&headers = {}, int timeout_seconds = 0);
 
 	/**
 	 * Do the receiving for all HTTP connections.

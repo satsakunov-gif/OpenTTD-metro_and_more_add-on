@@ -26,6 +26,7 @@ enum TownAuthorityWidgets : WidgetID {
 	WID_TA_CAPTION,      ///< Caption of window.
 	WID_TA_ZONE_BUTTON,  ///< Turn on/off showing local authority zone.
 	WID_TA_RATING_INFO,  ///< Overview with ratings for each company.
+	WID_TA_METRO_AI,     ///< Metro mod: review of the mayor written by the AI.
 	WID_TA_COMMAND_LIST, ///< List of commands for the player.
 	WID_TA_ACTION_INFO,  ///< Additional information about the action.
 	WID_TA_EXECUTE,      ///< Do-it button.

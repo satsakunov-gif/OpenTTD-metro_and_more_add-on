@@ -8,6 +8,7 @@
 /** @file misc.cpp Misc functions that shouldn't be here. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "landscape.h"
 #include "news_func.h"
 #include "ai/ai.hpp"
@@ -231,6 +232,7 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	AI::Initialize();
 	Game::Initialize();
 	InitializeCheats();
+	MetroAiReset();
 
 	InitTextEffects();
 	NetworkInitChatMessage();

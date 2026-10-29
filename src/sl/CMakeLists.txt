@@ -24,6 +24,7 @@ add_files(
     league_sl.cpp
     linkgraph_sl.cpp
     map_sl.cpp
+    metro_ai_sl.cpp
     misc_sl.cpp
     newgrf_sl.cpp
     newgrf_sl.h

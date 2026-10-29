@@ -71,3 +71,9 @@
 - `src/infrastructure.cpp` — содержание инфраструктуры (ЛЭП, склады).
 - `src/newgrf/`, `src/newgrf.cpp` — загрузка NewGRF (образец табличных данных).
 - `src/CMakeLists.txt` — список исходников; новые файлы `metro_*` добавлять сюда (`add_files`).
+
+## Код мода
+- `src/metro_ai.h`, `src/metro_ai.cpp` — ИИ-рейтинг администрации и годовой отчёт: конфиг из secrets.cfg, очередь запросов, промпты, разбор ответа, хуки изменений в городах, консольная команда `metro_ai`.
+- `src/metro_ai_gui.cpp` — окно «Итоги года».
+- `src/sl/metro_ai_sl.cpp` — сейв (чанки MTAI, MTYR).
+- `src/table/metro_ai_tables.h` — характеры мэров, веса изменений города.

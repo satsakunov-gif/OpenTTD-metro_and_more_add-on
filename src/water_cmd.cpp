@@ -8,6 +8,7 @@
 /** @file water_cmd.cpp Handling of water tiles. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "landscape.h"
 #include "landscape_cmd.h"
 #include "viewport_func.h"
@@ -653,6 +654,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlags flags)
 					if (Company::IsValidID(_current_company)) {
 						Town *town = ClosestTownFromTile(tile, _settings_game.economy.dist_local_authority);
 						if (town != nullptr) ChangeTownRating(town, RATING_WATER_RIVER_DOWN_STEP, RATING_WATER_MINIMUM, flags);
+						MetroAiNoteTownChange(town, MetroTownChange::RiverRemoved, flags);
 					}
 				}
 

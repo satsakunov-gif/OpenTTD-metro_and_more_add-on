@@ -2298,3 +2298,31 @@ STR_INTRO_TOOLTIP_NEWGRF_SETTINGS                               :{BLACK}Откр
 STR_INTRO_TOOLTIP_AI_SETTINGS                                   :{BLACK}Открыть настройки ИИ
 STR_INTRO_TOOLTIP_GAMESCRIPT_SETTINGS                           :{BLACK}Открыть настройки игровых скриптов
 STR_INTRO_CAPTION_TRADITIONAL                                   :{WHITE}OpenTTD {REV}
+
+# metro mod: AI town rating and year report
+STR_METRO_AI_DISABLED                                           :{SILVER}Оценка мэра выключена: нет ключа ИИ в secrets.cfg (группа [metro_ai], api_key). Рейтинг считается по стандартной формуле.
+STR_METRO_AI_NO_REVIEW                                          :{BLACK}Мэр ещё не оценивал вашу компанию. Оценка приходит раз в квартал, если вы что-то изменили в городе.
+STR_METRO_AI_MAYOR                                              :{BLACK}Мэр: {GOLD}{STRING}
+STR_METRO_AI_VERDICT                                            :{BLACK}Вердикт: {WHITE}{RAW_STRING}{BLACK} (оценка {NUM}, ваш рейтинг изменился на {NUM}), {DATE_LONG}
+STR_METRO_AI_EXPLANATION                                        :{ORANGE}«{RAW_STRING}»
+STR_METRO_AI_NEEDS                                              :{BLACK}Городу нужно:
+STR_METRO_AI_NEED_ITEM                                          :{BLACK}  - {RAW_STRING}
+STR_METRO_AI_PENDING                                            :{YELLOW}Ждём ответа мэра...
+STR_METRO_AI_FAILED                                             :{RED}Последний запрос не удался, сохранена прежняя оценка.
+STR_METRO_AI_CHANGES                                            :{BLACK}Изменений с прошлой оценки: {NUM} балл{P "" а ов}
+STR_METRO_AI_MAYOR_STRICT                                       :строгий
+STR_METRO_AI_MAYOR_KIND                                         :добродушный
+STR_METRO_AI_MAYOR_BUREAUCRAT                                   :бюрократ
+STR_METRO_AI_MAYOR_ECOLOGIST                                    :эколог
+STR_METRO_AI_MAYOR_PRAGMATIST                                   :прагматик
+STR_METRO_AI_MAYOR_POPULIST                                     :популист
+STR_FINANCES_METRO_YEAR_REPORT_BUTTON                           :{BLACK}Итоги года
+STR_FINANCES_METRO_YEAR_REPORT_TOOLTIP                          :{BLACK}Показать газетную статью «Итоги года»
+STR_METRO_YEAR_REPORT_CAPTION                                   :{WHITE}Итоги {NUM} года
+STR_METRO_YEAR_REPORT_TITLE                                     :{GOLD}{RAW_STRING}
+STR_METRO_YEAR_REPORT_TEXT                                      :{BLACK}{RAW_STRING}
+STR_METRO_YEAR_REPORT_NONE                                      :{BLACK}Статьи за этот год нет. Она пишется в последние дни декабря, если в secrets.cfg задан ключ ИИ.
+STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Предыдущий год
+STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Следующий год >
+STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Показать статью за предыдущий год
+STR_METRO_YEAR_REPORT_NEXT_TOOLTIP                              :{BLACK}Показать статью за следующий год

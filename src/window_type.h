@@ -849,6 +849,12 @@ enum class WindowClass : uint16_t {
 	 */
 	ModifierKeyToggle,
 
+	/**
+	 * Metro mod "Results of the year" window; %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroYearReport,
+
 	End,              ///< End sentinel.
 	Invalid = 0xFFFF, ///< Invalid window.
 };

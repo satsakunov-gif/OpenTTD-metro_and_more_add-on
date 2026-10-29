@@ -16,6 +16,7 @@ add_files(
     darklight_colours.h
     elrail_data.h
     engines.h
+    metro_ai_tables.h
     genland.h
     heightmap_colours.h
     industry_land.h

@@ -8,6 +8,7 @@
 /** @file company_gui.cpp %Company related GUIs. */
 
 #include "stdafx.h"
+#include "metro_ai.h"
 #include "currency_func.h"
 #include "error.h"
 #include "gui.h"
@@ -340,6 +341,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_company_finances_wid
 			NWidget(WWT_PUSHTXTBTN, Colours::Grey, WID_CF_INCREASE_LOAN), SetFill(1, 0),
 			NWidget(WWT_PUSHTXTBTN, Colours::Grey, WID_CF_REPAY_LOAN), SetFill(1, 0),
 			NWidget(WWT_PUSHTXTBTN, Colours::Grey, WID_CF_INFRASTRUCTURE), SetFill(1, 0), SetStringTip(STR_FINANCES_INFRASTRUCTURE_BUTTON, STR_COMPANY_VIEW_INFRASTRUCTURE_TOOLTIP),
+			NWidget(WWT_PUSHTXTBTN, Colours::Grey, WID_CF_METRO_YEAR_REPORT), SetFill(1, 0), SetStringTip(STR_FINANCES_METRO_YEAR_REPORT_BUTTON, STR_FINANCES_METRO_YEAR_REPORT_TOOLTIP),
 		EndContainer(),
 	EndContainer(),
 };
@@ -538,6 +540,10 @@ struct CompanyFinancesWindow : Window {
 
 			case WID_CF_INFRASTRUCTURE: // show infrastructure details
 				ShowCompanyInfrastructure((CompanyID)this->window_number);
+				break;
+
+			case WID_CF_METRO_YEAR_REPORT: // metro mod: "Results of the year" article
+				ShowMetroYearReportWindow();
 				break;
 		}
 	}

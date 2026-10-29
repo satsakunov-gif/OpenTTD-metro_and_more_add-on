@@ -28,6 +28,8 @@ private:
 	const std::wstring uri; ///< URI to connect to.
 	HTTPThreadSafeCallback callback; ///< Callback to send data back on.
 	const std::string data; ///< Data to send, if any.
+	const std::wstring headers; ///< Extra headers, "\r\n" separated.
+	const int timeout_seconds; ///< Receive timeout override, 0 for the session default.
 
 	HINTERNET connection = nullptr;      ///< Current connection object.
 	HINTERNET request = nullptr;         ///< Current request object.
@@ -35,7 +37,7 @@ private:
 	int depth = 0;                       ///< Current redirect depth we are in.
 
 public:
-	NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data);
+	NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data, std::wstring &&headers, int timeout_seconds);
 
 	~NetworkHTTPRequest();
 
@@ -60,10 +62,12 @@ static std::mutex _new_http_callback_mutex; ///< Mutex to prevent concurrent acc
  * @param callback the callback to send data back on.
  * @param data     the data we want to send. When non-empty, this will be a POST request, otherwise a GET request.
  */
-NetworkHTTPRequest::NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data) :
+NetworkHTTPRequest::NetworkHTTPRequest(std::wstring &&uri, HTTPCallback *callback, std::string &&data, std::wstring &&headers, int timeout_seconds) :
 	uri(std::move(uri)),
 	callback(callback),
-	data(std::move(data))
+	data(std::move(data)),
+	headers(std::move(headers)),
+	timeout_seconds(timeout_seconds)
 {
 	std::lock_guard<std::mutex> lock(_new_http_callback_mutex);
 	_new_http_callbacks.push_back(&this->callback);
@@ -257,13 +261,23 @@ void NetworkHTTPRequest::Connect()
 		return;
 	}
 
+	if (this->timeout_seconds > 0) {
+		int ms = this->timeout_seconds * 1000;
+		WinHttpSetTimeouts(this->request, 10000, 10000, ms, ms);
+	}
+
 	/* Send the request (possibly with a payload). */
 	if (data.empty()) {
-		WinHttpSendRequest(this->request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(this));
+		if (this->headers.empty()) {
+			WinHttpSendRequest(this->request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(this));
+		} else {
+			WinHttpSendRequest(this->request, this->headers.c_str(), -1, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(this));
+		}
 	} else {
 		/* When the payload starts with a '{', it is a JSON payload. */
-		LPCWSTR content_type = data.starts_with("{") ? L"Content-Type: application/json\r\n" : L"Content-Type: application/x-www-form-urlencoded\r\n";
-		WinHttpSendRequest(this->request, content_type, -1, const_cast<char *>(data.data()), static_cast<DWORD>(data.size()), static_cast<DWORD>(data.size()), reinterpret_cast<DWORD_PTR>(this));
+		std::wstring all_headers = data.starts_with("{") ? L"Content-Type: application/json\r\n" : L"Content-Type: application/x-www-form-urlencoded\r\n";
+		all_headers += this->headers;
+		WinHttpSendRequest(this->request, all_headers.c_str(), -1, const_cast<char *>(data.data()), static_cast<DWORD>(data.size()), static_cast<DWORD>(data.size()), reinterpret_cast<DWORD_PTR>(this));
 	}
 }
 
@@ -303,9 +317,9 @@ NetworkHTTPRequest::~NetworkHTTPRequest()
 	_http_callbacks.erase(std::remove(_http_callbacks.begin(), _http_callbacks.end(), &this->callback), _http_callbacks.end());
 }
 
-/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data)
+/* static */ void NetworkHTTPSocketHandler::Connect(std::string_view uri, HTTPCallback *callback, std::string &&data, std::string &&headers, int timeout_seconds)
 {
-	auto request = new NetworkHTTPRequest(std::wstring(uri.begin(), uri.end()), callback, std::move(data));
+	auto request = new NetworkHTTPRequest(std::wstring(uri.begin(), uri.end()), callback, std::move(data), std::wstring(headers.begin(), headers.end()), timeout_seconds);
 	request->Connect();
 
 	std::lock_guard<std::mutex> lock(_new_http_requests_mutex);
