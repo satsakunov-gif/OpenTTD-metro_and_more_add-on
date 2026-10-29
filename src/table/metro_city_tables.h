@@ -24,7 +24,7 @@ struct MetroServiceSpec {
 	uint8_t cost_factor;      ///< Build cost in 1/256 of the town action base price (statue = 35).
 	uint8_t passengers;       ///< Passengers produced and accepted per 256 ticks (pupils, patients, students).
 	uint8_t trucks;           ///< Fire engines of the service.
-	uint8_t radius;           ///< Protection radius in tiles (Manhattan distance) of a fire service.
+	uint8_t radius;           ///< Protection radius in tiles of a fire service (square, like station coverage).
 };
 
 /** Services, indexed by #MetroServiceType. */

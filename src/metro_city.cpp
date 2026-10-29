@@ -187,6 +187,11 @@ uint32_t GetMetroServiceMinPopulation(MetroServiceType type)
 	return GetServiceSpec(type).min_population;
 }
 
+uint GetMetroServiceRadius(MetroServiceType type)
+{
+	return GetServiceSpec(type).radius;
+}
+
 /** Service object on the tile, or nullptr. */
 static const Object *GetServiceObject(TileIndex tile)
 {
@@ -617,7 +622,8 @@ static bool DispatchFireTruck(const MetroFire &fire)
 	std::vector<std::pair<uint, TileIndex>> homes;
 	auto consider = [&](TileIndex home, MetroServiceType type) {
 		if (!MetroCityIsTownActive(TownID{type == MetroServiceType::FirePost ? GetMetroFirePost(home)->town : Object::GetByTile(home)->town->index.base()})) return;
-		uint distance = DistanceManhattan(home, fire.tile);
+		/* The protection zone is a square, as highlighted when building. */
+		uint distance = DistanceMax(home, fire.tile);
 		if (distance <= GetServiceSpec(type).radius && CountTrucksAtHome(home, type) > 0) homes.emplace_back(distance, home);
 	};
 	for (const Object *o : Object::Iterate()) {

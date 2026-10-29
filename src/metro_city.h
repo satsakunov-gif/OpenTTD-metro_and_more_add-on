@@ -122,6 +122,7 @@ MetroServiceType GetMetroServiceTypeOfObject(ObjectType type);
 StringID GetMetroServiceName(MetroServiceType type);
 Money GetMetroServiceCost(MetroServiceType type);
 uint32_t GetMetroServiceMinPopulation(MetroServiceType type);
+uint GetMetroServiceRadius(MetroServiceType type);
 uint CountMetroServices(const Town *t, MetroServiceType type);
 const MetroFirePost *GetMetroFirePost(TileIndex tile);
 bool MetroCityGetServiceInfo(TileIndex tile, MetroServiceType &type, TownID &town, int32_t &build_date);

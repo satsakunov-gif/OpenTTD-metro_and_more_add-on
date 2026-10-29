@@ -132,7 +132,22 @@ struct MetroTownServicesWindow : Window {
 		}
 		this->selected = type;
 		SetObjectToPlaceWnd(SPR_CURSOR_HQ, PAL_NONE, HT_RECT, this);
+		this->UpdateCoverageHighlight();
 		this->SetDirty();
+	}
+
+	/** Like station coverage: show the protection zone of a fire station or post around the tile under the cursor. */
+	void UpdateCoverageHighlight() const
+	{
+		if (this->selected == MetroServiceType::End) return;
+		int rad = GetMetroServiceRadius(this->selected);
+		if (rad > 0) SetTileSelectBigSize(-rad, -rad, 2 * rad, 2 * rad);
+	}
+
+	void OnPaint() override
+	{
+		this->UpdateCoverageHighlight();
+		this->DrawWidgets();
 	}
 
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
