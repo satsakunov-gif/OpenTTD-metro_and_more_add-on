@@ -2654,3 +2654,59 @@ STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Previo
 STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Next year >
 STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Show the article of the previous year
 STR_METRO_YEAR_REPORT_NEXT_TOOLTIP                              :{BLACK}Show the article of the next year
+
+# metro mod: active towns, services, fires, tourists, matches
+STR_METRO_AI_TOWN_INACTIVE                                      :{SILVER}The town is not active yet: the mayor reviews the company only after its first station appears in the town.
+STR_METRO_CITY_TOWN_ACTIVE                                      :{GREEN}Active town{BLACK} since {DATE_LONG}
+STR_METRO_CITY_TOWN_INACTIVE                                    :{SILVER}Not active: build a station in the town to unlock services, fires, tourists and matches
+STR_METRO_CITY_TOWN_SERVICES                                    :{BLACK}Schools: {NUM}, hospitals: {NUM}, universities: {NUM}, fire stations: {NUM}, fire posts: {NUM}
+STR_METRO_CITY_TOWN_NO_SCHOOL                                   :{ORANGE}No school: the town grows slower
+STR_METRO_CITY_TOWN_FIRES                                       :{BLACK}Fires put out: {NUM}, houses burned: {NUM}
+STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}A house is on fire! {NUM} s left
+STR_METRO_CITY_TOWN_TOURISTS                                    :{BLACK}Tourists last month: {NUM}, extra income: {CURRENCY_LONG}
+STR_METRO_CITY_TOWN_MATCH                                       :{BLACK}Next match: {STRING}, {DATE_LONG}
+STR_METRO_CITY_SERVICES_BUTTON                                  :{BLACK}Services
+STR_METRO_CITY_SERVICES_TOOLTIP                                 :{BLACK}Build schools, hospitals, universities and fire stations in this town
+STR_METRO_CITY_LANDMARKS_BUTTON                                 :{BLACK}Landmarks
+STR_METRO_CITY_LANDMARKS_TOOLTIP                                :{BLACK}Show a green frame around the landmarks of active towns
+STR_METRO_CITY_SERVICES_CAPTION                                 :{WHITE}{TOWN}: services
+STR_METRO_CITY_SERVICES_ROW                                     :{BLACK}{STRING}: {CURRENCY_LONG}, built: {NUM}
+STR_METRO_CITY_SERVICES_ROW_LOCKED                              :{SILVER}{STRING}: from {NUM} residents
+STR_METRO_CITY_SERVICES_INACTIVE                                :{SILVER}The town is not active yet. Build a station in it first.
+STR_METRO_CITY_SERVICES_HINT                                    :{BLACK}Click a service, then a tile near the town. A fire station replaces an empty tile or a small house, a fire post stands on a straight road.
+STR_METRO_CITY_SERVICES_LIST_TOOLTIP                            :{BLACK}Click a service to place it
+STR_METRO_SERVICE_SCHOOL                                        :School
+STR_METRO_SERVICE_HOSPITAL                                      :Hospital
+STR_METRO_SERVICE_UNIVERSITY                                    :University
+STR_METRO_SERVICE_FIRE_STATION                                  :Fire station
+STR_METRO_SERVICE_FIRE_POST                                     :Fire post
+STR_METRO_SERVICE_EFFECT_SCHOOL                                 :{BLACK}Pupils travel to and from the school. Without a school a town of 2000+ residents grows slower.
+STR_METRO_SERVICE_EFFECT_HOSPITAL                               :{BLACK}Patients and visitors travel to the hospital. Without a road next to it the town rating of the owner falls every month.
+STR_METRO_SERVICE_EFFECT_UNIVERSITY                             :{BLACK}Students travel to and from the university, the town grows faster.
+STR_METRO_SERVICE_EFFECT_FIRE_STATION                           :{BLACK}Fire engines drive on roads to burning houses and put out fires.
+STR_METRO_SERVICE_EFFECT_FIRE_POST                              :{BLACK}Small drive-through post on the road with its own fire engine, works by itself.
+STR_METRO_SERVICE_CAPTION                                       :{WHITE}{STRING} ({TOWN})
+STR_METRO_SERVICE_BUILT                                         :{BLACK}Built: {DATE_LONG}
+STR_METRO_SERVICE_TRUCKS                                        :{BLACK}Fire engines at the station: {NUM} of {NUM}
+STR_METRO_SERVICE_RADIUS                                        :{BLACK}Protects houses within {NUM} tiles
+STR_METRO_SERVICE_NO_ROAD                                       :{RED}No road next to the hospital: the town rating falls every month
+STR_METRO_SERVICE_TOWN_INACTIVE                                 :{SILVER}The town is not active: the service does not work
+STR_METRO_SERVICE_REMOVE                                        :{BLACK}Remove
+STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Remove the fire post
+STR_METRO_CITY_ERR_CANT_BUILD                                   :{WHITE}Can't build the service here...
+STR_METRO_CITY_ERR_CANT_REMOVE                                  :{WHITE}Can't remove the fire post...
+STR_METRO_CITY_ERR_NO_TOWN                                      :{WHITE}... too far from a town
+STR_METRO_CITY_ERR_INACTIVE                                     :{WHITE}... the town is not active: build a station in it first
+STR_METRO_CITY_ERR_POPULATION                                   :{WHITE}... the town needs at least {NUM} residents
+STR_METRO_CITY_ERR_HOUSE_TOO_BIG                                :{WHITE}... only a small house of this town can be replaced
+STR_METRO_CITY_ERR_STRAIGHT_ROAD                                :{WHITE}... a fire post needs a straight road without junctions
+STR_METRO_CITY_ERR_POST_EXISTS                                  :{WHITE}... there is already a fire post here
+STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Fire in {TOWN}!{}A fire engine is on its way
+STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Fire in {TOWN}!{}No fire engine can reach the house
+STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Firefighters put out the fire in {TOWN}
+STR_METRO_CITY_NEWS_BURNED                                      :{BIG_FONT}{BLACK}House burned down in {TOWN}: firefighters were too late
+STR_METRO_CITY_NEWS_MATCH_ANNOUNCE                              :{BIG_FONT}{BLACK}In a month at the {TOWN} stadium: {STRING}!{}Fans travel from: {RAW_STRING}
+STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLACK}Match day in {TOWN}: {STRING}!{}Fans travel from: {RAW_STRING}
+STR_METRO_CITY_MATCH_LOCAL                                      :local match
+STR_METRO_CITY_MATCH_REGIONAL                                   :regional match
+STR_METRO_CITY_MATCH_FINAL                                      :the final

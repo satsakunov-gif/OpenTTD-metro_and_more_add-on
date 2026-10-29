@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "town.h"
 #include "viewport_func.h"
 #include "error.h"
@@ -634,6 +635,10 @@ public:
 		DrawString(tr, GetString(STR_TOWN_VIEW_POPULATION_HOUSES, this->town->cache.population, this->town->cache.num_houses));
 		tr.top += GetCharacterHeight(FontSize::Normal);
 
+		for (const std::string &line : MetroCityGetTownViewLines(this->town)) {
+			tr.top = DrawStringMultiLine(tr, line);
+		}
+
 		StringID str_last_period;
 		if (EconTime::UsingWallclockUnits()) {
 			str_last_period = ReplaceWallclockMinutesUnit() ? STR_TOWN_VIEW_CARGO_LAST_PRODUCTION_INTERVAL_MAX : STR_TOWN_VIEW_CARGO_LAST_MINUTE_MAX;
@@ -795,6 +800,10 @@ public:
 			aimed_height += GetCharacterHeight(FontSize::Normal);
 		}
 		aimed_height += GetCharacterHeight(FontSize::Normal);
+
+		for (const std::string &line : MetroCityGetTownViewLines(this->town)) {
+			aimed_height += GetStringHeight(line, width - WidgetDimensions::scaled.framerect.Horizontal());
+		}
 
 		if (_settings_game.economy.station_noise_level) aimed_height += GetCharacterHeight(FontSize::Normal);
 

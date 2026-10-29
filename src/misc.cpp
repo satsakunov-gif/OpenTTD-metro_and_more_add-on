@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "landscape.h"
 #include "news_func.h"
 #include "ai/ai.hpp"
@@ -233,6 +234,7 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	Game::Initialize();
 	InitializeCheats();
 	MetroAiReset();
+	MetroCityReset();
 
 	InitTextEffects();
 	NetworkInitChatMessage();

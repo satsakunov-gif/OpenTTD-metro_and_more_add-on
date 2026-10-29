@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "misc/history_type.hpp"
 #include "misc/history_func.hpp"
 #include "road.h"
@@ -127,6 +128,7 @@ Town::~Town()
 	if (CleaningPool()) return;
 
 	MetroAiOnTownDeleted(this->index);
+	MetroCityOnTownDeleted(this->index);
 
 	/* Delete town authority window
 	 * and remove from list of sorted towns */

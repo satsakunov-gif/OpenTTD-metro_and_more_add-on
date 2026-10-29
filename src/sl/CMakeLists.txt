@@ -25,6 +25,7 @@ add_files(
     linkgraph_sl.cpp
     map_sl.cpp
     metro_ai_sl.cpp
+    metro_city_sl.cpp
     misc_sl.cpp
     newgrf_sl.cpp
     newgrf_sl.h

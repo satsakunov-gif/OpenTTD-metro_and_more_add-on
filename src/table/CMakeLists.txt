@@ -17,6 +17,7 @@ add_files(
     elrail_data.h
     engines.h
     metro_ai_tables.h
+    metro_city_tables.h
     genland.h
     heightmap_colours.h
     industry_land.h

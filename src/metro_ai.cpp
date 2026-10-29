@@ -16,6 +16,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "company_base.h"
 #include "company_func.h"
 #include "console_func.h"
@@ -778,6 +779,7 @@ static void ReviewChangedTowns()
 
 	std::vector<std::pair<uint, const Town *>> candidates;
 	for (const Town *t : Town::Iterate()) {
+		if (!MetroCityIsTownActive(t)) continue;
 		uint16_t stations = CountCompanyStationsNearTown(t);
 		auto it = _metro_town_ai.find(t->index.base());
 		if (it == _metro_town_ai.end() && stations == 0) continue;
@@ -814,7 +816,7 @@ static const IntervalTimer<TimerGameCalendar> _metro_ai_yearly({TimerGameCalenda
 
 void MetroAiOnAuthorityWindowOpened(const Town *t)
 {
-	if (!MetroAiIsEnabled() || !Company::IsValidID(_local_company)) return;
+	if (!MetroAiIsEnabled() || !Company::IsValidID(_local_company) || !MetroCityIsTownActive(t)) return;
 	auto it = _metro_town_ai.find(t->index.base());
 	if (it == _metro_town_ai.end() || it->second.pending) return;
 	if (it->second.ChangeWeight() >= GetMetroAiConfig().window_threshold) EnqueueTownReview(t);
@@ -825,6 +827,10 @@ std::vector<std::string> MetroAiGetAuthorityLines(const Town *t)
 	std::vector<std::string> lines;
 	if (!MetroAiIsEnabled()) {
 		lines.push_back(GetString(STR_METRO_AI_DISABLED));
+		return lines;
+	}
+	if (!MetroCityIsTownActive(t)) {
+		lines.push_back(GetString(STR_METRO_AI_TOWN_INACTIVE));
 		return lines;
 	}
 
@@ -916,6 +922,10 @@ bool ConMetroAi(std::span<std::string_view> argv)
 		const Town *t = id.has_value() ? Town::GetIfValid(*id) : nullptr;
 		if (t == nullptr) {
 			IConsolePrint(CC_ERROR, "Invalid town id.");
+			return true;
+		}
+		if (!MetroCityIsTownActive(t)) {
+			IConsolePrint(CC_ERROR, "The town is not active: the AI reviews only towns with a station of the player.");
 			return true;
 		}
 		EnqueueTownReview(t);

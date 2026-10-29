@@ -2335,3 +2335,59 @@ STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Пре
 STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Следующий год >
 STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Показать статью за предыдущий год
 STR_METRO_YEAR_REPORT_NEXT_TOOLTIP                              :{BLACK}Показать статью за следующий год
+
+# metro mod: active towns, services, fires, tourists, matches
+STR_METRO_AI_TOWN_INACTIVE                                      :{SILVER}Город ещё не активен: мэр оценивает компанию только после появления в городе её первой станции.
+STR_METRO_CITY_TOWN_ACTIVE                                      :{GREEN}Активен{BLACK} с {DATE_LONG}
+STR_METRO_CITY_TOWN_INACTIVE                                    :{SILVER}Не активен: постройте станцию в городе, чтобы открыть службы, пожары, туристов и матчи
+STR_METRO_CITY_TOWN_SERVICES                                    :{BLACK}Школ: {NUM}, больниц: {NUM}, университетов: {NUM}, пожарных частей: {NUM}, постов: {NUM}
+STR_METRO_CITY_TOWN_NO_SCHOOL                                   :{ORANGE}Нет школы: город растёт медленнее
+STR_METRO_CITY_TOWN_FIRES                                       :{BLACK}Потушено пожаров: {NUM}, сгорело домов: {NUM}
+STR_METRO_CITY_TOWN_FIRE_NOW                                    :{RED}Горит дом! Осталось {NUM} с
+STR_METRO_CITY_TOWN_TOURISTS                                    :{BLACK}Туристов за прошлый месяц: {NUM}, доп. доход: {CURRENCY_LONG}
+STR_METRO_CITY_TOWN_MATCH                                       :{BLACK}Следующий матч: {STRING}, {DATE_LONG}
+STR_METRO_CITY_SERVICES_BUTTON                                  :{BLACK}Службы
+STR_METRO_CITY_SERVICES_TOOLTIP                                 :{BLACK}Строить школы, больницы, университеты и пожарные части в этом городе
+STR_METRO_CITY_LANDMARKS_BUTTON                                 :{BLACK}Достопримечательности
+STR_METRO_CITY_LANDMARKS_TOOLTIP                                :{BLACK}Показать зелёную рамку вокруг достопримечательностей активных городов
+STR_METRO_CITY_SERVICES_CAPTION                                 :{WHITE}{TOWN}: службы
+STR_METRO_CITY_SERVICES_ROW                                     :{BLACK}{STRING}: {CURRENCY_LONG}, построено: {NUM}
+STR_METRO_CITY_SERVICES_ROW_LOCKED                              :{SILVER}{STRING}: от {NUM} жителей
+STR_METRO_CITY_SERVICES_INACTIVE                                :{SILVER}Город ещё не активен. Сначала постройте в нём станцию.
+STR_METRO_CITY_SERVICES_HINT                                    :{BLACK}Выберите службу, затем тайл в городе. Пожарная часть — на пустой тайл или вместо маленького дома, пост — на прямую дорогу.
+STR_METRO_CITY_SERVICES_LIST_TOOLTIP                            :{BLACK}Нажмите на службу, чтобы поставить её
+STR_METRO_SERVICE_SCHOOL                                        :Школа
+STR_METRO_SERVICE_HOSPITAL                                      :Больница
+STR_METRO_SERVICE_UNIVERSITY                                    :Университет
+STR_METRO_SERVICE_FIRE_STATION                                  :Пожарная часть
+STR_METRO_SERVICE_FIRE_POST                                     :Пожарный пост
+STR_METRO_SERVICE_EFFECT_SCHOOL                                 :{BLACK}Ученики ездят в школу и обратно. Без школы город от 2000 жителей растёт медленнее.
+STR_METRO_SERVICE_EFFECT_HOSPITAL                               :{BLACK}К больнице ездят пациенты и посетители. Без дороги рядом рейтинг владельца в городе падает каждый месяц.
+STR_METRO_SERVICE_EFFECT_UNIVERSITY                             :{BLACK}Студенты ездят в университет и обратно, город растёт быстрее.
+STR_METRO_SERVICE_EFFECT_FIRE_STATION                           :{BLACK}Пожарные машины едут по дорогам к горящим домам и тушат пожары.
+STR_METRO_SERVICE_EFFECT_FIRE_POST                              :{BLACK}Маленький проездной пост на дороге со своей машиной, работает сам.
+STR_METRO_SERVICE_CAPTION                                       :{WHITE}{STRING} ({TOWN})
+STR_METRO_SERVICE_BUILT                                         :{BLACK}Построено: {DATE_LONG}
+STR_METRO_SERVICE_TRUCKS                                        :{BLACK}Машин на месте: {NUM} из {NUM}
+STR_METRO_SERVICE_RADIUS                                        :{BLACK}Защищает дома в радиусе {NUM} тайлов
+STR_METRO_SERVICE_NO_ROAD                                       :{RED}Рядом с больницей нет дороги: рейтинг в городе падает каждый месяц
+STR_METRO_SERVICE_TOWN_INACTIVE                                 :{SILVER}Город не активен: служба не работает
+STR_METRO_SERVICE_REMOVE                                        :{BLACK}Снести
+STR_METRO_SERVICE_REMOVE_TOOLTIP                                :{BLACK}Снести пожарный пост
+STR_METRO_CITY_ERR_CANT_BUILD                                   :{WHITE}Здесь нельзя построить службу...
+STR_METRO_CITY_ERR_CANT_REMOVE                                  :{WHITE}Нельзя снести пожарный пост...
+STR_METRO_CITY_ERR_NO_TOWN                                      :{WHITE}... слишком далеко от города
+STR_METRO_CITY_ERR_INACTIVE                                     :{WHITE}... город не активен: сначала постройте в нём станцию
+STR_METRO_CITY_ERR_POPULATION                                   :{WHITE}... в городе нужно не меньше {NUM} жителей
+STR_METRO_CITY_ERR_HOUSE_TOO_BIG                                :{WHITE}... заменить можно только маленький дом этого города
+STR_METRO_CITY_ERR_STRAIGHT_ROAD                                :{WHITE}... посту нужна прямая дорога без перекрёстков
+STR_METRO_CITY_ERR_POST_EXISTS                                  :{WHITE}... здесь уже есть пожарный пост
+STR_METRO_CITY_NEWS_FIRE                                        :{BIG_FONT}{BLACK}Пожар в городе {TOWN}!{}Пожарная машина уже едет
+STR_METRO_CITY_NEWS_FIRE_NO_ENGINE                              :{BIG_FONT}{BLACK}Пожар в городе {TOWN}!{}Ни одна пожарная машина не может доехать
+STR_METRO_CITY_NEWS_FIRE_OUT                                    :{BIG_FONT}{BLACK}Пожарные потушили пожар в городе {TOWN}
+STR_METRO_CITY_NEWS_BURNED                                      :{BIG_FONT}{BLACK}В городе {TOWN} сгорел дом: пожарные не успели
+STR_METRO_CITY_NEWS_MATCH_ANNOUNCE                              :{BIG_FONT}{BLACK}Через месяц на стадионе города {TOWN}: {STRING}!{}Болельщики едут из: {RAW_STRING}
+STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLACK}День матча в городе {TOWN}: {STRING}!{}Болельщики едут из: {RAW_STRING}
+STR_METRO_CITY_MATCH_LOCAL                                      :местный матч
+STR_METRO_CITY_MATCH_REGIONAL                                   :региональный матч
+STR_METRO_CITY_MATCH_FINAL                                      :финал

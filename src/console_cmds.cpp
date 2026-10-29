@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_city.h"
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
 #include "crashlog.h"
@@ -4460,6 +4461,7 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("exec",                    ConExec);
 	IConsole::CmdRegister("schedule",                ConSchedule);
 	IConsole::CmdRegister("metro_ai",                ConMetroAi);
+	IConsole::CmdRegister("metro_city",              ConMetroCity);
 	IConsole::CmdRegister("exit",                    ConExit);
 	IConsole::CmdRegister("part",                    ConPart);
 	IConsole::CmdRegister("help",                    ConHelp);
