@@ -135,6 +135,7 @@ void MetroCityOnTownDeleted(TownID town)
 static void ValidateFirePosts();
 static void MaybeStartFires();
 static void RemoveStaleFireSmoke();
+static TileIndex FindTownStadium(const Town *t);
 static void TickFires();
 static void DrawFireTrucks(const TileInfo *ti);
 static void UpdateMatches();
@@ -566,9 +567,30 @@ static std::vector<TileIndex> GetHomeRoadTiles(TileIndex home)
 	return tiles;
 }
 
-/** Shortest road route (in steps) from one of @p starts to a tile next to @p target; empty if there is none. */
+/** Tiles of the building on @p tile: all tiles of a multi-tile house (e.g. a 2x2 stadium), otherwise just the tile. */
+static TileArea GetBuildingArea(TileIndex tile)
+{
+	if (!IsTileType(tile, TileType::House)) return TileArea(tile, 1, 1);
+	HouseID house = GetHouseType(tile);
+	TileIndex north = tile + GetHouseNorthPart(house);
+	BuildingFlags flags = HouseSpec::Get(house)->building_flags;
+	return TileArea(north, flags.Any(BUILDING_2_TILES_X) ? 2 : 1, flags.Any(BUILDING_2_TILES_Y) ? 2 : 1);
+}
+
+/**
+ * Shortest road route (in steps) from one of @p starts to a road tile within 1 tile (diagonals too)
+ * of any tile of the building at @p target; empty if there is none.
+ */
 static std::vector<TileIndex> FindRoadRoute(const std::vector<TileIndex> &starts, TileIndex target)
 {
+	TileArea goal = GetBuildingArea(target);
+	auto is_goal = [&](TileIndex tile) {
+		for (TileIndex part : goal) {
+			if (DistanceMax(tile, part) <= 1) return true;
+		}
+		return false;
+	};
+
 	std::unordered_map<uint32_t, uint32_t> parent;
 	std::deque<TileIndex> queue;
 	for (TileIndex tile : starts) {
@@ -577,7 +599,7 @@ static std::vector<TileIndex> FindRoadRoute(const std::vector<TileIndex> &starts
 	while (!queue.empty() && parent.size() < METRO_TRUCK_MAX_SEARCH) {
 		TileIndex tile = queue.front();
 		queue.pop_front();
-		if (DistanceManhattan(tile, target) == 1 || tile == target) {
+		if (is_goal(tile)) {
 			std::vector<TileIndex> route;
 			for (uint32_t cur = tile.base();; cur = parent[cur]) {
 				route.push_back(TileIndex{cur});
@@ -648,13 +670,13 @@ static bool DispatchFireTruck(const MetroFire &fire)
 }
 
 /** Start a fire in a random completed house of the town. @return Whether a house caught fire. */
-static bool StartFire(Town *t)
+static bool StartFire(Town *t, TileIndex forced = INVALID_TILE)
 {
 	uint radius = std::max<uint>(2, IntSqrt(t->cache.squared_town_zone_radius[to_underlying(HouseZone::TownEdge)]));
 	for (int attempt = 0; attempt < 40; attempt++) {
 		int dx = RandomRange(2 * radius + 1) - radius;
 		int dy = RandomRange(2 * radius + 1) - radius;
-		TileIndex tile = TileAddWrap(t->xy, dx, dy);
+		TileIndex tile = forced != INVALID_TILE ? forced : TileAddWrap(t->xy, dx, dy);
 		if (tile == INVALID_TILE || !IsTileType(tile, TileType::House) || GetTownIndex(tile) != t->index || !IsHouseCompleted(tile)) continue;
 		if (GetFire(tile) != nullptr) continue;
 
@@ -1141,7 +1163,7 @@ static TileIndex FindServiceTile(const Town *t, MetroServiceType type, CompanyID
 bool ConMetroCity(std::span<std::string_view> argv)
 {
 	if (argv.empty()) {
-		IConsolePrint(CC_HELP, "Metro mod towns. Usage: 'metro_city towns | activate <town id> | build <0-4> <town id> | services <town id> | view <town id> | fire <town id> | match <town id> [0-2] | landmarks'.");
+		IConsolePrint(CC_HELP, "Metro mod towns. Usage: 'metro_city towns | activate <town id> | build <0-4> <town id> | services <town id> | view <town id> | fire <town id> [stadium] | match <town id> [0-2] | landmarks'.");
 		IConsolePrint(CC_HELP, "  build: 0 school, 1 hospital, 2 university, 3 fire station, 4 fire post; built by your company near the town centre.");
 		return true;
 	}
@@ -1202,7 +1224,16 @@ bool ConMetroCity(std::span<std::string_view> argv)
 			IConsolePrint(CC_ERROR, "The town is not active.");
 			return true;
 		}
-		IConsolePrint(CC_INFO, StartFire(t) ? "A house is on fire." : "No house found.");
+		TileIndex forced = INVALID_TILE;
+		if (argv.size() > 3 && argv[3] == "stadium") {
+			TileIndex stadium = FindTownStadium(t);
+			if (stadium == INVALID_TILE) {
+				IConsolePrint(CC_ERROR, "The town has no stadium.");
+				return true;
+			}
+			forced = TileAddXY(stadium, 1, 1); // The far corner, away from the roads in front.
+		}
+		IConsolePrint(CC_INFO, StartFire(t, forced) ? "A house is on fire." : "No house found.");
 		for (const MetroFireTruck &truck : _metro_fire_trucks) {
 			IConsolePrint(CC_DEFAULT, "Engine from {} to {}: {} road tiles", truck.home, truck.fire, truck.path.size());
 		}
