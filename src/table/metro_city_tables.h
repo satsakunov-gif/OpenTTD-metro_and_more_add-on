@@ -64,8 +64,11 @@ static constexpr uint METRO_TOURIST_SHARE_PERCENT = 10;        ///< Share of pas
 static constexpr uint METRO_TOURIST_SHARE_SUMMER_PERCENT = 20; ///< The same in summer (June to August).
 static constexpr uint METRO_TOURIST_EXTRA_PAY_PERCENT = 100;   ///< Tourists pay this much more than other passengers.
 
-/** Original houses that are landmarks (besides churches and stadiums, which are found by their flags). */
+/** Original houses that are landmarks (churches and stadiums are also found by their flags). */
 static const StringID _metro_landmark_house_names[] = {
+	STR_TOWN_BUILDING_NAME_CHURCH_1,
+	STR_TOWN_BUILDING_NAME_STADIUM_1,
+	STR_TOWN_BUILDING_NAME_STADIUM_2,
 	STR_TOWN_BUILDING_NAME_STATUE_1,
 	STR_TOWN_BUILDING_NAME_FOUNTAIN_1,
 	STR_TOWN_BUILDING_NAME_PARK_1,

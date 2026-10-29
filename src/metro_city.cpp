@@ -41,6 +41,7 @@
 #include "strings_func.h"
 #include "tile_cmd.h"
 #include "town.h"
+#include "linkgraph/linkgraph.h"
 #include "tunnelbridge.h"
 #include "tunnelbridge_map.h"
 #include "vehicle_base.h"
@@ -64,6 +65,7 @@ std::vector<MetroFirePost> _metro_fire_posts;
 std::vector<MetroFire> _metro_fires;
 std::vector<MetroFireTruck> _metro_fire_trucks;
 bool _metro_show_landmarks = false;
+static std::map<uint16_t, TileIndex> _metro_stadiums; ///< Stadium of each active town, refreshed daily; not saved.
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Active towns                                                                                   */
@@ -121,6 +123,7 @@ void MetroCityReset()
 	_metro_fire_posts.clear();
 	_metro_fires.clear();
 	_metro_fire_trucks.clear();
+	_metro_stadiums.clear();
 }
 
 void MetroCityOnTownDeleted(TownID town)
@@ -132,11 +135,15 @@ static void ValidateFirePosts();
 static void MaybeStartFires();
 static void TickFires();
 static void DrawFireTrucks(const TileInfo *ti);
+static void UpdateMatches();
+static void RollTouristMonth();
+static void DrawLandmarkFrame(const TileInfo *ti);
 
 static const IntervalTimer<TimerGameCalendar> _metro_city_daily({TimerGameCalendar::Trigger::Day, TimerGameCalendar::Priority::None}, [](auto) {
 	UpdateActiveTowns();
 	ValidateFirePosts();
 	MaybeStartFires();
+	UpdateMatches();
 });
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -476,6 +483,7 @@ void MetroCityDrawTile(const TileInfo *ti)
 {
 	if (IsTileType(ti->tile, TileType::Road) && !_metro_fire_posts.empty()) DrawFirePost(ti);
 	if (!_metro_fire_trucks.empty()) DrawFireTrucks(ti);
+	if (_metro_show_landmarks) DrawLandmarkFrame(ti);
 }
 
 void MetroCityToggleLandmarks()
@@ -494,6 +502,7 @@ static const IntervalTimer<TimerGameTick> _metro_city_service_ticks({TimerGameTi
 
 static const IntervalTimer<TimerGameCalendar> _metro_city_monthly({TimerGameCalendar::Trigger::Month, TimerGameCalendar::Priority::None}, [](auto) {
 	CheckHospitalAccess();
+	RollTouristMonth();
 });
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -817,6 +826,222 @@ static void DrawFireTrucks(const TileInfo *ti)
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+/* Landmarks, tourists and stadium matches                                                        */
+/* ---------------------------------------------------------------------------------------------- */
+
+/** Whether the tile is part of a landmark house: church, stadium, statue, fountain, park, theatre or cinema. */
+static bool IsLandmarkTile(TileIndex tile)
+{
+	if (!IsTileType(tile, TileType::House)) return false;
+	HouseID house = GetHouseType(tile);
+	const HouseSpec *hs = HouseSpec::Get(house);
+	if (hs->building_flags.Any({BuildingFlag::IsChurch, BuildingFlag::IsStadium})) return true;
+	HouseID original = house < NEW_HOUSE_OFFSET ? house : hs->grf_prop.subst_id;
+	if (original >= NEW_HOUSE_OFFSET) return false;
+	return std::ranges::find(_metro_landmark_house_names, HouseSpec::Get(original)->building_name) != std::end(_metro_landmark_house_names);
+}
+
+/** Whether a landmark of an active town lies in the catchment of the station. */
+static bool IsStationNearLandmark(const Station *st)
+{
+	for (TileIndex tile : st->catchment_tiles) {
+		if (IsLandmarkTile(tile) && MetroCityIsTownActive(GetTownIndex(tile))) return true;
+	}
+	return false;
+}
+
+/** North tile of the stadium of the town, or INVALID_TILE. */
+static TileIndex FindTownStadium(const Town *t)
+{
+	if (t->stadium_count == 0) return INVALID_TILE;
+	uint radius = std::max<uint>(4, IntSqrt(t->cache.squared_town_zone_radius[to_underlying(HouseZone::TownEdge)]) + 2);
+	for (TileIndex tile : SpiralTileSequence(t->xy, 2 * radius + 1)) {
+		if (!IsTileType(tile, TileType::House) || GetTownIndex(tile) != t->index) continue;
+		if (HouseSpec::Get(GetHouseType(tile))->building_flags.Test(BuildingFlag::IsStadium)) return tile;
+	}
+	return INVALID_TILE;
+}
+
+/** Towns connected to @p t by the passenger network of the human players (same link graph). */
+static std::vector<TownID> GetConnectedTowns(const Town *t)
+{
+	std::vector<TownID> towns;
+	std::vector<LinkGraphID> graphs;
+	for (const Station *st : Station::Iterate()) {
+		if (st->town != t || !Company::IsValidHumanID(st->owner)) continue;
+		for (CargoType cargo : CargoSpec::town_production_cargo_mask[TownProductionEffect::Passengers]) {
+			LinkGraphID lg = st->goods[cargo].link_graph;
+			if (lg != LinkGraphID::Invalid() && std::ranges::find(graphs, lg) == graphs.end()) graphs.push_back(lg);
+		}
+	}
+	for (LinkGraphID lg : graphs) {
+		if (!LinkGraph::IsValidID(lg)) continue;
+		const LinkGraph &graph = *LinkGraph::Get(lg);
+		for (NodeID node = 0; node < graph.Size(); node++) {
+			const Station *other = Station::GetIfValid(graph[node].Station());
+			if (other == nullptr || other->town == t) continue;
+			if (std::ranges::find(towns, other->town->index) == towns.end()) towns.push_back(other->town->index);
+		}
+	}
+	return towns;
+}
+
+/** Towns whose fans travel to a match of the level; may lower the level when there are no such towns. */
+static std::vector<TownID> GetFanTowns(const Town *t, MetroMatchLevel &level)
+{
+	if (level == MetroMatchLevel::Final) {
+		std::vector<TownID> towns = GetConnectedTowns(t);
+		if (!towns.empty()) {
+			towns.insert(towns.begin(), t->index);
+			return towns;
+		}
+		level = MetroMatchLevel::Regional;
+	}
+	if (level == MetroMatchLevel::Regional) {
+		std::vector<std::pair<uint, TownID>> near;
+		for (const Town *other : Town::Iterate()) {
+			uint distance = DistanceManhattan(t->xy, other->xy);
+			if (other != t && distance <= METRO_MATCH_REGION_TILES) near.emplace_back(distance, other->index);
+		}
+		if (!near.empty()) {
+			std::sort(near.begin(), near.end());
+			std::vector<TownID> towns{t->index};
+			for (const auto &[distance, town] : near) towns.push_back(town);
+			return towns;
+		}
+		level = MetroMatchLevel::Local;
+	}
+	return {t->index};
+}
+
+/** Town names for the news, at most #METRO_MATCH_MAX_FAN_TOWNS of them. */
+static std::string GetFanTownNames(const std::vector<TownID> &towns)
+{
+	std::string names;
+	for (size_t i = 0; i < towns.size() && i < METRO_MATCH_MAX_FAN_TOWNS; i++) {
+		if (!names.empty()) names += ", ";
+		names += GetString(STR_TOWN_NAME, towns[i]);
+	}
+	if (towns.size() > METRO_MATCH_MAX_FAN_TOWNS) names += ", ...";
+	return names;
+}
+
+/** Pick a random match level by the weights of the table. */
+static MetroMatchLevel RandomMatchLevel()
+{
+	uint total = 0;
+	for (const MetroMatchSpec &spec : _metro_match_specs) total += spec.weight;
+	uint pick = RandomRange(total);
+	for (uint i = 0; i < std::size(_metro_match_specs); i++) {
+		if (pick < _metro_match_specs[i].weight) return static_cast<MetroMatchLevel>(i);
+		pick -= _metro_match_specs[i].weight;
+	}
+	return MetroMatchLevel::Local;
+}
+
+/** Plan, announce and play the stadium matches of the active towns. */
+static void UpdateMatches()
+{
+	int32_t today = CalTime::CurDate().base();
+	for (Town *t : Town::Iterate()) {
+		if (!MetroCityIsTownActive(t)) continue;
+		MetroCityTownState &state = GetTownState(t->index);
+		if (state.match_day != 0 && state.match_day < today) state.match_day = 0;
+
+		TileIndex stadium = FindTownStadium(t);
+		_metro_stadiums[t->index.base()] = stadium;
+		if (stadium == INVALID_TILE) {
+			state.next_match = 0;
+			continue;
+		}
+		if (state.next_match == 0) {
+			state.next_match = today + METRO_MATCH_MIN_INTERVAL_DAYS + RandomRange(METRO_MATCH_MAX_INTERVAL_DAYS - METRO_MATCH_MIN_INTERVAL_DAYS + 1);
+			state.match_level = to_underlying(RandomMatchLevel());
+			state.match_announced = false;
+			InvalidateWindowData(WindowClass::TownView, t->index);
+			continue;
+		}
+
+		if (!state.match_announced && today + static_cast<int32_t>(METRO_MATCH_ANNOUNCE_DAYS) >= state.next_match) {
+			MetroMatchLevel level = static_cast<MetroMatchLevel>(state.match_level);
+			std::vector<TownID> fans = GetFanTowns(t, level);
+			state.match_level = to_underlying(level);
+			state.match_announced = true;
+			AddTileNewsItem(GetEncodedString(STR_METRO_CITY_NEWS_MATCH_ANNOUNCE, t->index, _metro_match_specs[state.match_level].name, GetFanTownNames(fans)), NewsType::General, stadium);
+			InvalidateWindowData(WindowClass::TownView, t->index);
+		}
+
+		if (today >= state.next_match) {
+			MetroMatchLevel level = static_cast<MetroMatchLevel>(state.match_level);
+			std::vector<TownID> fans = GetFanTowns(t, level);
+			state.match_day = today;
+			state.match_day_level = to_underlying(level);
+			state.next_match = 0;
+			AddTileNewsItem(GetEncodedString(STR_METRO_CITY_NEWS_MATCH_DAY, t->index, _metro_match_specs[state.match_day_level].name, GetFanTownNames(fans)), NewsType::General, stadium);
+
+			/* Fans leave the stadium after the match. */
+			CargoType pass = GetCargoTypeByLabel(CT_PASSENGERS);
+			if (IsValidCargoType(pass)) {
+				StationFinder stations(TileArea(stadium, 1, 1)); // House tiles are searched one by one.
+				MoveGoodsToStation(pass, _metro_match_specs[state.match_day_level].fans, Source::Make<SourceType::Town>(t->index), stations.GetStations());
+			}
+			InvalidateWindowData(WindowClass::TownView, t->index);
+		}
+	}
+}
+
+Money MetroCityDeliveryBonus(const Station *st, CargoType cargo, uint amount, Money profit)
+{
+	if (amount == 0 || profit <= 0 || CargoSpec::Get(cargo)->town_acceptance_effect != TownAcceptanceEffect::Passengers) return 0;
+	if (!MetroCityIsTownActive(st->town)) return 0;
+	MetroCityTownState &state = GetTownState(st->town->index);
+	Money bonus = 0;
+
+	/* Tourists travel to landmarks, more of them in summer, and pay more. */
+	if (IsStationNearLandmark(st)) {
+		bool summer = CalTime::CurMonth() >= 5 && CalTime::CurMonth() <= 7;
+		uint share = summer ? METRO_TOURIST_SHARE_SUMMER_PERCENT : METRO_TOURIST_SHARE_PERCENT;
+		Money tourist_bonus = profit * share / 100 * METRO_TOURIST_EXTRA_PAY_PERCENT / 100;
+		state.tourists_month += amount * share / 100;
+		state.tourist_income_month += tourist_bonus;
+		bonus += tourist_bonus;
+	}
+
+	/* Fans on match day. */
+	if (state.match_day == CalTime::CurDate().base()) {
+		auto it = _metro_stadiums.find(st->town->index.base());
+		TileIndex stadium = it == _metro_stadiums.end() ? INVALID_TILE : it->second;
+		if (stadium != INVALID_TILE) {
+			for (TileIndex tile : TileArea(stadium, 2, 2)) {
+				if (st->TileIsInCatchment(tile)) {
+					bonus += profit * _metro_match_specs[state.match_day_level].bonus_percent / 100;
+					break;
+				}
+			}
+		}
+	}
+	return bonus;
+}
+
+/** Monthly tourist statistics. */
+static void RollTouristMonth()
+{
+	for (auto &[town, state] : _metro_city_towns) {
+		state.tourists_last_month = state.tourists_month;
+		state.tourist_income_last_month = state.tourist_income_month;
+		state.tourists_month = 0;
+		state.tourist_income_month = 0;
+		if (Town::IsValidID(town)) InvalidateWindowData(WindowClass::TownView, town);
+	}
+}
+
+/** Green frame around the landmarks of active towns, when switched on. */
+static void DrawLandmarkFrame(const TileInfo *ti)
+{
+	if (IsLandmarkTile(ti->tile) && MetroCityIsTownActive(GetTownIndex(ti->tile))) DrawTileSelectionRect(ti, SPR_ZONING_INNER_HIGHLIGHT_GREEN);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 /* Town window                                                                                    */
 /* ---------------------------------------------------------------------------------------------- */
 
@@ -838,6 +1063,12 @@ std::vector<std::string> MetroCityGetTownViewLines(const Town *t)
 		if (fire.town == t->index.base()) lines.push_back(GetString(STR_METRO_CITY_TOWN_FIRE_NOW, fire.ticks_left * 30 / 1000));
 	}
 	if (state->fires_put_out > 0 || state->houses_burned > 0) lines.push_back(GetString(STR_METRO_CITY_TOWN_FIRES, state->fires_put_out, state->houses_burned));
+	if (state->tourists_last_month > 0 || state->tourist_income_last_month > 0) {
+		lines.push_back(GetString(STR_METRO_CITY_TOWN_TOURISTS, state->tourists_last_month, state->tourist_income_last_month));
+	}
+	if (state->next_match != 0 && state->match_announced) {
+		lines.push_back(GetString(STR_METRO_CITY_TOWN_MATCH, _metro_match_specs[state->match_level].name, CalTime::Date{state->next_match}));
+	}
 	return lines;
 }
 
@@ -886,7 +1117,7 @@ static TileIndex FindServiceTile(const Town *t, MetroServiceType type, CompanyID
 bool ConMetroCity(std::span<std::string_view> argv)
 {
 	if (argv.empty()) {
-		IConsolePrint(CC_HELP, "Metro mod towns. Usage: 'metro_city towns | activate <town id> | build <0-4> <town id> | services <town id> | view <town id> | fire <town id>'.");
+		IConsolePrint(CC_HELP, "Metro mod towns. Usage: 'metro_city towns | activate <town id> | build <0-4> <town id> | services <town id> | view <town id> | fire <town id> | match <town id> [0-2] | landmarks'.");
 		IConsolePrint(CC_HELP, "  build: 0 school, 1 hospital, 2 university, 3 fire station, 4 fire post; built by your company near the town centre.");
 		return true;
 	}
@@ -951,6 +1182,25 @@ bool ConMetroCity(std::span<std::string_view> argv)
 		for (const MetroFireTruck &truck : _metro_fire_trucks) {
 			IConsolePrint(CC_DEFAULT, "Engine from {} to {}: {} road tiles", truck.home, truck.fire, truck.path.size());
 		}
+		return true;
+	}
+	if (cmd == "match" && argv.size() > 2) {
+		Town *t = GetConsoleTown(argv[2]);
+		if (t == nullptr) return true;
+		if (!MetroCityIsTownActive(t) || FindTownStadium(t) == INVALID_TILE) {
+			IConsolePrint(CC_ERROR, "The town is not active or has no stadium.");
+			return true;
+		}
+		MetroCityTownState &state = GetTownState(t->index);
+		state.next_match = CalTime::CurDate().base() + METRO_MATCH_ANNOUNCE_DAYS;
+		if (argv.size() > 3) state.match_level = static_cast<uint8_t>(std::min<uint>(ParseInteger<uint>(argv[3]).value_or(0), to_underlying(MetroMatchLevel::Final)));
+		state.match_announced = false;
+		IConsolePrint(CC_INFO, "Match in {} days; the news comes tomorrow.", METRO_MATCH_ANNOUNCE_DAYS);
+		return true;
+	}
+	if (cmd == "landmarks") {
+		MetroCityToggleLandmarks();
+		SetWindowClassesDirty(WindowClass::TownView);
 		return true;
 	}
 	if ((cmd == "services" || cmd == "view") && argv.size() > 2) {

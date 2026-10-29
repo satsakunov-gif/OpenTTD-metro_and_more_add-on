@@ -71,6 +71,8 @@
 
 #include <ranges>
 
+#include "metro_city.h"
+
 #include "safeguards.h"
 
 
@@ -1367,6 +1369,9 @@ static Money DeliverGoods(int num_pieces, CargoType cargo_type, StationID dest, 
 			default: profit *= 4; break;
 		}
 	}
+
+	/* Metro mod: tourists near landmarks and fans on match day pay more. */
+	profit += MetroCityDeliveryBonus(st, cargo_type, accepted_total, profit);
 
 	return profit;
 }
