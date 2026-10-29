@@ -19,6 +19,7 @@
 #include "cargotype.h"
 #include "clear_map.h"
 #include "date_func.h"
+#include "effectvehicle_base.h"
 #include "effectvehicle_func.h"
 #include "command_func.h"
 #include "company_base.h"
@@ -133,6 +134,7 @@ void MetroCityOnTownDeleted(TownID town)
 
 static void ValidateFirePosts();
 static void MaybeStartFires();
+static void RemoveStaleFireSmoke();
 static void TickFires();
 static void DrawFireTrucks(const TileInfo *ti);
 static void UpdateMatches();
@@ -142,6 +144,7 @@ static void DrawLandmarkFrame(const TileInfo *ti);
 static const IntervalTimer<TimerGameCalendar> _metro_city_daily({TimerGameCalendar::Trigger::Day, TimerGameCalendar::Priority::None}, [](auto) {
 	UpdateActiveTowns();
 	ValidateFirePosts();
+	RemoveStaleFireSmoke();
 	MaybeStartFires();
 	UpdateMatches();
 });
@@ -661,6 +664,19 @@ static bool StartFire(Town *t)
 	return false;
 }
 
+/**
+ * Remove smoke left by fires of older builds of the mod, which lived for ~65000 ticks.
+ * Breakdown smoke of vehicles lives at most 2 * 255 ticks, so longer living smoke is ours.
+ */
+static void RemoveStaleFireSmoke()
+{
+	std::vector<EffectVehicle *> stale;
+	for (EffectVehicle *v : EffectVehicle::Iterate()) {
+		if (v->subtype == EV_BREAKDOWN_SMOKE && v->animation_state > METRO_FIRE_SMOKE_LIFETIME && v->animation_state > 2 * 255) stale.push_back(v);
+	}
+	for (EffectVehicle *v : stale) delete v;
+}
+
 /** Daily chance of a fire in every active town without a fire. */
 static void MaybeStartFires()
 {
@@ -792,7 +808,9 @@ static void TickFires()
 			continue;
 		}
 		if ((_tick_counter % METRO_FIRE_SMOKE_INTERVAL) == 0) {
-			CreateEffectVehicleAbove(TileX(fire.tile) * TILE_SIZE + TILE_SIZE / 2, TileY(fire.tile) * TILE_SIZE + TILE_SIZE / 2, 12, EV_BREAKDOWN_SMOKE);
+			EffectVehicle *smoke = CreateEffectVehicleAbove(TileX(fire.tile) * TILE_SIZE + TILE_SIZE / 2, TileY(fire.tile) * TILE_SIZE + TILE_SIZE / 2, 12, EV_BREAKDOWN_SMOKE);
+			/* The creator sets the lifetime of breakdown smoke; 0 would wrap around and keep it for ~65000 ticks. */
+			if (smoke != nullptr) smoke->animation_state = METRO_FIRE_SMOKE_LIFETIME;
 		}
 		if ((_tick_counter % DAY_TICKS) == 0) SetWindowDirty(WindowClass::TownView, fire.town);
 		if (fire.controlled) continue;

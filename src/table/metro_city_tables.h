@@ -53,6 +53,7 @@ static constexpr uint32_t METRO_FIRE_TIMER_TICKS = 4000;      ///< 120 seconds a
 static constexpr uint32_t METRO_FIRE_DAILY_CHANCE = 150;      ///< Each day an active town catches fire with chance 1 / this.
 static constexpr uint16_t METRO_FIRE_EXTINGUISH_TICKS = 300;  ///< Ticks the engine needs on site to put the fire out.
 static constexpr uint16_t METRO_FIRE_SMOKE_INTERVAL = 24;     ///< Ticks between smoke clouds over a burning house.
+static constexpr uint16_t METRO_FIRE_SMOKE_LIFETIME = 64;     ///< Ticks one smoke cloud lives.
 static constexpr uint16_t METRO_TRUCK_TICKS_PER_TILE = 12;    ///< Speed of a fire engine (a 100 km/h bus needs ~20 ticks per tile).
 static constexpr uint METRO_TRUCK_MAX_SEARCH = 20000;         ///< Maximum road tiles visited when looking for a route.
 static constexpr SpriteID METRO_TRUCK_SPRITE = 0xCD4;         ///< Vanilla bus sprite (8 directions), temporary.
