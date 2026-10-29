@@ -394,7 +394,8 @@ CommandCost CmdMetroRemoveFirePost(DoCommandFlags flags, TileIndex tile)
 		InvalidateWindowData(WindowClass::TownView, town);
 		InvalidateWindowData(WindowClass::MetroTownServices, town);
 	}
-	return CommandCost(ExpensesType::Construction);
+	/* Removal costs like a drive-through bus stop, so the cost is shown as for vanilla demolition. */
+	return CommandCost(ExpensesType::Construction, _price[Price::ClearStationBus]);
 }
 
 /** Drop fire posts whose road is gone or no longer straight. */
