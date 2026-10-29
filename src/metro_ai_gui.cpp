@@ -69,7 +69,12 @@ struct MetroYearReportWindow : Window {
 	std::pair<std::string, std::string> GetTexts() const
 	{
 		const MetroYearReport *report = MetroAiGetYearReport(this->year);
-		if (report == nullptr) return {std::string{}, GetString(STR_METRO_YEAR_REPORT_NONE)};
+		if (report == nullptr) {
+			std::string reason;
+			if (MetroAiGetPendingYearReport() == this->year) return {std::string{}, GetString(STR_METRO_YEAR_REPORT_PENDING)};
+			if (MetroAiGetFailedYearReport(reason) == this->year) return {std::string{}, GetString(STR_METRO_YEAR_REPORT_FAILED, reason)};
+			return {std::string{}, GetString(STR_METRO_YEAR_REPORT_NONE)};
+		}
 		return {report->title.empty() ? std::string{} : GetString(STR_METRO_YEAR_REPORT_TITLE, report->title), GetString(STR_METRO_YEAR_REPORT_TEXT, report->text)};
 	}
 
@@ -130,7 +135,10 @@ static WindowDesc _metro_year_report_desc(__FILE__, __LINE__,
 void ShowMetroYearReportWindow(int32_t year)
 {
 	if (year == -1) {
+		/* The newest article, or the one being written, or the one that failed. */
+		std::string reason;
 		for (const MetroYearReport &report : _metro_year_reports) year = std::max(year, report.year);
+		year = std::max({year, MetroAiGetPendingYearReport(), MetroAiGetFailedYearReport(reason)});
 		if (year == -1) year = CalTime::CurYear().base() - 1;
 	}
 	CloseWindowById(WindowClass::MetroYearReport, 0);

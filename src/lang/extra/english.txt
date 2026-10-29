@@ -2648,6 +2648,8 @@ STR_METRO_YEAR_REPORT_CAPTION                                   :{WHITE}Results 
 STR_METRO_YEAR_REPORT_TITLE                                     :{GOLD}{RAW_STRING}
 STR_METRO_YEAR_REPORT_TEXT                                      :{BLACK}{RAW_STRING}
 STR_METRO_YEAR_REPORT_NONE                                      :{BLACK}No article for this year. It is written in the last days of December when an AI key is set in secrets.cfg.
+STR_METRO_YEAR_REPORT_PENDING                                   :{BLACK}The article is being written, it can take a minute or two...
+STR_METRO_YEAR_REPORT_FAILED                                    :{RED}Could not get the article ({RAW_STRING}). Try again with the console command: metro_ai report
 STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Previous year
 STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Next year >
 STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Show the article of the previous year

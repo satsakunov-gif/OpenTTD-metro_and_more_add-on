@@ -56,7 +56,7 @@ std::map<uint16_t, MetroTownAiState> _metro_town_ai;
 std::vector<MetroYearReport> _metro_year_reports;
 
 static constexpr int METRO_AI_MAX_STEP = 200;          ///< Maximum rating change by one review.
-static constexpr int METRO_AI_TIMEOUT_SECONDS = 60;    ///< Timeout of one request.
+static constexpr int METRO_AI_TIMEOUT_SECONDS = 180;   ///< Timeout of one request; slow servers need minutes for an article.
 static constexpr int METRO_AI_MAX_STATIONS = 8;        ///< Stations listed in the prompt.
 static constexpr uint METRO_AI_MAX_NEEDS = 3;          ///< Needs kept from an answer.
 /* Limits, not usage: reasoning models (deepseek-v4-flash) spend ~300 tokens thinking before the JSON. */
@@ -73,6 +73,7 @@ struct MetroAiConfig {
 	std::string base_url;              ///< Full URL of an OpenAI-compatible chat completions endpoint; empty for the provider default.
 	uint max_requests_per_quarter = 20; ///< Town reviews per quarter at most.
 	uint window_threshold = 5;          ///< Change weight that triggers a review when the authority window is opened.
+	uint disable_thinking = 1;          ///< Ask a custom (vLLM / Open WebUI) server to skip the reasoning of reasoning models.
 
 	bool IsGemini() const { return this->provider == "gemini" || this->provider == "gemma"; }
 
@@ -118,6 +119,7 @@ static void LoadMetroAiConfig()
 		g.GetOrCreateItem("base_url").SetValue("");
 		g.GetOrCreateItem("max_requests_per_quarter").SetValue(fmt::format("{}", _metro_ai_config.max_requests_per_quarter));
 		g.GetOrCreateItem("window_threshold").SetValue(fmt::format("{}", _metro_ai_config.window_threshold));
+		g.GetOrCreateItem("disable_thinking").SetValue(fmt::format("{}", _metro_ai_config.disable_thinking));
 		ini.SaveToDisk(_secrets_file);
 		return;
 	}
@@ -138,6 +140,7 @@ static void LoadMetroAiConfig()
 	get("base_url", _metro_ai_config.base_url);
 	get_uint("max_requests_per_quarter", _metro_ai_config.max_requests_per_quarter);
 	get_uint("window_threshold", _metro_ai_config.window_threshold);
+	get_uint("disable_thinking", _metro_ai_config.disable_thinking);
 	Debug(misc, 1, "[metro_ai] provider={} model={} url={} key={}", _metro_ai_config.provider, _metro_ai_config.GetModel(),
 			_metro_ai_config.IsGemini() ? "Google AI Studio" : _metro_ai_config.GetUrl(), _metro_ai_config.api_key.empty() ? "none" : "set");
 }
@@ -427,12 +430,29 @@ static void EnqueueTownReview(const Town *t)
 	SetWindowDirty(WindowClass::TownAuthority, t->index);
 }
 
+static int32_t _metro_year_pending = -1;     ///< Year of the report being requested, or -1.
+static int32_t _metro_year_failed = -1;      ///< Year of the last report that could not be received, or -1.
+static std::string _metro_year_failure;      ///< Why that report could not be received.
+
 static void EnqueueYearReport(int32_t year)
 {
+	_metro_year_pending = year;
+	InvalidateWindowClassesData(WindowClass::MetroYearReport);
 	for (const MetroAiJob &job : _metro_ai_queue) {
 		if (job.kind == MetroAiJob::Kind::YearReport && job.year == year) return;
 	}
 	_metro_ai_queue.push_back({MetroAiJob::Kind::YearReport, 0, year});
+}
+
+int32_t MetroAiGetPendingYearReport()
+{
+	return _metro_year_pending;
+}
+
+int32_t MetroAiGetFailedYearReport(std::string &reason)
+{
+	reason = _metro_year_failure;
+	return _metro_year_failed;
 }
 
 /** Build the request body for the configured provider. */
@@ -452,6 +472,8 @@ static std::string BuildRequestBody(const std::string &system_prompt, const std:
 			{{"role", "user"}, {"content", user_prompt}},
 		});
 		if (config.IsOfficialDeepSeek()) body["response_format"] = {{"type", "json_object"}};
+		/* Reasoning models (deepseek-v4-flash) otherwise think for thousands of tokens and minutes before answering. */
+		if (!config.IsOfficialDeepSeek() && config.disable_thinking != 0) body["chat_template_kwargs"] = {{"enable_thinking", false}};
 		body["stream"] = false;
 		body["max_tokens"] = max_tokens;
 		body["temperature"] = 0.8;
@@ -631,23 +653,28 @@ static void FinishRequest(MetroAiCallback &cb)
 
 	std::optional<nlohmann::json> j;
 	MetroAiFailure failure = MetroAiFailure::None;
+	std::string reason; ///< Short reason of the failure, for the console and the yearly report window.
 	if (cb.success) {
 		std::optional<std::string> text = ExtractModelText(cb.response);
 		if (text.has_value()) j = ParseModelJson(*text);
 		if (!j.has_value()) {
 			failure = MetroAiFailure::BadAnswer;
 			bool cut = cb.response.find("\"finish_reason\":\"length\"") != std::string::npos || cb.response.find("\"finishReason\": \"MAX_TOKENS\"") != std::string::npos;
-			IConsolePrint(CC_ERROR, "[metro_ai] could not parse the answer{}: {}", cut ? " (cut off by the token limit)" : "", ShortForConsole(cb.response));
+			reason = cut ? "the answer was cut off by the token limit" : "the answer is not valid JSON";
+			IConsolePrint(CC_ERROR, "[metro_ai] could not parse the answer ({}): {}", reason, ShortForConsole(cb.response));
 		}
 	} else if (cb.timed_out) {
 		failure = MetroAiFailure::Timeout;
-		IConsolePrint(CC_ERROR, "[metro_ai] request timed out after {} seconds", METRO_AI_TIMEOUT_SECONDS + 15);
+		reason = fmt::format("no answer in {} seconds", METRO_AI_TIMEOUT_SECONDS + 15);
+		IConsolePrint(CC_ERROR, "[metro_ai] request timed out: {}", reason);
 	} else if (cb.error_status != 0) {
 		failure = MetroAiFailure::Http;
+		reason = fmt::format("HTTP {}: {}", cb.error_status, ShortForConsole(cb.error_body, 80));
 		IConsolePrint(CC_ERROR, "[metro_ai] request failed: HTTP {}: {}", cb.error_status, ShortForConsole(cb.error_body));
 	} else {
 		failure = MetroAiFailure::Network;
-		IConsolePrint(CC_ERROR, "[metro_ai] request failed: no connection: {}", ShortForConsole(cb.error_body));
+		reason = fmt::format("no connection: {}", ShortForConsole(cb.error_body, 80));
+		IConsolePrint(CC_ERROR, "[metro_ai] request failed: {}", reason);
 	}
 
 	/* Connections to some servers sometimes hang; retry temporary failures a few times before giving up. */
@@ -677,8 +704,18 @@ static void FinishRequest(MetroAiCallback &cb)
 			state.failure_text = ShortForConsole(cb.error_body, 80);
 		}
 		InvalidateWindowData(WindowClass::TownAuthority, t->index);
-	} else if (j.has_value()) {
-		if (!ApplyYearReport(cb.job.year, *j)) Debug(misc, 0, "[metro_ai] year report has wrong fields");
+	} else {
+		if (_metro_year_pending == cb.job.year) _metro_year_pending = -1;
+		if (failure == MetroAiFailure::None && !ApplyYearReport(cb.job.year, *j)) {
+			reason = "the answer has no article";
+			IConsolePrint(CC_ERROR, "[metro_ai] year report: {}: {}", reason, ShortForConsole(cb.response));
+		}
+		if (reason.empty()) {
+			if (_metro_year_failed == cb.job.year) _metro_year_failed = -1;
+		} else {
+			_metro_year_failed = cb.job.year;
+			_metro_year_failure = reason;
+		}
 		InvalidateWindowClassesData(WindowClass::MetroYearReport);
 	}
 }
@@ -717,6 +754,9 @@ void MetroAiReset()
 	_metro_ai_queue.clear();
 	_metro_town_ai.clear();
 	_metro_year_reports.clear();
+	_metro_year_pending = -1;
+	_metro_year_failed = -1;
+	_metro_year_failure.clear();
 }
 
 void MetroAiNoteTownChange(const Town *t, MetroTownChange change, DoCommandFlags flags)
@@ -885,6 +925,7 @@ bool ConMetroAi(std::span<std::string_view> argv)
 	if (cmd == "report") {
 		EnqueueYearReport(CalTime::CurYear().base());
 		IConsolePrint(CC_INFO, "Year report {} queued.", CalTime::CurYear().base());
+		ShowMetroYearReportWindow(CalTime::CurYear().base());
 		return true;
 	}
 	IConsolePrint(CC_ERROR, "Unknown subcommand.");

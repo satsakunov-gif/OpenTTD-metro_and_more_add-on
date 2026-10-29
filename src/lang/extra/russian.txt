@@ -2329,6 +2329,8 @@ STR_METRO_YEAR_REPORT_CAPTION                                   :{WHITE}Итог
 STR_METRO_YEAR_REPORT_TITLE                                     :{GOLD}{RAW_STRING}
 STR_METRO_YEAR_REPORT_TEXT                                      :{BLACK}{RAW_STRING}
 STR_METRO_YEAR_REPORT_NONE                                      :{BLACK}Статьи за этот год нет. Она пишется в последние дни декабря, если в secrets.cfg задан ключ ИИ.
+STR_METRO_YEAR_REPORT_PENDING                                   :{BLACK}Статья пишется, это может занять минуту-две...
+STR_METRO_YEAR_REPORT_FAILED                                    :{RED}Не удалось получить статью ({RAW_STRING}). Повторите консольной командой: metro_ai report
 STR_METRO_YEAR_REPORT_PREV                                      :{BLACK}< Предыдущий год
 STR_METRO_YEAR_REPORT_NEXT                                      :{BLACK}Следующий год >
 STR_METRO_YEAR_REPORT_PREV_TOOLTIP                              :{BLACK}Показать статью за предыдущий год

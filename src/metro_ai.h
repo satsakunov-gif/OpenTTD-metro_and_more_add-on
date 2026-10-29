@@ -89,6 +89,8 @@ void MetroAiOnAuthorityWindowOpened(const Town *t);
 std::vector<std::string> MetroAiGetAuthorityLines(const Town *t);
 
 const MetroYearReport *MetroAiGetYearReport(int32_t year);
+int32_t MetroAiGetPendingYearReport();
+int32_t MetroAiGetFailedYearReport(std::string &reason);
 void ShowMetroYearReportWindow(int32_t year = -1);
 
 bool ConMetroAi(std::span<std::string_view> argv);
