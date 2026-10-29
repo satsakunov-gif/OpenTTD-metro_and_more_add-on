@@ -62,6 +62,8 @@ static constexpr uint METRO_AI_MAX_NEEDS = 3;          ///< Needs kept from an a
 /* Limits, not usage: reasoning models (deepseek-v4-flash) spend ~300 tokens thinking before the JSON. */
 static constexpr int METRO_AI_TOWN_MAX_TOKENS = 2000;  ///< Token limit of a town review answer.
 static constexpr int METRO_AI_YEAR_MAX_TOKENS = 3000;  ///< Token limit of a yearly report answer.
+static constexpr uint8_t METRO_AI_RETRIES = 2;          ///< Retries of a request after a temporary failure.
+static constexpr int METRO_AI_RETRY_PAUSE_SECONDS = 3;  ///< Pause before a retry, multiplied by the attempt number.
 
 /** Settings from the [metro_ai] group of secrets.cfg. */
 struct MetroAiConfig {
@@ -368,6 +370,7 @@ struct MetroAiJob {
 	Kind kind;
 	uint16_t town = 0;  ///< Town for #Kind::TownReview.
 	int32_t year = 0;   ///< Year for #Kind::YearReport.
+	uint8_t attempt = 0; ///< Number of retries already made.
 };
 
 /** Receives the answer of one request; kept alive after completion as the HTTP layer may still poll it. */
@@ -413,6 +416,7 @@ static std::deque<std::unique_ptr<MetroAiCallback>> _metro_ai_callbacks; ///< Se
 static MetroAiCallback *_metro_ai_running = nullptr;                     ///< Request in flight, if any.
 static std::chrono::steady_clock::time_point _metro_ai_started;         ///< When the running request was sent.
 static uint32_t _metro_ai_generation = 0;                               ///< Incremented on new game / load, older answers are dropped.
+static std::chrono::steady_clock::time_point _metro_ai_retry_after;      ///< No request is sent before this time (pause before a retry).
 
 static void EnqueueTownReview(const Town *t)
 {
@@ -646,6 +650,18 @@ static void FinishRequest(MetroAiCallback &cb)
 		IConsolePrint(CC_ERROR, "[metro_ai] request failed: no connection: {}", ShortForConsole(cb.error_body));
 	}
 
+	/* Connections to some servers sometimes hang; retry temporary failures a few times before giving up. */
+	bool temporary = failure == MetroAiFailure::Network || failure == MetroAiFailure::Timeout ||
+			(failure == MetroAiFailure::Http && (cb.error_status == 429 || cb.error_status >= 500));
+	if (temporary && cb.job.attempt < METRO_AI_RETRIES) {
+		MetroAiJob job = cb.job;
+		job.attempt++;
+		_metro_ai_queue.push_front(job);
+		_metro_ai_retry_after = std::chrono::steady_clock::now() + std::chrono::seconds(METRO_AI_RETRY_PAUSE_SECONDS * job.attempt);
+		IConsolePrint(CC_WARNING, "[metro_ai] retrying in {} seconds (attempt {} of {})", METRO_AI_RETRY_PAUSE_SECONDS * job.attempt, job.attempt + 1, METRO_AI_RETRIES + 1);
+		return;
+	}
+
 	if (cb.job.kind == MetroAiJob::Kind::TownReview) {
 		Town *t = Town::GetIfValid(cb.job.town);
 		if (t == nullptr) return;
@@ -686,7 +702,7 @@ static const IntervalTimer<TimerGameRealtime> _metro_ai_pump({std::chrono::milli
 	/* Keep a few old callbacks alive, the HTTP layer may poll them for a moment after completion. */
 	while (_metro_ai_callbacks.size() > 8) _metro_ai_callbacks.pop_front();
 
-	if (!_metro_ai_queue.empty() && MetroAiIsEnabled()) SendNextRequest();
+	if (!_metro_ai_queue.empty() && MetroAiIsEnabled() && std::chrono::steady_clock::now() >= _metro_ai_retry_after) SendNextRequest();
 });
 
 /* ---------------------------------------------------------------------------------------------- */
