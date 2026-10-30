@@ -282,6 +282,20 @@ static void InitializeWindowsAndCaches()
 		}
 	}
 
+	/* Metro mod: fire stations (metro_city v2..v3) were removed; their tiles become bare land. */
+	if (SlXvIsFeaturePresent(XSLFI_METRO_CITY, 2, 3)) {
+		std::vector<Object *> retired;
+		for (Object *o : Object::Iterate()) {
+			if (o->type == OBJECT_METRO_RETIRED) retired.push_back(o);
+		}
+		for (Object *o : retired) {
+			for (TileIndex tile : o->location) {
+				if (IsTileType(tile, TileType::Object) && GetObjectIndex(tile) == o->index) MakeClear(tile, ClearGround::Grass, 3);
+			}
+			delete o;
+		}
+	}
+
 	/* Count number of objects per type */
 	for (Object *o : Object::Iterate()) {
 		/* Metro mod: object types 5..8 are town services since metro_city v2, older NewGRF objects move up. */

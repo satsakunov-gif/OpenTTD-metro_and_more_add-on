@@ -22,7 +22,7 @@
 - `src/roadveh.h`, `src/roadveh_cmd.cpp` — автобусы, грузовики, трамваи.
 - `src/ship_cmd.cpp`, `src/aircraft_cmd.cpp` — корабли и самолёты.
 - `src/effectvehicle.cpp`, `src/effectvehicle_base.h` — визуальные эффекты (образец для пешеходов).
-- `src/disaster_vehicle.cpp` — спецтранспорт-катастрофы (образец для пожарных/преступников).
+- `src/disaster_vehicle.cpp` — спецтранспорт-катастрофы.
 - `src/engine.cpp`, `src/table/engines.h` — модели транспорта и их таблица.
 - `src/rail.h`, `src/table/railtypes.h` — типы путей (обычные, электро, монорельс, маглев).
 - `src/elrail.cpp` — электрификация путей и провода.
@@ -68,7 +68,7 @@
 - `src/timer/` — таймеры игровых тиков и календаря.
 - `src/network/core/http.h`, `src/network/core/http_winhttp.cpp` — HTTP-запросы в фоне (WinHTTP на Windows; для Gemma).
 - `src/settings.cpp`, `src/table/settings/*.ini` — настройки; `secrets.cfg` читается в `settings.cpp` (`_secrets_file`), секции в `network_secrets_settings.ini`.
-- `src/infrastructure.cpp` — содержание инфраструктуры (ЛЭП, склады).
+- `src/infrastructure.cpp` — содержание инфраструктуры (ЛЭП).
 - `src/newgrf/`, `src/newgrf.cpp` — загрузка NewGRF (образец табличных данных).
 - `src/CMakeLists.txt` — список исходников; новые файлы `metro_*` добавлять сюда (`add_files`).
 
@@ -77,9 +77,9 @@
 - `src/metro_ai_gui.cpp` — окно «Итоги года».
 - `src/sl/metro_ai_sl.cpp` — сейв (чанки MTAI, MTYR).
 - `src/table/metro_ai_tables.h` — характеры мэров, веса изменений города.
-- `src/metro_city.h`, `src/metro_city.cpp` — активные города, службы (команда постройки, пассажиры, рост, больница), пожарные посты, пожары и машины (поиск пути по дорогам), туристы, достопримечательности, матчи, хук отрисовки `MetroCityDrawTile`, консоль `metro_city`.
+- `src/metro_city.h`, `src/metro_city.cpp` — активные города (активация по первой перевозке — `MetroCityOnCargoMoved`, хуки в `src/economy.cpp`), службы (команда постройки, пассажиры, рост, больница), туристы, достопримечательности, матчи и анимация стадиона (`MetroCityAdjustHousePalette`, хук в `DrawTile_Town`), хук отрисовки `MetroCityDrawTile`, консоль `metro_city`.
 - `src/metro_city_gui.cpp` — окно «Службы» города и окно службы по клику.
-- `src/metro_city_cmd.h` — команды `MetroBuildService`, `MetroRemoveFirePost`.
-- `src/sl/metro_city_sl.cpp` — сейв (чанки MTCT, MTFP, MTFR, MTFT).
-- `src/table/metro_city_tables.h` — службы, пожары, туристы, достопримечательности, уровни матчей.
-- Объекты служб — типы 5–8 в `src/object_type.h` и `src/table/object_land.h`; сдвиг NewGRF-объектов старых сейвов — `src/sl/object_sl.cpp`, `src/sl/afterload.cpp`.
+- `src/metro_city_cmd.h` — команда `MetroBuildService`.
+- `src/sl/metro_city_sl.cpp` — сейв (чанк MTCT; чанки пожаров MTFP, MTFR, MTFT старых сейвов пропускаются).
+- `src/table/metro_city_tables.h` — службы, туристы, достопримечательности, уровни матчей, мигание прожекторов стадиона.
+- Объекты служб — типы 5–7 в `src/object_type.h` и `src/table/object_land.h`, тип 8 зарезервирован (бывшая пожарная часть, удаляется при загрузке в `afterload.cpp`); сдвиг NewGRF-объектов старых сейвов — `src/sl/object_sl.cpp`, `src/sl/afterload.cpp`.

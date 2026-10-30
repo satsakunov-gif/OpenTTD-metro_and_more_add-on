@@ -427,7 +427,7 @@ CommandCost CmdBuildObject(DoCommandFlags flags, TileIndex tile, ObjectType type
 		case OBJECT_METRO_SCHOOL:
 		case OBJECT_METRO_HOSPITAL:
 		case OBJECT_METRO_UNIVERSITY:
-		case OBJECT_METRO_FIRE_STATION:
+		case OBJECT_METRO_RETIRED:
 			/* This may never be constructed using this method. Metro services: CmdMetroBuildService. */
 			return CMD_ERROR;
 

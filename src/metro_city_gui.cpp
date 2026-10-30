@@ -133,22 +133,7 @@ struct MetroTownServicesWindow : Window {
 		/* Switching from another service aborts its placement first, which clears the selection; select afterwards. */
 		SetObjectToPlaceWnd(SPR_CURSOR_HQ, PAL_NONE, HT_RECT, this);
 		this->selected = type;
-		this->UpdateCoverageHighlight();
 		this->SetDirty();
-	}
-
-	/** Like station coverage: show the protection zone of a fire station or post around the tile under the cursor. */
-	void UpdateCoverageHighlight() const
-	{
-		if (this->selected == MetroServiceType::End) return;
-		int rad = GetMetroServiceRadius(this->selected);
-		if (rad > 0) SetTileSelectBigSize(-rad, -rad, 2 * rad, 2 * rad);
-	}
-
-	void OnPaint() override
-	{
-		this->UpdateCoverageHighlight();
-		this->DrawWidgets();
 	}
 
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
@@ -219,7 +204,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_metro_service_widget
 	NWidget(WWT_PUSHTXTBTN, Colours::Cream, WID_MS_REMOVE), SetFill(1, 0), SetStringTip(STR_METRO_SERVICE_REMOVE, STR_METRO_SERVICE_REMOVE_TOOLTIP),
 };
 
-/** Window of a school, hospital, university, fire station or fire post; opened by a click on its tile. */
+/** Window of a school, hospital or university; opened by a click on its tile. */
 struct MetroServiceWindow : Window {
 	MetroServiceWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
 	{
@@ -271,11 +256,7 @@ struct MetroServiceWindow : Window {
 				break;
 
 			case WID_MS_REMOVE:
-				if (GetMetroFirePost(this->GetTile()) != nullptr) {
-					Command<Commands::MetroRemoveFirePost>::Post(STR_METRO_CITY_ERR_CANT_REMOVE, this->GetTile());
-				} else {
-					Command<Commands::LandscapeClear>::Post(STR_ERROR_CAN_T_CLEAR_THIS_AREA, this->GetTile());
-				}
+				Command<Commands::LandscapeClear>::Post(STR_ERROR_CAN_T_CLEAR_THIS_AREA, this->GetTile());
 				break;
 		}
 	}

@@ -336,7 +336,9 @@ static void DrawTile_Town(TileInfo *ti, DrawTileProcParams params)
 	/* Add a house on top of the ground? */
 	SpriteID image = dcts->building.sprite;
 	if (image != 0) {
-		AddSortableSpriteToDraw(image, dcts->building.pal, *ti, *dcts, IsTransparencySet(TransparencyOption::Houses));
+		/* Metro mod: the floodlights of a stadium flicker on match day. */
+		PaletteID pal = IsTransparencySet(TransparencyOption::Houses) ? dcts->building.pal : MetroCityAdjustHousePalette(ti->tile, dcts->building.pal);
+		AddSortableSpriteToDraw(image, pal, *ti, *dcts, IsTransparencySet(TransparencyOption::Houses));
 
 		if (IsTransparencySet(TransparencyOption::Houses)) return;
 	}
@@ -488,7 +490,7 @@ void ClearAllTownCachedNames()
  * @param t The town which has changed.
  * @param mod The population change (can be positive or negative).
  */
-void ChangePopulation(Town *t, int mod)
+static void ChangePopulation(Town *t, int mod)
 {
 	t->cache.population += mod;
 	if (_generating_town) [[unlikely]] return;
@@ -927,7 +929,6 @@ static void GetTileDesc_Town(TileIndex tile, TileDesc &td)
 		td.dparam[0] = td.str;
 		td.str = STR_LAI_TOWN_INDUSTRY_DESCRIPTION_UNDER_CONSTRUCTION;
 	}
-	MetroCityAdjustHouseTileDesc(tile, td);
 
 	if (hs->grf_prop.HasGrfFile()) {
 		const GRFConfig *gc = GetGRFConfig(hs->grf_prop.grfid);

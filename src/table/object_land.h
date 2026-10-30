@@ -40,10 +40,6 @@ static const DrawTileSeqStruct _object_metro_university_seq[] = {
 	{   0,  0,  0, 16, 16, 42, {0x5b4, PAL_NONE}},
 };
 
-static const DrawTileSeqStruct _object_metro_fire_station_seq[] = {
-	{   0,  0,  0, 16, 16, 16, {0x5a6, PALETTE_TO_STRUCT_RED}},
-};
-
 extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_transmitter_seq },
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_lighthouse_seq  },
@@ -53,7 +49,7 @@ extern const DrawTileSpriteSpan _objects[] = {
 	{ { 0x5f2,                       PAL_NONE }, _object_metro_school_seq       },
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_hospital_seq     },
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_university_seq   },
-	{ { 0x5a7,                       PAL_NONE }, _object_metro_fire_station_seq },
+	{ { SPR_FLAT_BARE_LAND,          PAL_NONE } }, // OBJECT_METRO_RETIRED, never on the map
 };
 
 
@@ -149,7 +145,8 @@ extern const ObjectSpec _original_objects[] = {
 	M(STR_METRO_SERVICE_SCHOOL,                        0x11,   0,  20,  3, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 	M(STR_METRO_SERVICE_HOSPITAL,                      0x11,   0,  20,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 	M(STR_METRO_SERVICE_UNIVERSITY,                    0x11,   0,  20,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
-	M(STR_METRO_SERVICE_FIRE_STATION,                  0x11,   0,  20,  2, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	/* Reserved slot of the removed fire station: keeps the object type numbers of saves; never built. */
+	M(STR_METRO_OBJECT_RETIRED,                        0x11,   0,   0,  0, CalTime::Date{}, LandscapeTypes{},          0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 };
 
 #undef M

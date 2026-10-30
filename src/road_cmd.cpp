@@ -2786,7 +2786,6 @@ static void TileLoop_Road(TileIndex tile)
 /** @copydoc ClickTileProc */
 static bool ClickTile_Road(TileIndex tile)
 {
-	if (MetroCityClickTile(tile)) return true;
 	if (!IsRoadDepot(tile)) return false;
 
 	ShowDepotWindow(tile, VehicleType::Road);

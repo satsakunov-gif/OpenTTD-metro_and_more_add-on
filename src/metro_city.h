@@ -5,13 +5,14 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file metro_city.h Metro mod: active towns, town services, fires, tourists and stadium matches. */
+/** @file metro_city.h Metro mod: active towns, town services, tourists and stadium matches. */
 
 #ifndef METRO_CITY_H
 #define METRO_CITY_H
 
 #include "cargo_type.h"
 #include "economy_type.h"
+#include "gfx_type.h"
 #include "object_type.h"
 #include "station_type.h"
 #include "strings_type.h"
@@ -26,7 +27,6 @@
 
 struct Town;
 struct TileInfo;
-struct TileDesc;
 struct Station;
 
 /** Services the player can build in an active town. Data: table/metro_city_tables.h. */
@@ -34,8 +34,6 @@ enum class MetroServiceType : uint8_t {
 	School,
 	Hospital,
 	University,
-	FireStation,
-	FirePost,    ///< Drive-through post on a road tile, not an object.
 	End,
 };
 
@@ -52,10 +50,8 @@ enum class MetroMatchLevel : uint8_t {
 /** Mod state of one town (saved in the MTCT chunk). */
 struct MetroCityTownState {
 	uint16_t town = 0;                  ///< Town index.
-	bool active = false;                ///< The town is active: the player has had a station in its local authority zone.
+	bool active = false;                ///< The town is active: the player has moved cargo at a station in its local authority zone.
 	int32_t active_since = 0;           ///< Calendar date of the activation.
-	uint16_t fires_put_out = 0;         ///< Fires put out in total.
-	uint16_t houses_burned = 0;         ///< Houses burned down in total.
 	uint32_t tourists_month = 0;        ///< Tourists delivered this month.
 	uint32_t tourists_last_month = 0;   ///< Tourists delivered last month.
 	int64_t tourist_income_month = 0;   ///< Extra income from tourists this month.
@@ -67,51 +63,7 @@ struct MetroCityTownState {
 	uint8_t match_day_level = 0;        ///< #MetroMatchLevel of the match being played.
 };
 
-/** Drive-through fire post on a road (saved in the MTFP chunk). */
-struct MetroFirePost {
-	TileIndex tile = INVALID_TILE; ///< Road tile of the post.
-	uint16_t town = 0;             ///< Town the post belongs to.
-	uint8_t owner = 0;             ///< Company that built the post.
-	int32_t build_date = 0;        ///< Calendar date of construction.
-};
-
-/** A burning house (saved in the MTFR chunk). */
-struct MetroFire {
-	TileIndex tile = INVALID_TILE; ///< Burning house tile.
-	uint16_t town = 0;             ///< Town of the house.
-	uint32_t ticks_left = 0;       ///< Game ticks until the house burns down.
-	bool controlled = false;       ///< A fire engine arrived and is putting the fire out.
-	uint8_t stage = 0;             ///< Stage of the fire (0..2) announced so far, see _metro_fire_stage_specs.
-	uint16_t smoulder_ticks = 0;   ///< The fire is out and the house still smokes for this many ticks; 0 while it burns.
-
-	bool IsBurning() const { return this->smoulder_ticks == 0; }
-};
-
-/** State of a fire engine. */
-enum class MetroTruckState : uint8_t {
-	ToFire,         ///< Driving to the fire.
-	Extinguishing,  ///< Putting the fire out.
-	Returning,      ///< Driving home.
-};
-
-/** Fire engine driving on roads (saved in the MTFT chunk; the path is recalculated after loading). */
-struct MetroFireTruck {
-	TileIndex home = INVALID_TILE;   ///< Fire station or post the engine belongs to.
-	TileIndex fire = INVALID_TILE;   ///< Burning house the engine drives to.
-	TileIndex pos = INVALID_TILE;    ///< Road tile the engine is on.
-	uint8_t state = 0;               ///< #MetroTruckState.
-	uint16_t progress = 0;           ///< Ticks spent on the current step.
-	uint16_t timer = 0;              ///< Ticks of extinguishing done.
-
-	/* Not saved. */
-	std::vector<TileIndex> path;     ///< Remaining road tiles, path[0] == pos.
-	uint16_t step_ticks = 0;         ///< Ticks needed for the current step.
-};
-
 extern std::map<uint16_t, MetroCityTownState> _metro_city_towns;
-extern std::vector<MetroFirePost> _metro_fire_posts;
-extern std::vector<MetroFire> _metro_fires;
-extern std::vector<MetroFireTruck> _metro_fire_trucks;
 extern bool _metro_show_landmarks;
 
 void MetroCityReset();
@@ -120,6 +72,7 @@ bool MetroCityIsTownActive(const Town *t);
 bool MetroCityIsTownActive(TownID town);
 const MetroCityTownState *MetroCityGetTownState(const Town *t);
 void MetroCityOnTownDeleted(TownID town);
+void MetroCityOnCargoMoved(const Station *st);
 
 /* Services. */
 bool IsMetroServiceObject(ObjectType type);
@@ -127,9 +80,7 @@ MetroServiceType GetMetroServiceTypeOfObject(ObjectType type);
 StringID GetMetroServiceName(MetroServiceType type);
 Money GetMetroServiceCost(MetroServiceType type);
 uint32_t GetMetroServiceMinPopulation(MetroServiceType type);
-uint GetMetroServiceRadius(MetroServiceType type);
 uint CountMetroServices(const Town *t, MetroServiceType type);
-const MetroFirePost *GetMetroFirePost(TileIndex tile);
 bool MetroCityGetServiceInfo(TileIndex tile, MetroServiceType &type, TownID &town, int32_t &build_date);
 std::vector<std::string> MetroCityGetServiceLines(TileIndex tile);
 bool MetroCityClickTile(TileIndex tile);
@@ -139,7 +90,7 @@ uint MetroCityAdjustGrowthRate(const Town *t, uint rate);
 
 /* Drawing. */
 void MetroCityDrawTile(const TileInfo *ti);
-void MetroCityAdjustHouseTileDesc(TileIndex tile, TileDesc &td);
+PaletteID MetroCityAdjustHousePalette(TileIndex tile, PaletteID pal);
 
 /* Tourists and matches. */
 Money MetroCityDeliveryBonus(const Station *st, CargoType cargo, uint amount, Money profit);

@@ -2163,6 +2163,7 @@ static void LoadUnloadVehicle(Vehicle *front)
 
 				/* Deliver goods to the station */
 				st->time_since_unload = 0;
+				MetroCityOnCargoMoved(st); // Metro mod: the first transport activates the town.
 			}
 
 			if (_settings_game.order.gradual_loading && remaining) {
@@ -2265,6 +2266,7 @@ static void LoadUnloadVehicle(Vehicle *front)
 					anything_loaded = true;
 
 					st->time_since_load = 0;
+					MetroCityOnCargoMoved(st); // Metro mod: the first transport activates the town.
 
 					if (ged->cargo.TotalCount() == 0) {
 						TriggerStationRandomisation(st, st->xy, StationRandomTrigger::CargoTaken, v->cargo_type);

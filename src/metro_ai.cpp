@@ -286,10 +286,9 @@ static std::string BuildTownUserPrompt(const Town *t, const MetroTownAiState &st
 	if (t->statues.Test(_local_company)) buf.append("company statue stands in the town\n");
 	if (t->fund_buildings_months > 0) buf.append("company funds new buildings\n");
 	if (const MetroCityTownState *city = MetroCityGetTownState(t); city != nullptr) {
-		buf.format("town services: schools {}, hospitals {}, universities {}, fire stations {}, fire posts {}\n",
-				CountMetroServices(t, MetroServiceType::School), CountMetroServices(t, MetroServiceType::Hospital), CountMetroServices(t, MetroServiceType::University),
-				CountMetroServices(t, MetroServiceType::FireStation), CountMetroServices(t, MetroServiceType::FirePost));
-		buf.format("fires: {} put out, {} houses burned down; tourists last month: {}\n", city->fires_put_out, city->houses_burned, city->tourists_last_month);
+		buf.format("town services: schools {}, hospitals {}, universities {}\n",
+				CountMetroServices(t, MetroServiceType::School), CountMetroServices(t, MetroServiceType::Hospital), CountMetroServices(t, MetroServiceType::University));
+		buf.format("tourists last month: {}\n", city->tourists_last_month);
 	}
 	return std::string(std::string_view(buf));
 }

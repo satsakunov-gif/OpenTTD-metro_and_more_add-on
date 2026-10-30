@@ -23,8 +23,8 @@ static const ObjectType OBJECT_HQ           =   4;    ///< HeadQuarter of a play
 static const ObjectType OBJECT_METRO_SCHOOL       = 5; ///< Metro mod: school of a town
 static const ObjectType OBJECT_METRO_HOSPITAL     = 6; ///< Metro mod: hospital of a town
 static const ObjectType OBJECT_METRO_UNIVERSITY   = 7; ///< Metro mod: university of a town
-static const ObjectType OBJECT_METRO_FIRE_STATION = 8; ///< Metro mod: fire station of a town
-static const ObjectType METRO_OBJECT_COUNT        = 4; ///< Metro mod: number of service objects (NewGRF objects of older saves are moved up by this)
+static const ObjectType OBJECT_METRO_RETIRED      = 8; ///< Metro mod: reserved, was the fire station (metro_city v2..v3); such objects are removed on load
+static const ObjectType METRO_OBJECT_COUNT        = 4; ///< Metro mod: number of reserved object types (NewGRF objects of older saves are moved up by this)
 
 static const ObjectType NEW_OBJECT_OFFSET   =   9;    ///< Offset for new objects
 static const ObjectType NUM_OBJECTS         = 64000;  ///< Number of supported objects overall

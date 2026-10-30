@@ -6,10 +6,11 @@
  */
 
 /**
- * @file metro_city.cpp Metro mod: active towns, town services, fires, tourists and stadium matches.
+ * @file metro_city.cpp Metro mod: active towns, town services, tourists and stadium matches.
  *
- * A town becomes active for good when the first station of the player appears in its local authority zone.
- * Everything of this file (services, fires, tourists, matches) and the AI rating work only in active towns.
+ * A town becomes active for good with the first transport in it: when a station of the player in its local authority zone
+ * sends or receives at least one unit of passengers or cargo. Building a station alone does not activate the town.
+ * Everything of this file (services, tourists, matches) and the AI rating work only in active towns.
  */
 
 #include "stdafx.h"
@@ -63,9 +64,6 @@
 #include "safeguards.h"
 
 std::map<uint16_t, MetroCityTownState> _metro_city_towns;
-std::vector<MetroFirePost> _metro_fire_posts;
-std::vector<MetroFire> _metro_fires;
-std::vector<MetroFireTruck> _metro_fire_trucks;
 bool _metro_show_landmarks = false;
 static std::map<uint16_t, TileIndex> _metro_stadiums; ///< Stadium of each active town, refreshed daily; not saved.
 
@@ -103,28 +101,31 @@ static Town *GetLocalAuthorityTown(TileIndex tile)
 	return ClosestTownFromTile(tile, _settings_game.economy.dist_local_authority);
 }
 
-/** Activate the towns that got their first station of a human player. Activation is permanent. */
-static void UpdateActiveTowns()
+/** Activate the town for good. */
+static void ActivateTown(const Town *t)
 {
-	for (const Station *st : Station::Iterate()) {
-		if (!Company::IsValidHumanID(st->owner)) continue;
-		Town *t = GetLocalAuthorityTown(st->xy);
-		if (t == nullptr || MetroCityIsTownActive(t)) continue;
+	MetroCityTownState &state = GetTownState(t->index);
+	if (state.active) return;
+	state.active = true;
+	state.active_since = CalTime::CurDate().base();
+	InvalidateWindowData(WindowClass::TownView, t->index);
+	SetWindowDirty(WindowClass::TownAuthority, t->index);
+}
 
-		MetroCityTownState &state = GetTownState(t->index);
-		state.active = true;
-		state.active_since = CalTime::CurDate().base();
-		InvalidateWindowData(WindowClass::TownView, t->index);
-		SetWindowDirty(WindowClass::TownAuthority, t->index);
-	}
+/**
+ * Cargo was really moved at the station: loaded onto a vehicle or delivered to it (at least one unit).
+ * The first such transport of a human player activates the town whose local authority zone contains the station.
+ */
+void MetroCityOnCargoMoved(const Station *st)
+{
+	if (!Company::IsValidHumanID(st->owner)) return;
+	Town *t = GetLocalAuthorityTown(st->xy);
+	if (t != nullptr && !MetroCityIsTownActive(t)) ActivateTown(t);
 }
 
 void MetroCityReset()
 {
 	_metro_city_towns.clear();
-	_metro_fire_posts.clear();
-	_metro_fires.clear();
-	_metro_fire_trucks.clear();
 	_metro_stadiums.clear();
 }
 
@@ -133,22 +134,13 @@ void MetroCityOnTownDeleted(TownID town)
 	_metro_city_towns.erase(town.base());
 }
 
-static void ValidateFirePosts();
-static void MaybeStartFires();
-static void RemoveStaleFireSmoke();
 static TileIndex FindTownStadium(const Town *t);
-static void TickFires();
-static void DrawFireTrucks(const TileInfo *ti);
-static void DrawFireOverlay(const TileInfo *ti);
 static void UpdateMatches();
+static void TickStadiumAnimation();
 static void RollTouristMonth();
 static void DrawLandmarkFrame(const TileInfo *ti);
 
 static const IntervalTimer<TimerGameCalendar> _metro_city_daily({TimerGameCalendar::Trigger::Day, TimerGameCalendar::Priority::None}, [](auto) {
-	UpdateActiveTowns();
-	ValidateFirePosts();
-	RemoveStaleFireSmoke();
-	MaybeStartFires();
 	UpdateMatches();
 });
 
@@ -158,7 +150,7 @@ static const IntervalTimer<TimerGameCalendar> _metro_city_daily({TimerGameCalend
 
 static_assert(OBJECT_METRO_HOSPITAL == OBJECT_METRO_SCHOOL + to_underlying(MetroServiceType::Hospital));
 static_assert(OBJECT_METRO_UNIVERSITY == OBJECT_METRO_SCHOOL + to_underlying(MetroServiceType::University));
-static_assert(OBJECT_METRO_FIRE_STATION == OBJECT_METRO_SCHOOL + to_underlying(MetroServiceType::FireStation));
+static_assert(METRO_SERVICE_COUNT <= METRO_OBJECT_COUNT);
 
 static const MetroServiceSpec &GetServiceSpec(MetroServiceType type)
 {
@@ -167,7 +159,7 @@ static const MetroServiceSpec &GetServiceSpec(MetroServiceType type)
 
 bool IsMetroServiceObject(ObjectType type)
 {
-	return type >= OBJECT_METRO_SCHOOL && type < OBJECT_METRO_SCHOOL + METRO_OBJECT_COUNT;
+	return type >= OBJECT_METRO_SCHOOL && type < OBJECT_METRO_SCHOOL + METRO_SERVICE_COUNT;
 }
 
 MetroServiceType GetMetroServiceTypeOfObject(ObjectType type)
@@ -190,11 +182,6 @@ uint32_t GetMetroServiceMinPopulation(MetroServiceType type)
 	return GetServiceSpec(type).min_population;
 }
 
-uint GetMetroServiceRadius(MetroServiceType type)
-{
-	return GetServiceSpec(type).radius;
-}
-
 /** Service object on the tile, or nullptr. */
 static const Object *GetServiceObject(TileIndex tile)
 {
@@ -203,23 +190,9 @@ static const Object *GetServiceObject(TileIndex tile)
 	return IsMetroServiceObject(o->type) ? o : nullptr;
 }
 
-const MetroFirePost *GetMetroFirePost(TileIndex tile)
-{
-	for (const MetroFirePost &post : _metro_fire_posts) {
-		if (post.tile == tile) return &post;
-	}
-	return nullptr;
-}
-
 uint CountMetroServices(const Town *t, MetroServiceType type)
 {
 	uint count = 0;
-	if (type == MetroServiceType::FirePost) {
-		for (const MetroFirePost &post : _metro_fire_posts) {
-			if (post.town == t->index.base()) count++;
-		}
-		return count;
-	}
 	ObjectType object = GetServiceSpec(type).object;
 	for (const Object *o : Object::Iterate()) {
 		if (o->type == object && o->town == t) count++;
@@ -229,12 +202,6 @@ uint CountMetroServices(const Town *t, MetroServiceType type)
 
 bool MetroCityGetServiceInfo(TileIndex tile, MetroServiceType &type, TownID &town, int32_t &build_date)
 {
-	if (const MetroFirePost *post = GetMetroFirePost(tile); post != nullptr) {
-		type = MetroServiceType::FirePost;
-		town = TownID{post->town};
-		build_date = post->build_date;
-		return true;
-	}
 	if (const Object *o = GetServiceObject(tile); o != nullptr) {
 		type = GetMetroServiceTypeOfObject(o->type);
 		town = o->town->index;
@@ -264,17 +231,6 @@ static bool HasRoadNextTo(TileIndex tile)
 	return false;
 }
 
-/** Fire engines of a fire station or post that are not out. */
-static uint CountTrucksAtHome(TileIndex home, MetroServiceType type)
-{
-	uint out = 0;
-	for (const MetroFireTruck &truck : _metro_fire_trucks) {
-		if (truck.home == home) out++;
-	}
-	uint total = GetServiceSpec(type).trucks;
-	return total > out ? total - out : 0;
-}
-
 std::vector<std::string> MetroCityGetServiceLines(TileIndex tile)
 {
 	std::vector<std::string> lines;
@@ -287,24 +243,11 @@ std::vector<std::string> MetroCityGetServiceLines(TileIndex tile)
 	lines.push_back(GetString(STR_METRO_SERVICE_BUILT, CalTime::Date{build_date}));
 	lines.push_back(GetString(spec.effect));
 	if (!MetroCityIsTownActive(town)) lines.push_back(GetString(STR_METRO_SERVICE_TOWN_INACTIVE));
-	if (spec.trucks > 0) {
-		lines.push_back(GetString(STR_METRO_SERVICE_TRUCKS, CountTrucksAtHome(tile, type), spec.trucks));
-		lines.push_back(GetString(STR_METRO_SERVICE_RADIUS, spec.radius));
-	}
 	if (type == MetroServiceType::Hospital && !HasRoadNextTo(tile)) lines.push_back(GetString(STR_METRO_SERVICE_NO_ROAD));
 	return lines;
 }
 
-extern void ChangePopulation(Town *t, int mod);
 extern CommandCost CheckBuildableTile(TileIndex tile, DiagDirections invalid_dirs, int &allowed_z, bool allow_steep, bool check_bridge);
-
-/** Whether the tile is a flat straight road where a fire post can stand. */
-static bool IsStraightRoadForPost(TileIndex tile)
-{
-	if (!IsNormalRoadTile(tile) || GetTileSlope(tile) != SLOPE_FLAT) return false;
-	RoadBits bits = GetAllRoadBits(tile);
-	return bits == ROAD_X || bits == ROAD_Y;
-}
 
 /**
  * Build a town service.
@@ -326,93 +269,27 @@ CommandCost CmdMetroBuildService(DoCommandFlags flags, TileIndex tile, uint8_t s
 
 	CommandCost cost(ExpensesType::Construction, GetMetroServiceCost(type));
 
-	if (type == MetroServiceType::FirePost) {
-		if (GetMetroFirePost(tile) != nullptr) return CommandCost(STR_METRO_CITY_ERR_POST_EXISTS);
-		if (!IsStraightRoadForPost(tile)) return CommandCost(STR_METRO_CITY_ERR_STRAIGHT_ROAD);
-		Owner road_owner = GetRoadOwner(tile, RoadTramType::Road);
-		if (road_owner != OWNER_TOWN && road_owner != OWNER_NONE && road_owner != _current_company) return CommandCost(STR_ERROR_OWNED_BY);
-
-		if (flags.Test(DoCommandFlag::Execute)) {
-			_metro_fire_posts.push_back({tile, t->index.base(), _current_company.base(), CalTime::CurDate().base()});
-			MarkTileDirtyByTile(tile);
-			InvalidateWindowData(WindowClass::TownView, t->index);
-			InvalidateWindowData(WindowClass::MetroTownServices, t->index);
-		}
-		return cost;
-	}
-
 	if (!Object::CanAllocateItem()) return CommandCost(STR_ERROR_TOO_MANY_OBJECTS);
 	if (IsBridgeAbove(tile)) return CommandCost(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
-	/* A fire station may replace a small house of the town: a plain replacement without a rating penalty. */
-	bool replace_house = false;
-	if (type == MetroServiceType::FireStation && IsTileType(tile, TileType::House)) {
-		const HouseSpec *hs = HouseSpec::Get(GetHouseType(tile));
-		if (GetTownIndex(tile) != t->index || !hs->building_flags.Test(BuildingFlag::Size1x1) || hs->population > METRO_SMALL_HOUSE_MAX_POPULATION) {
-			return CommandCost(STR_METRO_CITY_ERR_HOUSE_TOO_BIG);
-		}
-		replace_house = true;
-	} else {
-		/* Services stand on free land, not on roads of the town. */
-		if (IsTileType(tile, TileType::Road)) return CommandCost(STR_ERROR_SITE_UNSUITABLE);
-		CommandCost ret = Command<Commands::LandscapeClear>::Do(DoCommandFlags{flags}.Reset(DoCommandFlag::Execute), tile);
-		if (ret.Failed()) return ret;
-		cost.AddCost(std::move(ret));
+	/* Services stand on free land, not on roads of the town. */
+	if (IsTileType(tile, TileType::Road)) return CommandCost(STR_ERROR_SITE_UNSUITABLE);
+	CommandCost ret = Command<Commands::LandscapeClear>::Do(DoCommandFlags{flags}.Reset(DoCommandFlag::Execute), tile);
+	if (ret.Failed()) return ret;
+	cost.AddCost(std::move(ret));
 
-		auto [slope, allowed_z] = GetTileSlopeZ(tile);
-		if (slope != SLOPE_FLAT) allowed_z++;
-		ret = CheckBuildableTile(tile, {}, allowed_z, false, false);
-		if (ret.Failed()) return ret;
-	}
+	auto [slope, allowed_z] = GetTileSlopeZ(tile);
+	if (slope != SLOPE_FLAT) allowed_z++;
+	ret = CheckBuildableTile(tile, {}, allowed_z, false, false);
+	if (ret.Failed()) return ret;
 
 	if (flags.Test(DoCommandFlag::Execute)) {
-		if (replace_house) {
-			ClearTownHouse(t, tile);
-		} else {
-			Command<Commands::LandscapeClear>::Do(flags, tile);
-		}
+		Command<Commands::LandscapeClear>::Do(flags, tile);
 		BuildObject(spec.object, tile, _current_company, t);
 		InvalidateWindowData(WindowClass::TownView, t->index);
 		InvalidateWindowData(WindowClass::MetroTownServices, t->index);
 	}
 	return cost;
-}
-
-/**
- * Remove a fire post.
- * @param flags Type of operation.
- * @param tile Tile of the post.
- * @return The cost of this operation or an error.
- */
-CommandCost CmdMetroRemoveFirePost(DoCommandFlags flags, TileIndex tile)
-{
-	auto it = std::ranges::find(_metro_fire_posts, tile, &MetroFirePost::tile);
-	if (it == _metro_fire_posts.end()) return CMD_ERROR;
-	if (_current_company != OWNER_DEITY && it->owner != _current_company.base()) return CommandCost(STR_ERROR_OWNED_BY);
-
-	if (flags.Test(DoCommandFlag::Execute)) {
-		TownID town{it->town};
-		_metro_fire_posts.erase(it);
-		MarkTileDirtyByTile(tile);
-		InvalidateWindowData(WindowClass::TownView, town);
-		InvalidateWindowData(WindowClass::MetroTownServices, town);
-	}
-	/* Removal costs like a drive-through bus stop, so the cost is shown as for vanilla demolition. */
-	return CommandCost(ExpensesType::Construction, _price[Price::ClearStationBus]);
-}
-
-/** Drop fire posts whose road is gone or no longer straight. */
-static void ValidateFirePosts()
-{
-	for (auto it = _metro_fire_posts.begin(); it != _metro_fire_posts.end();) {
-		if (IsStraightRoadForPost(it->tile) && Town::IsValidID(it->town)) {
-			++it;
-			continue;
-		}
-		MarkTileDirtyByTile(it->tile);
-		if (Town::IsValidID(it->town)) InvalidateWindowData(WindowClass::TownView, it->town);
-		it = _metro_fire_posts.erase(it);
-	}
 }
 
 bool MetroCityAddAcceptedCargo(TileIndex tile, CargoArray &acceptance, CargoTypes &always_accepted)
@@ -478,25 +355,8 @@ static void CheckHospitalAccess()
 	}
 }
 
-/** Draw a fire post on its road tile, like a drive-through stop. */
-static void DrawFirePost(const TileInfo *ti)
-{
-	if (GetMetroFirePost(ti->tile) == nullptr || IsInvisibilitySet(TransparencyOption::Buildings)) return;
-	bool transparent = IsTransparencySet(TransparencyOption::Buildings);
-	if (GetAllRoadBits(ti->tile) == ROAD_X) {
-		AddSortableSpriteToDraw(SPR_BUS_STOP_DT_X_W | (1U << PALETTE_MODIFIER_COLOUR), METRO_FIRE_POST_PALETTE, ti->x, ti->y, ti->z, SpriteBounds({0, 0, 0}, {16, 3, 16}, {}), transparent);
-		AddSortableSpriteToDraw(SPR_BUS_STOP_DT_X_E | (1U << PALETTE_MODIFIER_COLOUR), METRO_FIRE_POST_PALETTE, ti->x, ti->y, ti->z, SpriteBounds({0, 13, 0}, {16, 3, 16}, {}), transparent);
-	} else {
-		AddSortableSpriteToDraw(SPR_BUS_STOP_DT_Y_W | (1U << PALETTE_MODIFIER_COLOUR), METRO_FIRE_POST_PALETTE, ti->x, ti->y, ti->z, SpriteBounds({13, 0, 0}, {3, 16, 16}, {}), transparent);
-		AddSortableSpriteToDraw(SPR_BUS_STOP_DT_Y_E | (1U << PALETTE_MODIFIER_COLOUR), METRO_FIRE_POST_PALETTE, ti->x, ti->y, ti->z, SpriteBounds({0, 0, 0}, {3, 16, 16}, {}), transparent);
-	}
-}
-
 void MetroCityDrawTile(const TileInfo *ti)
 {
-	if (IsTileType(ti->tile, TileType::Road) && !_metro_fire_posts.empty()) DrawFirePost(ti);
-	if (!_metro_fire_trucks.empty()) DrawFireTrucks(ti);
-	if (!_metro_fires.empty()) DrawFireOverlay(ti);
 	if (_metro_show_landmarks) DrawLandmarkFrame(ti);
 }
 
@@ -527,7 +387,7 @@ void MetroCityToggleLandmarks()
 }
 
 static const IntervalTimer<TimerGameTick> _metro_city_ticks({TimerGameTick::Priority::None, 1}, [](auto) {
-	TickFires();
+	TickStadiumAnimation();
 });
 
 static const IntervalTimer<TimerGameTick> _metro_city_service_ticks({TimerGameTick::Priority::None, 256}, [](auto) {
@@ -538,484 +398,6 @@ static const IntervalTimer<TimerGameCalendar> _metro_city_monthly({TimerGameCale
 	CheckHospitalAccess();
 	RollTouristMonth();
 });
-
-/* ---------------------------------------------------------------------------------------------- */
-/* Fires and fire engines                                                                         */
-/* ---------------------------------------------------------------------------------------------- */
-
-/** Whether a fire engine coming from the @p side of the tile can drive onto it. */
-static bool RoadOpenFrom(TileIndex tile, DiagDirection side)
-{
-	if (!IsValidTile(tile)) return false;
-	switch (GetTileType(tile)) {
-		case TileType::TunnelBridge:
-			return GetTunnelBridgeTransportType(tile) == TransportType::Road && ReverseDiagDir(GetTunnelBridgeDirection(tile)) == side;
-		case TileType::Road:
-			if (IsRoadDepot(tile)) return false;
-			[[fallthrough]];
-		case TileType::Station:
-			return (GetAnyRoadBits(tile, RoadTramType::Road) & DiagDirToRoadBits(side)) != ROAD_NONE;
-		default:
-			return false;
-	}
-}
-
-/** Call @p func for every road tile a fire engine can reach from @p tile in one step. */
-template <typename Func>
-static void ForRoadNeighbours(TileIndex tile, Func func)
-{
-	if (IsTileType(tile, TileType::TunnelBridge)) {
-		if (GetTunnelBridgeTransportType(tile) != TransportType::Road) return;
-		DiagDirection dir = GetTunnelBridgeDirection(tile);
-		func(GetOtherTunnelBridgeEnd(tile));
-		TileIndex back = TileAddByDiagDir(tile, ReverseDiagDir(dir));
-		if (RoadOpenFrom(back, dir)) func(back);
-		return;
-	}
-	RoadBits bits = GetAnyRoadBits(tile, RoadTramType::Road);
-	for (DiagDirection dir : EnumRange(DiagDirection::End)) {
-		if ((bits & DiagDirToRoadBits(dir)) == ROAD_NONE) continue;
-		TileIndex next = TileAddByDiagDir(tile, dir);
-		if (RoadOpenFrom(next, ReverseDiagDir(dir))) func(next);
-	}
-}
-
-/** Road tiles a fire engine of the station or post starts from. */
-static std::vector<TileIndex> GetHomeRoadTiles(TileIndex home)
-{
-	if (GetMetroFirePost(home) != nullptr) return {home};
-	std::vector<TileIndex> tiles;
-	for (DiagDirection dir : EnumRange(DiagDirection::End)) {
-		TileIndex adj = TileAddByDiagDir(home, dir);
-		if (IsValidTile(adj) && IsTileType(adj, TileType::Road) && !IsRoadDepot(adj)) tiles.push_back(adj);
-	}
-	return tiles;
-}
-
-/** Tiles of the building on @p tile: all tiles of a multi-tile house (e.g. a 2x2 stadium), otherwise just the tile. */
-static TileArea GetBuildingArea(TileIndex tile)
-{
-	if (!IsTileType(tile, TileType::House)) return TileArea(tile, 1, 1);
-	HouseID house = GetHouseType(tile);
-	TileIndex north = tile + GetHouseNorthPart(house);
-	BuildingFlags flags = HouseSpec::Get(house)->building_flags;
-	return TileArea(north, flags.Any(BUILDING_2_TILES_X) ? 2 : 1, flags.Any(BUILDING_2_TILES_Y) ? 2 : 1);
-}
-
-/**
- * Shortest road route (in steps) from one of @p starts to a road tile within 1 tile (diagonals too)
- * of any tile of the building at @p target; empty if there is none.
- */
-static std::vector<TileIndex> FindRoadRoute(const std::vector<TileIndex> &starts, TileIndex target)
-{
-	TileArea goal = GetBuildingArea(target);
-	auto is_goal = [&](TileIndex tile) {
-		for (TileIndex part : goal) {
-			if (DistanceMax(tile, part) <= 1) return true;
-		}
-		return false;
-	};
-
-	std::unordered_map<uint32_t, uint32_t> parent;
-	std::deque<TileIndex> queue;
-	for (TileIndex tile : starts) {
-		if (parent.emplace(tile.base(), tile.base()).second) queue.push_back(tile);
-	}
-	while (!queue.empty() && parent.size() < METRO_TRUCK_MAX_SEARCH) {
-		TileIndex tile = queue.front();
-		queue.pop_front();
-		if (is_goal(tile)) {
-			std::vector<TileIndex> route;
-			for (uint32_t cur = tile.base();; cur = parent[cur]) {
-				route.push_back(TileIndex{cur});
-				if (parent[cur] == cur) break;
-			}
-			std::reverse(route.begin(), route.end());
-			return route;
-		}
-		ForRoadNeighbours(tile, [&](TileIndex next) {
-			if (parent.emplace(next.base(), tile.base()).second) queue.push_back(next);
-		});
-	}
-	return {};
-}
-
-/** Route back home from a road tile. */
-static std::vector<TileIndex> FindRouteHome(TileIndex from, TileIndex home)
-{
-	return FindRoadRoute({from}, home);
-}
-
-/** Fire record of the house tile, burning or already put out and smouldering; nullptr if none. */
-static MetroFire *GetFire(TileIndex tile)
-{
-	for (MetroFire &fire : _metro_fires) {
-		if (fire.tile == tile) return &fire;
-	}
-	return nullptr;
-}
-
-/** Fire that still burns at the house tile, or nullptr. */
-static MetroFire *GetBurningFire(TileIndex tile)
-{
-	MetroFire *fire = GetFire(tile);
-	return fire != nullptr && fire->IsBurning() ? fire : nullptr;
-}
-
-/** Stage the fire has grown to by its timer; it stops growing while the firefighters work. */
-static uint8_t GetFireStage(const MetroFire &fire)
-{
-	uint32_t elapsed = METRO_FIRE_TIMER_TICKS - std::min(fire.ticks_left, METRO_FIRE_TIMER_TICKS);
-	return static_cast<uint8_t>(std::min<uint32_t>(elapsed * METRO_FIRE_STAGE_COUNT / METRO_FIRE_TIMER_TICKS, METRO_FIRE_STAGE_COUNT - 1));
-}
-
-/** Type of the fire service at @p home, or #MetroServiceType::End when it is gone. */
-static MetroServiceType GetFireHomeType(TileIndex home)
-{
-	if (GetMetroFirePost(home) != nullptr) return MetroServiceType::FirePost;
-	const Object *o = GetServiceObject(home);
-	if (o != nullptr && o->type == OBJECT_METRO_FIRE_STATION) return MetroServiceType::FireStation;
-	return MetroServiceType::End;
-}
-
-/** Send the nearest free fire engine that can reach the fire by road. @return Whether one is on its way. */
-static bool DispatchFireTruck(const MetroFire &fire)
-{
-	std::vector<std::pair<uint, TileIndex>> homes;
-	auto consider = [&](TileIndex home, MetroServiceType type) {
-		if (!MetroCityIsTownActive(TownID{type == MetroServiceType::FirePost ? GetMetroFirePost(home)->town : Object::GetByTile(home)->town->index.base()})) return;
-		/* The protection zone is a square, as highlighted when building. */
-		uint distance = DistanceMax(home, fire.tile);
-		if (distance <= GetServiceSpec(type).radius && CountTrucksAtHome(home, type) > 0) homes.emplace_back(distance, home);
-	};
-	for (const Object *o : Object::Iterate()) {
-		if (o->type == OBJECT_METRO_FIRE_STATION) consider(o->location.tile, MetroServiceType::FireStation);
-	}
-	for (const MetroFirePost &post : _metro_fire_posts) consider(post.tile, MetroServiceType::FirePost);
-	std::sort(homes.begin(), homes.end());
-
-	for (const auto &[distance, home] : homes) {
-		std::vector<TileIndex> route = FindRoadRoute(GetHomeRoadTiles(home), fire.tile);
-		if (route.empty()) continue;
-		MetroFireTruck &truck = _metro_fire_trucks.emplace_back();
-		truck.home = home;
-		truck.fire = fire.tile;
-		truck.pos = route.front();
-		truck.state = to_underlying(MetroTruckState::ToFire);
-		truck.path = std::move(route);
-		MarkTileDirtyByTile(truck.pos);
-		return true;
-	}
-	return false;
-}
-
-/** Start a fire in a random completed house of the town. @return Whether a house caught fire. */
-static bool StartFire(Town *t, TileIndex forced = INVALID_TILE)
-{
-	uint radius = std::max<uint>(2, IntSqrt(t->cache.squared_town_zone_radius[to_underlying(HouseZone::TownEdge)]));
-	for (int attempt = 0; attempt < 40; attempt++) {
-		int dx = RandomRange(2 * radius + 1) - radius;
-		int dy = RandomRange(2 * radius + 1) - radius;
-		TileIndex tile = forced != INVALID_TILE ? forced : TileAddWrap(t->xy, dx, dy);
-		if (tile == INVALID_TILE || !IsTileType(tile, TileType::House) || GetTownIndex(tile) != t->index || !IsHouseCompleted(tile)) continue;
-		if (GetFire(tile) != nullptr) continue;
-
-		MetroFire &fire = _metro_fires.emplace_back();
-		fire.tile = tile;
-		fire.town = t->index.base();
-		fire.ticks_left = METRO_FIRE_TIMER_TICKS;
-		bool dispatched = DispatchFireTruck(fire);
-		AddTileNewsItem(GetEncodedString(dispatched ? STR_METRO_CITY_NEWS_FIRE : STR_METRO_CITY_NEWS_FIRE_NO_ENGINE, t->index, _metro_fire_stage_specs[0].name), NewsType::Accident, tile);
-		InvalidateWindowData(WindowClass::TownView, t->index);
-		return true;
-	}
-	return false;
-}
-
-/**
- * Remove smoke left by fires of older builds of the mod, which lived for ~65000 ticks.
- * Breakdown smoke of vehicles lives at most 2 * 255 ticks, so longer living smoke is ours.
- */
-static void RemoveStaleFireSmoke()
-{
-	std::vector<EffectVehicle *> stale;
-	for (EffectVehicle *v : EffectVehicle::Iterate()) {
-		if (v->subtype == EV_BREAKDOWN_SMOKE && v->animation_state > METRO_FIRE_SMOKE_LIFETIME && v->animation_state > 2 * 255) stale.push_back(v);
-	}
-	for (EffectVehicle *v : stale) delete v;
-}
-
-/** Daily chance of a fire in every active town without a fire. */
-static void MaybeStartFires()
-{
-	for (Town *t : Town::Iterate()) {
-		if (!MetroCityIsTownActive(t) || !Chance16(1, METRO_FIRE_DAILY_CHANCE)) continue;
-		if (std::ranges::any_of(_metro_fires, [&](const MetroFire &fire) { return fire.town == t->index.base(); })) continue;
-		StartFire(t);
-	}
-}
-
-/**
- * A house survived a fire of the last stage: it is damaged and rebuilt. Its tiles go back under construction,
- * so the house has no residents until the usual house construction completes it again.
- * @return Whether the house was damaged.
- */
-static bool DamageHouse(TileIndex tile)
-{
-	if (!IsTileType(tile, TileType::House)) return false;
-	Town *t = Town::GetByTile(tile);
-	bool damaged = false;
-	for (TileIndex part : GetBuildingArea(tile)) {
-		if (!IsTileType(part, TileType::House) || !IsHouseCompleted(part)) continue;
-		/* The population of a tile comes back when its construction completes (AdvanceSingleHouseConstruction). */
-		ChangePopulation(t, -static_cast<int>(HouseSpec::Get(GetHouseType(part))->population));
-		SetHouseCompleted(part, false);
-		/* Construction counter (bits 0..2) and stage (bits 3..4) of m5, as in IncHouseConstructionTick. */
-		SB(_m[part].m5, 0, 5, METRO_FIRE_REPAIR_BUILDING_STAGE << 3);
-		MarkTileDirtyByTile(part);
-		damaged = true;
-	}
-	return damaged;
-}
-
-/** The fire is over: put out by the firefighters (the house smokes a little longer) or the house burned down. */
-static void EndFire(TileIndex tile, bool put_out)
-{
-	MetroFire *fire = GetBurningFire(tile);
-	if (fire == nullptr) return;
-	TownID town{fire->town};
-	uint8_t stage = fire->stage;
-	if (put_out) {
-		fire->controlled = false;
-		fire->smoulder_ticks = METRO_FIRE_SMOULDER_TICKS;
-	} else {
-		_metro_fires.erase(_metro_fires.begin() + (fire - _metro_fires.data()));
-	}
-
-	if (Town::IsValidID(town)) {
-		MetroCityTownState &state = GetTownState(town);
-		if (put_out) {
-			state.fires_put_out++;
-			bool damaged = stage >= METRO_FIRE_DAMAGE_STAGE && DamageHouse(tile);
-			AddTileNewsItem(GetEncodedString(damaged ? STR_METRO_CITY_NEWS_FIRE_OUT_DAMAGED : STR_METRO_CITY_NEWS_FIRE_OUT, town, _metro_fire_stage_specs[stage].name), NewsType::Accident, tile);
-		} else {
-			state.houses_burned++;
-			if (IsTileType(tile, TileType::House)) {
-				ClearTownHouse(Town::Get(town), tile);
-				if (IsTileType(tile, TileType::Clear)) MakeClear(tile, ClearGround::Rough, 3);
-				MarkTileDirtyByTile(tile);
-			}
-			AddTileNewsItem(GetEncodedString(STR_METRO_CITY_NEWS_BURNED, town), NewsType::Accident, tile);
-		}
-		InvalidateWindowData(WindowClass::TownView, town);
-	}
-
-	/* Engines on their way turn back. */
-	for (MetroFireTruck &truck : _metro_fire_trucks) {
-		if (truck.fire != tile || truck.state == to_underlying(MetroTruckState::Returning)) continue;
-		truck.state = to_underlying(MetroTruckState::Returning);
-		truck.path.clear();
-		truck.progress = 0;
-	}
-}
-
-/** Whether a vehicle blocks the road tile (traffic jam for the fire engine). */
-static bool IsRoadBlocked(TileIndex tile)
-{
-	auto blocks = [](const Vehicle *v) { return !v->vehstatus.Test(VehState::Hidden); };
-	return HasVehicleOnTile(tile, VehicleType::Road, blocks) || HasVehicleOnTile(tile, VehicleType::Train, blocks);
-}
-
-/** Move one fire engine by one tick. @return False when the engine is back home (or lost) and should be removed. */
-static bool TickFireTruck(MetroFireTruck &truck)
-{
-	MetroTruckState state = static_cast<MetroTruckState>(truck.state);
-	if (GetFireHomeType(truck.home) == MetroServiceType::End) return false; // The station is gone.
-
-	if (state == MetroTruckState::Extinguishing) {
-		if (GetBurningFire(truck.fire) == nullptr) {
-			truck.state = to_underlying(MetroTruckState::Returning);
-			return true;
-		}
-		if (++truck.timer >= METRO_FIRE_EXTINGUISH_TICKS) {
-			EndFire(truck.fire, true);
-			truck.state = to_underlying(MetroTruckState::Returning);
-			truck.path.clear();
-		}
-		return true;
-	}
-
-	if (truck.path.empty()) {
-		/* After loading or turning back: find the route again. */
-		truck.path = (state == MetroTruckState::ToFire) ? FindRoadRoute({truck.pos}, truck.fire) : FindRouteHome(truck.pos, truck.home);
-		truck.progress = 0;
-		if (truck.path.empty()) {
-			if (state == MetroTruckState::ToFire) {
-				truck.state = to_underlying(MetroTruckState::Returning);
-				return true;
-			}
-			MarkTileDirtyByTile(truck.pos);
-			return false;
-		}
-	}
-
-	if (truck.path.size() == 1) {
-		MarkTileDirtyByTile(truck.pos);
-		if (state == MetroTruckState::Returning) return false;
-		truck.state = to_underlying(MetroTruckState::Extinguishing);
-		truck.timer = 0;
-		if (MetroFire *fire = GetBurningFire(truck.fire); fire != nullptr) fire->controlled = true;
-		return true;
-	}
-
-	TileIndex next = truck.path[1];
-	if (truck.progress == 0) {
-		/* Wait at the tile border while the next tile is occupied: fire engines get stuck in traffic jams too. */
-		if (IsRoadBlocked(next)) return true;
-		truck.step_ticks = static_cast<uint16_t>(METRO_TRUCK_TICKS_PER_TILE * DistanceManhattan(truck.pos, next));
-	}
-	truck.progress++;
-	MarkTileDirtyByTile(truck.pos);
-	MarkTileDirtyByTile(next);
-	if (truck.progress >= truck.step_ticks) {
-		truck.pos = next;
-		truck.path.erase(truck.path.begin());
-		truck.progress = 0;
-	}
-	return true;
-}
-
-/** Vanilla effect at a random point of a random tile of the building on @p tile, @p z pixels above the ground. */
-static void SpawnFireEffect(TileIndex tile, EffectVehicleType type, int z)
-{
-	/* Cosmetic only, so the interactive random keeps the game random untouched. */
-	TileArea area = GetBuildingArea(tile);
-	TileIndex part = TileAddXY(area.tile, InteractiveRandomRange(area.w), InteractiveRandomRange(area.h));
-	int x = TileX(part) * TILE_SIZE + 3 + InteractiveRandomRange(TILE_SIZE - 6);
-	int y = TileY(part) * TILE_SIZE + 3 + InteractiveRandomRange(TILE_SIZE - 6);
-	EffectVehicle *v = CreateEffectVehicleAbove(x, y, z, type);
-	/* The creator sets the lifetime of breakdown smoke; 0 would wrap around and keep it for ~65000 ticks. */
-	if (v != nullptr && type == EV_BREAKDOWN_SMOKE) v->animation_state = METRO_FIRE_SMOKE_LIFETIME;
-}
-
-/** Smoke, flames and sparks of a burning house by its stage; only while the house is on screen. */
-static void TickFireEffects(const MetroFire &fire)
-{
-	if (!IsTileVisible(fire.tile)) return;
-	const MetroFireStageSpec &spec = _metro_fire_stage_specs[fire.stage];
-	if ((_tick_counter % spec.smoke_interval) == 0) {
-		for (uint i = 0; i < spec.smoke_clouds; i++) SpawnFireEffect(fire.tile, spec.smoke, 12);
-	}
-	if (spec.flame_interval != 0 && (_tick_counter % spec.flame_interval) == 0) SpawnFireEffect(fire.tile, EV_EXPLOSION_SMALL, 14);
-	if (spec.spark_interval != 0 && (_tick_counter % spec.spark_interval) == 0) SpawnFireEffect(fire.tile, EV_ELECTRIC_SPARK, 18);
-	if (spec.blaze_interval != 0 && (_tick_counter % spec.blaze_interval) == 0) SpawnFireEffect(fire.tile, EV_EXPLOSION_LARGE, 4);
-	if (spec.flame_sprite != 0 && (_tick_counter % METRO_FIRE_FLAME_FRAME_TICKS) == 0) {
-		for (TileIndex part : GetBuildingArea(fire.tile)) MarkTileDirtyByTile(part);
-	}
-}
-
-/** Fire timers, smoke and fire engines; runs every tick. */
-static void TickFires()
-{
-	if (_metro_fires.empty() && _metro_fire_trucks.empty()) return;
-
-	for (auto it = _metro_fire_trucks.begin(); it != _metro_fire_trucks.end();) {
-		if (TickFireTruck(*it)) {
-			++it;
-		} else {
-			if (it->home != INVALID_TILE) SetWindowDirty(WindowClass::MetroService, it->home.base());
-			it = _metro_fire_trucks.erase(it);
-		}
-	}
-
-	std::vector<TileIndex> burned;
-	for (auto it = _metro_fires.begin(); it != _metro_fires.end();) {
-		MetroFire &fire = *it;
-		if (!fire.IsBurning()) {
-			/* Put out: the house smokes a few seconds more. */
-			if (--fire.smoulder_ticks == 0 || !IsTileType(fire.tile, TileType::House)) {
-				if (Town::IsValidID(fire.town)) InvalidateWindowData(WindowClass::TownView, fire.town);
-				it = _metro_fires.erase(it);
-				continue;
-			}
-			if ((_tick_counter % METRO_FIRE_SMOULDER_INTERVAL) == 0 && IsTileVisible(fire.tile)) SpawnFireEffect(fire.tile, EV_STEAM_SMOKE, 12);
-			++it;
-			continue;
-		}
-		if (!IsTileType(fire.tile, TileType::House) || !Town::IsValidID(fire.town)) {
-			burned.push_back(fire.tile);
-			++it;
-			continue;
-		}
-		if (!fire.controlled) {
-			if (fire.ticks_left > 0) fire.ticks_left--;
-			if (fire.ticks_left == 0) burned.push_back(fire.tile);
-		}
-
-		uint8_t stage = GetFireStage(fire);
-		if (stage > fire.stage) {
-			fire.stage = stage;
-			AddTileNewsItem(GetEncodedString(STR_METRO_CITY_NEWS_FIRE_STAGE, TownID{fire.town}, _metro_fire_stage_specs[stage].name), NewsType::Accident, fire.tile);
-			InvalidateWindowData(WindowClass::TownView, fire.town);
-		}
-		if ((_tick_counter % DAY_TICKS) == 0) SetWindowDirty(WindowClass::TownView, fire.town);
-		TickFireEffects(fire);
-		++it;
-	}
-	for (TileIndex tile : burned) EndFire(tile, false);
-}
-
-/** Draw the fire engines that are on the tile. */
-static void DrawFireTrucks(const TileInfo *ti)
-{
-	for (const MetroFireTruck &truck : _metro_fire_trucks) {
-		if (truck.pos != ti->tile) continue;
-		TileIndex next = truck.path.size() > 1 ? truck.path[1] : truck.pos;
-		if (DistanceManhattan(truck.pos, next) > 1 && truck.progress > 0) continue; // Inside a tunnel or on a long bridge jump.
-
-		int x = TileX(truck.pos) * TILE_SIZE + TILE_SIZE / 2;
-		int y = TileY(truck.pos) * TILE_SIZE + TILE_SIZE / 2;
-		Direction dir = Direction::SW;
-		if (next != truck.pos) {
-			dir = DiagDirToDir(DiagdirBetweenTiles(truck.pos, next));
-			if (truck.step_ticks > 0) {
-				x += (static_cast<int>(TileX(next)) - static_cast<int>(TileX(truck.pos))) * static_cast<int>(TILE_SIZE) * truck.progress / truck.step_ticks;
-				y += (static_cast<int>(TileY(next)) - static_cast<int>(TileY(truck.pos))) * static_cast<int>(TILE_SIZE) * truck.progress / truck.step_ticks;
-			}
-		}
-		int z = GetSlopePixelZ(x, y, true);
-		AddSortableSpriteToDraw(METRO_TRUCK_SPRITE + to_underlying(dir), METRO_TRUCK_PALETTE, x, y, z, SpriteBounds({-3, -3, 0}, {6, 6, 6}, {3, 3, 0}));
-	}
-}
-
-/**
- * Own flame overlay over the tiles of a burning house, when its stage has a sprite (#MetroFireStageSpec::flame_sprite).
- * Until there are own sprites, the stages are shown by vanilla effects only (TickFireEffects).
- */
-static void DrawFireOverlay(const TileInfo *ti)
-{
-	if (!IsTileType(ti->tile, TileType::House)) return;
-	for (const MetroFire &fire : _metro_fires) {
-		if (!fire.IsBurning()) continue;
-		SpriteID sprite = _metro_fire_stage_specs[fire.stage].flame_sprite;
-		if (sprite == 0 || !GetBuildingArea(fire.tile).Contains(ti->tile)) continue;
-		uint frame = (_tick_counter / METRO_FIRE_FLAME_FRAME_TICKS) % METRO_FIRE_FLAME_FRAMES;
-		/* Drawn over the building: the bounding box starts above the tallest vanilla houses. */
-		AddSortableSpriteToDraw(sprite + frame, PAL_NONE, ti->x, ti->y, ti->z, SpriteBounds({0, 0, 0}, {TILE_SIZE, TILE_SIZE, 1}, {0, 0, 64}));
-	}
-}
-
-void MetroCityAdjustHouseTileDesc(TileIndex tile, TileDesc &td)
-{
-	if (!IsHouseCompleted(tile)) return;
-	for (const MetroFire &fire : _metro_fires) {
-		if (!fire.IsBurning() || !GetBuildingArea(fire.tile).Contains(tile)) continue;
-		td.dparam[0] = td.str;
-		td.dparam[1] = _metro_fire_stage_specs[fire.stage].name;
-		td.str = STR_METRO_LAI_HOUSE_ON_FIRE;
-		return;
-	}
-}
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Landmarks, tourists and stadium matches                                                        */
@@ -1138,7 +520,13 @@ static void UpdateMatches()
 	for (Town *t : Town::Iterate()) {
 		if (!MetroCityIsTownActive(t)) continue;
 		MetroCityTownState &state = GetTownState(t->index);
-		if (state.match_day != 0 && state.match_day < today) state.match_day = 0;
+		if (state.match_day != 0 && state.match_day < today) {
+			/* The match is over: the floodlights go back to normal. */
+			state.match_day = 0;
+			if (auto it = _metro_stadiums.find(t->index.base()); it != _metro_stadiums.end() && it->second != INVALID_TILE) {
+				for (TileIndex tile : TileArea(it->second, 2, 2)) MarkTileDirtyByTile(tile);
+			}
+		}
 
 		TileIndex stadium = FindTownStadium(t);
 		_metro_stadiums[t->index.base()] = stadium;
@@ -1233,6 +621,63 @@ static void DrawLandmarkFrame(const TileInfo *ti)
 	if (IsLandmarkTile(ti->tile) && MetroCityIsTownActive(GetTownIndex(ti->tile))) DrawTileSelectionRect(ti, SPR_ZONING_INNER_HIGHLIGHT_GREEN);
 }
 
+/** Stadium of the town whose match is played today, or INVALID_TILE. */
+static TileIndex GetMatchDayStadium(TownID town, uint8_t *level = nullptr)
+{
+	auto it = _metro_city_towns.find(town.base());
+	if (it == _metro_city_towns.end() || it->second.match_day == 0 || it->second.match_day != CalTime::CurDate().base()) return INVALID_TILE;
+	auto st = _metro_stadiums.find(town.base());
+	if (st == _metro_stadiums.end()) return INVALID_TILE;
+	if (level != nullptr) *level = it->second.match_day_level;
+	return st->second;
+}
+
+/** Current step of the floodlight flicker. */
+static int GetStadiumLightBrightness()
+{
+	return _metro_stadium_light_brightness[(_tick_counter / METRO_STADIUM_LIGHT_FRAME_TICKS) % std::size(_metro_stadium_light_brightness)];
+}
+
+PaletteID MetroCityAdjustHousePalette(TileIndex tile, PaletteID pal)
+{
+	if (_metro_city_towns.empty() || !IsHouseCompleted(tile)) return pal;
+	if (!HouseSpec::Get(GetHouseType(tile))->building_flags.Test(BuildingFlag::IsStadium)) return pal;
+	TileIndex stadium = GetMatchDayStadium(GetTownIndex(tile));
+	if (stadium == INVALID_TILE || !TileArea(stadium, 2, 2).Contains(tile)) return pal;
+
+	int adjust = GetStadiumLightBrightness();
+	if (adjust == 0) return pal;
+	SetBit(pal, PALETTE_BRIGHTNESS_MODIFY);
+	SB(pal, PALETTE_BRIGHTNESS_OFFSET, PALETTE_BRIGHTNESS_WIDTH, adjust & ((1 << PALETTE_BRIGHTNESS_WIDTH) - 1));
+	return pal;
+}
+
+/** Vanilla effect over a random corner of the stadium (where the floodlight masts stand), @p z pixels above the ground. */
+static void SpawnStadiumEffect(TileIndex stadium, EffectVehicleType type, int z)
+{
+	/* Cosmetic only, so the interactive random keeps the game random untouched. */
+	int x = TileX(stadium) * TILE_SIZE + 2 + InteractiveRandomRange(2) * (2 * TILE_SIZE - 4);
+	int y = TileY(stadium) * TILE_SIZE + 2 + InteractiveRandomRange(2) * (2 * TILE_SIZE - 4);
+	CreateEffectVehicleAbove(x, y, z, type);
+}
+
+/** Match day at the stadiums on screen: flickering floodlights, sparks and flashes; runs every tick. */
+static void TickStadiumAnimation()
+{
+	if (_metro_stadiums.empty() || IsHeadless()) return;
+	for (const auto &[town, stadium] : _metro_stadiums) {
+		uint8_t level;
+		if (stadium == INVALID_TILE || GetMatchDayStadium(TownID{town}, &level) != stadium || !IsTileVisible(stadium, 96)) continue;
+		const MetroMatchSpec &spec = _metro_match_specs[level];
+
+		if ((_tick_counter % METRO_STADIUM_LIGHT_FRAME_TICKS) == 0) {
+			for (TileIndex tile : TileArea(stadium, 2, 2)) MarkTileDirtyByTile(tile);
+		}
+		if (spec.spark_interval != 0 && (_tick_counter % spec.spark_interval) == 0) SpawnStadiumEffect(stadium, EV_ELECTRIC_SPARK, METRO_STADIUM_LIGHT_HEIGHT);
+		if (spec.flash_interval != 0 && (_tick_counter % spec.flash_interval) == 0) SpawnStadiumEffect(stadium, EV_EXPLOSION_SMALL, METRO_STADIUM_LIGHT_HEIGHT);
+	}
+}
+
 /* ---------------------------------------------------------------------------------------------- */
 /* Town window                                                                                    */
 /* ---------------------------------------------------------------------------------------------- */
@@ -1247,20 +692,10 @@ std::vector<std::string> MetroCityGetTownViewLines(const Town *t)
 	}
 	lines.push_back(GetString(STR_METRO_CITY_TOWN_ACTIVE, CalTime::Date{state->active_since}));
 	lines.push_back(GetString(STR_METRO_CITY_TOWN_SERVICES, CountMetroServices(t, MetroServiceType::School), CountMetroServices(t, MetroServiceType::Hospital),
-			CountMetroServices(t, MetroServiceType::University), CountMetroServices(t, MetroServiceType::FireStation), CountMetroServices(t, MetroServiceType::FirePost)));
+			CountMetroServices(t, MetroServiceType::University)));
 	if (t->cache.population >= GetMetroServiceMinPopulation(MetroServiceType::School) && CountMetroServices(t, MetroServiceType::School) == 0) {
 		lines.push_back(GetString(STR_METRO_CITY_TOWN_NO_SCHOOL));
 	}
-	for (const MetroFire &fire : _metro_fires) {
-		if (fire.town != t->index.base() || !fire.IsBurning()) continue;
-		StringID stage = _metro_fire_stage_specs[fire.stage].name;
-		if (fire.controlled) {
-			lines.push_back(GetString(STR_METRO_CITY_TOWN_FIRE_FIGHTING, stage));
-		} else {
-			lines.push_back(GetString(STR_METRO_CITY_TOWN_FIRE_NOW, stage, fire.ticks_left * 30 / 1000));
-		}
-	}
-	if (state->fires_put_out > 0 || state->houses_burned > 0) lines.push_back(GetString(STR_METRO_CITY_TOWN_FIRES, state->fires_put_out, state->houses_burned));
 	if (state->tourists_last_month > 0 || state->tourist_income_last_month > 0) {
 		lines.push_back(GetString(STR_METRO_CITY_TOWN_TOURISTS, state->tourists_last_month, state->tourist_income_last_month));
 	}
@@ -1315,8 +750,8 @@ static TileIndex FindServiceTile(const Town *t, MetroServiceType type, CompanyID
 bool ConMetroCity(std::span<std::string_view> argv)
 {
 	if (argv.empty()) {
-		IConsolePrint(CC_HELP, "Metro mod towns. Usage: 'metro_city towns | activate <town id> | build <0-4> <town id> | services <town id> | view <town id> | fire <town id> [stadium] [stage 0-2] | match <town id> [0-2] | landmarks'.");
-		IConsolePrint(CC_HELP, "  build: 0 school, 1 hospital, 2 university, 3 fire station, 4 fire post; built by your company near the town centre.");
+		IConsolePrint(CC_HELP, "Metro mod towns. Usage: metro_city towns | activate <town id> | deactivate <town id> | all | build <0-2> <town id> | services <town id> | view <town id> | match <town id> [0-2] | landmarks'.");
+		IConsolePrint(CC_HELP, "  build: 0 school, 1 hospital, 2 university; built by your company near the town centre.");
 		return true;
 	}
 	std::string_view cmd = argv.size() > 1 ? argv[1] : "towns";
@@ -1327,21 +762,28 @@ bool ConMetroCity(std::span<std::string_view> argv)
 				IConsolePrint(CC_DEFAULT, "{}: {} (population {})", t->index, GetString(STR_TOWN_NAME, t->index), t->cache.population);
 				continue;
 			}
-			IConsolePrint(CC_DEFAULT, "{}: {} (population {}), active; fires put out {}, houses burned {}", t->index, GetString(STR_TOWN_NAME, t->index),
-					t->cache.population, state->fires_put_out, state->houses_burned);
+			IConsolePrint(CC_DEFAULT, "{}: {} (population {}), active since {}", t->index, GetString(STR_TOWN_NAME, t->index),
+					t->cache.population, GetString(STR_JUST_DATE_LONG, CalTime::Date{state->active_since}));
 		}
 		return true;
 	}
 	if (cmd == "activate" && argv.size() > 2) {
 		Town *t = GetConsoleTown(argv[2]);
 		if (t == nullptr) return true;
-		MetroCityTownState &state = GetTownState(t->index);
-		if (!state.active) {
-			state.active = true;
-			state.active_since = CalTime::CurDate().base();
-			InvalidateWindowData(WindowClass::TownView, t->index);
-		}
+		ActivateTown(t);
 		IConsolePrint(CC_INFO, "{} is active.", GetString(STR_TOWN_NAME, t->index));
+		return true;
+	}
+	if (cmd == "deactivate" && argv.size() > 2) {
+		/* For tests: the town becomes active again with the next transport at a station in it. */
+		for (Town *t : Town::Iterate()) {
+			if (argv[2] != "all" && ParseInteger<uint>(argv[2]) != t->index.base()) continue;
+			auto it = _metro_city_towns.find(t->index.base());
+			if (it == _metro_city_towns.end() || !it->second.active) continue;
+			it->second.active = false;
+			InvalidateWindowData(WindowClass::TownView, t->index);
+			IConsolePrint(CC_INFO, "{} is not active.", GetString(STR_TOWN_NAME, t->index));
+		}
 		return true;
 	}
 	if (cmd == "build" && argv.size() > 3) {
@@ -1369,40 +811,6 @@ bool ConMetroCity(std::span<std::string_view> argv)
 		IConsolePrint(CC_INFO, "Built at tile {} ({}, {}).", tile, TileX(tile), TileY(tile));
 		return true;
 	}
-	if (cmd == "fire" && argv.size() > 2) {
-		Town *t = GetConsoleTown(argv[2]);
-		if (t == nullptr) return true;
-		if (!MetroCityIsTownActive(t)) {
-			IConsolePrint(CC_ERROR, "The town is not active.");
-			return true;
-		}
-		TileIndex forced = INVALID_TILE;
-		size_t next_arg = 3;
-		if (argv.size() > next_arg && argv[next_arg] == "stadium") {
-			next_arg++;
-			TileIndex stadium = FindTownStadium(t);
-			if (stadium == INVALID_TILE) {
-				IConsolePrint(CC_ERROR, "The town has no stadium.");
-				return true;
-			}
-			forced = TileAddXY(stadium, 1, 1); // The far corner, away from the roads in front.
-		}
-		if (!StartFire(t, forced)) {
-			IConsolePrint(CC_ERROR, "No house found.");
-			return true;
-		}
-		IConsolePrint(CC_INFO, "A house is on fire.");
-		if (argv.size() > next_arg) {
-			/* For tests: let the fire start at a later stage, as if it had burned for a while. */
-			uint stage = std::min<uint>(ParseInteger<uint>(argv[next_arg]).value_or(0), METRO_FIRE_STAGE_COUNT - 1);
-			_metro_fires.back().ticks_left = METRO_FIRE_TIMER_TICKS - (stage * METRO_FIRE_TIMER_TICKS + METRO_FIRE_STAGE_COUNT - 1) / METRO_FIRE_STAGE_COUNT;
-			IConsolePrint(CC_INFO, "The fire is at stage {}.", stage + 1);
-		}
-		for (const MetroFireTruck &truck : _metro_fire_trucks) {
-			IConsolePrint(CC_DEFAULT, "Engine from {} to {}: {} road tiles", truck.home, truck.fire, truck.path.size());
-		}
-		return true;
-	}
 	if (cmd == "match" && argv.size() > 2) {
 		Town *t = GetConsoleTown(argv[2]);
 		if (t == nullptr) return true;
@@ -1428,9 +836,6 @@ bool ConMetroCity(std::span<std::string_view> argv)
 		std::vector<TileIndex> tiles;
 		for (const Object *o : Object::Iterate()) {
 			if (IsMetroServiceObject(o->type) && o->town == t) tiles.push_back(o->location.tile);
-		}
-		for (const MetroFirePost &post : _metro_fire_posts) {
-			if (post.town == t->index.base()) tiles.push_back(post.tile);
 		}
 		for (TileIndex tile : tiles) {
 			MetroServiceType type;

@@ -12,7 +12,6 @@
 
 #include "command_type.h"
 
-DEF_CMD_TUPLE(Commands::MetroBuildService,   CmdMetroBuildService,   CMD_NO_WATER | CMD_AUTO, CommandType::LandscapeConstruction, CmdDataT<uint8_t>)
-DEF_CMD_TUPLE(Commands::MetroRemoveFirePost, CmdMetroRemoveFirePost, CommandFlags{},          CommandType::LandscapeConstruction, CmdDataT<>)
+DEF_CMD_TUPLE(Commands::MetroBuildService, CmdMetroBuildService, CMD_NO_WATER | CMD_AUTO, CommandType::LandscapeConstruction, CmdDataT<uint8_t>)
 
 #endif /* METRO_CITY_CMD_H */

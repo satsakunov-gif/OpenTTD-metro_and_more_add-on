@@ -244,7 +244,7 @@ const std::initializer_list<SlxiSubChunkInfo> _sl_xv_sub_chunk_infos = {
 	{ XSLFI_TABLE_LINKGRAPH_SL,               XSCF_NULL,                1,   1, "table_linkgraph_sl",               nullptr, nullptr, nullptr          },
 	{ XSLFI_TABLE_VEHICLE_SL,                 XSCF_NULL,                1,   1, "table_vehicle_sl",                 nullptr, nullptr, nullptr          },
 	{ XSLFI_METRO_AI,                         XSCF_IGNORABLE_ALL,       1,   1, "metro_ai",                         nullptr, nullptr, "MTAI,MTYR"      },
-	{ XSLFI_METRO_CITY,                       XSCF_NULL,                3,   3, "metro_city",                       nullptr, nullptr, "MTCT,MTFP,MTFR,MTFT" },
+	{ XSLFI_METRO_CITY,                       XSCF_NULL,                4,   4, "metro_city",                       nullptr, nullptr, "MTCT,MTFP,MTFR,MTFT" },
 };
 
 /**
