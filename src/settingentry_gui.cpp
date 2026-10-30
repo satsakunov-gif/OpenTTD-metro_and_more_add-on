@@ -1126,6 +1126,7 @@ SettingsContainer &GetSettingsTree()
 			SettingsPage *authorities = environment->Add(new SettingsPage(STR_CONFIG_SETTING_ENVIRONMENT_AUTHORITIES));
 			{
 				authorities->Add(new SettingEntry("difficulty.town_council_tolerance"));
+				authorities->Add(new SettingEntry("economy.metro_mayor_loyalty"));
 				authorities->Add(new SettingEntry("economy.bribe"));
 				authorities->Add(new SettingEntry("economy.exclusive_rights"));
 				authorities->Add(new SettingEntry("economy.fund_roads"));

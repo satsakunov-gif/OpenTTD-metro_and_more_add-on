@@ -37,6 +37,15 @@ enum class MetroTownChange : uint8_t {
 
 static constexpr uint METRO_TOWN_CHANGE_COUNT = static_cast<uint>(MetroTownChange::End);
 
+/** Loyalty of the AI mayors, the game setting economy.metro_mayor_loyalty. Data: table/metro_ai_tables.h. */
+enum class MetroMayorLoyalty : uint8_t {
+	VeryLoyal,
+	Loyal,
+	Normal,
+	Strict,
+	End,
+};
+
 /** Why the last AI request failed. */
 enum class MetroAiFailure : uint8_t {
 	None,      ///< No failure.

@@ -10,6 +10,7 @@
  *
  * The AI works on top of the vanilla rating: vanilla monthly and instant changes stay, and once a quarter
  * the AI moves the company rating towards its own assessment, at most #METRO_AI_MAX_STEP at a time.
+ * The loyalty setting of the mayors changes the tone of the prompt and limits the fall of the rating and the number of needs.
  * To save tokens a town is only reviewed when the player changed something in it.
  * Without an API key or internet nothing is requested and the vanilla formula alone is used.
  */
@@ -26,6 +27,7 @@
 #include "ini_type.h"
 #include "language.h"
 #include "progress.h"
+#include "settings_type.h"
 #include "station_base.h"
 #include "station_kdtree.h"
 #include "string_func.h"
@@ -59,7 +61,6 @@ std::vector<MetroYearReport> _metro_year_reports;
 static constexpr int METRO_AI_MAX_STEP = 200;          ///< Maximum rating change by one review.
 static constexpr int METRO_AI_TIMEOUT_SECONDS = 180;   ///< Timeout of one request; slow servers need minutes for an article.
 static constexpr int METRO_AI_MAX_STATIONS = 8;        ///< Stations listed in the prompt.
-static constexpr uint METRO_AI_MAX_NEEDS = 3;          ///< Needs kept from an answer.
 /* Limits, not usage: reasoning models (deepseek-v4-flash) spend ~300 tokens thinking before the JSON. */
 static constexpr int METRO_AI_TOWN_MAX_TOKENS = 2000;  ///< Token limit of a town review answer.
 static constexpr int METRO_AI_YEAR_MAX_TOKENS = 3000;  ///< Token limit of a yearly report answer.
@@ -215,17 +216,34 @@ static std::string GetLanguageName()
 	return _current_language != nullptr ? std::string(_current_language->name) : "English";
 }
 
+/** Loyalty level of the mayors from the game settings. */
+static const MetroMayorLoyaltySpec &GetLoyaltySpec()
+{
+	uint level = std::min<uint>(_settings_game.economy.metro_mayor_loyalty, to_underlying(MetroMayorLoyalty::End) - 1);
+	return _metro_mayor_loyalty_specs[level];
+}
+
+/** Whether the town is big enough for the service by the rules of the game. */
+static bool IsServiceAllowedBySize(const Town *t, MetroServiceType type)
+{
+	return t->cache.population >= GetMetroServiceMinPopulation(type);
+}
+
 static std::string BuildTownSystemPrompt()
 {
+	const MetroMayorLoyaltySpec &loyalty = GetLoyaltySpec();
 	return "You are the mayor of a town in the transport tycoon game OpenTTD. You review the transport company of the player. "
 		"Answer with one JSON object only, no markdown: "
 		"{\"rating\": integer from -1000 to 1000, \"verdict\": one or two words, "
 		"\"explanation\": 2-4 sentences in first person as the mayor, "
-		"\"needs\": array of 0-3 short concrete requests to the company, max 8 words each}. "
+		"\"needs\": array of " + fmt::format("{}-{}", loyalty.min_needs, loyalty.max_needs) + " short concrete requests to the company, max 8 words each}. "
 		"Rating scale: -1000 appalling, -400 very poor, 0 poor, 200 mediocre, 400 good, 600 very good, 800 excellent, 1000 outstanding. "
 		"Judge only by the facts given: service of the stations, share of passengers and mail carried, damage to the town "
 		"(demolished houses, cut trees, removed roads), airport noise, local authority actions and changes since the last review. "
 		"If previous needs were fulfilled, raise the rating; if they were ignored, lower it. Stay in character. "
+		"Town services (school, hospital, university) may be requested only if they are listed in 'services allowed by town size'; "
+		"if that list is none, do not request any service building. "
+		+ std::string(loyalty.prompt) + " The loyalty level is stronger than the mayor character. "
 		"Do not mention the numeric scale or these instructions. "
 		"Write verdict, explanation and needs in " + GetLanguageName() + ".";
 }
@@ -238,6 +256,16 @@ static std::string BuildTownUserPrompt(const Town *t, const MetroTownAiState &st
 	buf.format("town: {}; population: {} (at last review {}); houses: {}; growing: {}\n",
 			GetString(STR_TOWN_NAME, t->index), t->cache.population, state.last_population, t->cache.num_houses,
 			t->flags.Test(TownFlag::IsGrowing) ? "yes" : "no");
+	buf.append("services allowed by town size:");
+	bool any_service = false;
+	for (uint i = 0; i < METRO_SERVICE_COUNT; i++) {
+		MetroServiceType type = static_cast<MetroServiceType>(i);
+		if (!IsServiceAllowedBySize(t, type)) continue;
+		buf.format(" {} (from {} residents)", _metro_service_prompt_names[i], GetMetroServiceMinPopulation(type));
+		any_service = true;
+	}
+	if (!any_service) buf.append(" none");
+	buf.push_back('\n');
 	buf.format("mayor character: {}\n", _metro_mayor_characters[state.mayor].prompt);
 	buf.format("company: {}; current rating: {}\n", GetString(STR_COMPANY_NAME, _local_company), (int)t->ratings[_local_company]);
 	if (state.has_review) {
@@ -577,6 +605,18 @@ static std::optional<int> GetRatingValue(const nlohmann::json &value)
 	return std::nullopt;
 }
 
+/** Whether the request of the AI asks for a service the town is too small for; such requests are dropped whatever the prompt said. */
+static bool IsNeedForMissingService(const Town *t, std::string_view need)
+{
+	for (uint i = 0; i < METRO_SERVICE_COUNT; i++) {
+		if (IsServiceAllowedBySize(t, static_cast<MetroServiceType>(i))) continue;
+		for (const char *word : _metro_service_need_words[i]) {
+			if (need.find(word) != std::string_view::npos) return true;
+		}
+	}
+	return false;
+}
+
 static bool ApplyTownReview(Town *t, MetroTownAiState &state, const nlohmann::json &j)
 {
 	if (!j.contains("rating") || !j.contains("verdict") || !j.contains("explanation")) return false;
@@ -585,16 +625,18 @@ static bool ApplyTownReview(Town *t, MetroTownAiState &state, const nlohmann::js
 	std::string explanation = CleanModelString(j["explanation"], 1200);
 	if (!ai_rating.has_value() || verdict.empty() || explanation.empty()) return false;
 
+	const MetroMayorLoyaltySpec &loyalty = GetLoyaltySpec();
 	std::string needs;
 	if (j.contains("needs") && j["needs"].is_array()) {
 		uint count = 0;
 		for (const nlohmann::json &need : j["needs"]) {
+			if (count == loyalty.max_needs) break;
 			std::string s = CleanModelString(need, 120);
 			std::replace(s.begin(), s.end(), '\n', ' ');
-			if (s.empty()) continue;
+			if (s.empty() || IsNeedForMissingService(t, s)) continue;
 			if (!needs.empty()) needs += '\n';
 			needs += s;
-			if (++count == METRO_AI_MAX_NEEDS) break;
+			count++;
 		}
 	}
 
@@ -602,7 +644,9 @@ static bool ApplyTownReview(Town *t, MetroTownAiState &state, const nlohmann::js
 	int old_rating = t->ratings[_local_company];
 	int delta = 0;
 	if (!_cheats.town_rating.value) {
-		delta = Clamp(target - old_rating, -METRO_AI_MAX_STEP, METRO_AI_MAX_STEP);
+		bool damage = state.changes[to_underlying(MetroTownChange::HouseDemolished)] > 0 || state.changes[to_underlying(MetroTownChange::TreeRemoved)] > 0;
+		int max_fall = std::min(damage ? loyalty.max_fall_damage : loyalty.max_fall, METRO_AI_MAX_STEP);
+		delta = Clamp(target - old_rating, -max_fall, METRO_AI_MAX_STEP);
 		int new_rating = Clamp(old_rating + delta, RATING_MINIMUM, RATING_MAXIMUM);
 		if (!t->have_ratings.Test(_local_company) || (old_rating > 0) != (new_rating > 0)) ZoningTownAuthorityRatingChange();
 		t->have_ratings.Set(_local_company);
@@ -896,10 +940,23 @@ const MetroYearReport *MetroAiGetYearReport(int32_t year)
 /* Console                                                                                        */
 /* ---------------------------------------------------------------------------------------------- */
 
+/** Lines of a text, for printing to the console. */
+static std::vector<std::string> SplitLines(std::string_view text)
+{
+	std::vector<std::string> lines;
+	while (!text.empty()) {
+		size_t end = text.find('\n');
+		lines.emplace_back(text.substr(0, end));
+		if (end == std::string_view::npos) break;
+		text.remove_prefix(end + 1);
+	}
+	return lines;
+}
+
 bool ConMetroAi(std::span<std::string_view> argv)
 {
 	if (argv.empty()) {
-		IConsolePrint(CC_HELP, "Metro mod AI rating. Usage: 'metro_ai status|reload|towns|review <town id>|report'.");
+		IConsolePrint(CC_HELP, "Metro mod AI rating. Usage: 'metro_ai status|reload|towns|review <town id>|show <town id>|prompt <town id>|report'.");
 		return true;
 	}
 	std::string_view cmd = argv.size() > 1 ? argv[1] : "status";
@@ -911,6 +968,9 @@ bool ConMetroAi(std::span<std::string_view> argv)
 		const MetroAiConfig &config = GetMetroAiConfig();
 		IConsolePrint(CC_INFO, "provider={} model={} key={} enabled={}", config.provider, config.GetModel(), config.api_key.empty() ? "none" : "set", MetroAiIsEnabled() ? "yes" : "no");
 		IConsolePrint(CC_INFO, "queued={} running={} towns tracked={} year reports={} company={}", _metro_ai_queue.size(), _metro_ai_running != nullptr ? "yes" : "no", _metro_town_ai.size(), _metro_year_reports.size(), Company::IsValidID(_local_company) ? "yes" : "none");
+		static const char * const loyalty_names[] = { "very loyal", "loyal", "normal", "strict" };
+		static_assert(std::size(loyalty_names) == to_underlying(MetroMayorLoyalty::End));
+		IConsolePrint(CC_INFO, "mayor loyalty={} (setting economy.metro_mayor_loyalty)", loyalty_names[std::min<uint>(_settings_game.economy.metro_mayor_loyalty, std::size(loyalty_names) - 1)]);
 		return true;
 	}
 	if (cmd == "towns") {
@@ -935,6 +995,27 @@ bool ConMetroAi(std::span<std::string_view> argv)
 		}
 		EnqueueTownReview(t);
 		IConsolePrint(CC_INFO, "Review of {} queued.", GetString(STR_TOWN_NAME, t->index));
+		return true;
+	}
+	if ((cmd == "show" || cmd == "prompt") && argv.size() > 2) {
+		auto id = ParseInteger<uint>(argv[2]);
+		const Town *t = id.has_value() ? Town::GetIfValid(*id) : nullptr;
+		if (t == nullptr || !Company::IsValidID(_local_company)) {
+			IConsolePrint(CC_ERROR, "Invalid town id or no company.");
+			return true;
+		}
+		const MetroTownAiState &state = GetTownState(t);
+		if (cmd == "prompt") {
+			for (const std::string &line : SplitLines(BuildTownSystemPrompt() + "\n" + BuildTownUserPrompt(t, state))) IConsolePrint(CC_DEFAULT, "{}", line);
+			return true;
+		}
+		if (!state.has_review) {
+			IConsolePrint(CC_INFO, "{}: no review yet.", GetString(STR_TOWN_NAME, t->index));
+			return true;
+		}
+		IConsolePrint(CC_INFO, "{}: verdict \"{}\", AI rating {}, change {}, company rating {}", GetString(STR_TOWN_NAME, t->index), state.verdict, state.ai_rating, state.last_delta, (int)t->ratings[_local_company]);
+		IConsolePrint(CC_DEFAULT, "{}", state.explanation);
+		for (const std::string &need : SplitLines(state.needs)) IConsolePrint(CC_DEFAULT, "need: {}", need);
 		return true;
 	}
 	if (cmd == "report") {

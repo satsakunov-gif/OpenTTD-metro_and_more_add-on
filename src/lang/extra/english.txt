@@ -2695,3 +2695,9 @@ STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLAC
 STR_METRO_CITY_MATCH_LOCAL                                      :local match
 STR_METRO_CITY_MATCH_REGIONAL                                   :regional match
 STR_METRO_CITY_MATCH_FINAL                                      :the final
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY                          :Loyalty of the AI mayors: {STRING2}
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_HELPTEXT                 :How the AI mayors judge your company in their quarterly review (needs an AI key in secrets.cfg).{}Very loyal: praise almost everything, the rating only rises or stays (except for demolished houses and cut trees), at most 1 request.{}Loyal: friendly, criticise only serious problems, the rating falls by at most 50 per review, 1-2 requests.{}Normal: change of up to ±200 per review.{}Strict: demanding, criticise more often, up to ±200 and up to 3 requests.
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_VERY_LOYAL               :Very loyal
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_LOYAL                    :Loyal
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_NORMAL                   :Normal
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_STRICT                   :Strict

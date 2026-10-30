@@ -2376,3 +2376,9 @@ STR_METRO_CITY_NEWS_MATCH_DAY                                   :{BIG_FONT}{BLAC
 STR_METRO_CITY_MATCH_LOCAL                                      :местный матч
 STR_METRO_CITY_MATCH_REGIONAL                                   :региональный матч
 STR_METRO_CITY_MATCH_FINAL                                      :финал
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY                          :Лояльность мэров (ИИ): {STRING}
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_HELPTEXT                 :Насколько строго мэры-ИИ оценивают вашу компанию раз в квартал (нужен ключ ИИ в secrets.cfg).{}Очень лояльные: хвалят почти всё, рейтинг только растёт или стоит (кроме сноса домов и вырубки деревьев), не больше 1 просьбы.{}Лояльные: доброжелательные, критикуют только за серьёзное, рейтинг падает не больше чем на 50 за оценку, 1–2 просьбы.{}Обычные: изменение до ±200 за оценку.{}Строгие: требовательные, чаще критикуют, до ±200 и до 3 просьб.
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_VERY_LOYAL               :Очень лояльные
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_LOYAL                    :Лояльные
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_NORMAL                   :Обычные
+STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_STRICT                   :Строгие

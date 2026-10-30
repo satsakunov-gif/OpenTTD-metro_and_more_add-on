@@ -941,6 +941,7 @@ struct EconomySettings {
 	bool     disable_inflation_newgrf_flag;  ///< Disable NewGRF inflation flag
 	CargoPaymentAlgorithm payment_algorithm; ///< Cargo payment algorithm
 	uint8_t industry_event_rate;             ///< Rate of industry events
+	uint8_t metro_mayor_loyalty;             ///< Metro mod: how loyal the AI mayors are (#MetroMayorLoyalty)
 };
 
 struct OldEconomySettings {
