@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_city.h"
+#include "metro_power.h"
 #include "clear_map.h"
 #include "landscape.h"
 #include "landscape_cmd.h"
@@ -428,6 +429,12 @@ CommandCost CmdBuildObject(DoCommandFlags flags, TileIndex tile, ObjectType type
 		case OBJECT_METRO_HOSPITAL:
 		case OBJECT_METRO_UNIVERSITY:
 		case OBJECT_METRO_RETIRED:
+		case OBJECT_METRO_SUBSTATION:
+		case OBJECT_METRO_GAS_PLANT:
+		case OBJECT_METRO_NUCLEAR_PLANT:
+		case OBJECT_METRO_SOLAR_PLANT:
+		case OBJECT_METRO_WIND_PLANT:
+		case OBJECT_METRO_VENT_SHAFT:
 			/* This may never be constructed using this method. Metro services: CmdMetroBuildService. */
 			return CMD_ERROR;
 
@@ -650,7 +657,7 @@ static void DrawTile_Object(TileInfo *ti, DrawTileProcParams params)
 		if (!IsInvisibilitySet(TransparencyOption::Structures)) {
 			for (const DrawTileSeqStruct &dtss : dts->GetSequence()) {
 				/* Metro mod services use recoloured house sprites. */
-				PaletteID pal = (IsMetroServiceObject(type) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;
+				PaletteID pal = ((IsMetroServiceObject(type) || IsMetroPowerObject(type)) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;
 				AddSortableSpriteToDraw(dtss.image.sprite, pal, *ti, dtss, IsTransparencySet(TransparencyOption::Structures));
 			}
 		}
@@ -701,6 +708,7 @@ Foundation GetFoundation_Object(TileIndex tile, Slope tileh)
  */
 static void ReallyClearObjectTile(Object *o)
 {
+	if (IsMetroPowerObject(o->type)) MetroPowerOnObjectRemoved(o->index.base());
 	Object::DecTypeCount(o->type);
 	for (TileIndex tile_cur : o->location) {
 		DeleteNewGRFInspectWindow(GrfSpecFeature::Objects, tile_cur.base());
@@ -832,6 +840,7 @@ static CommandCost ClearTile_Object(TileIndex tile, DoCommandFlags flags)
 static void AddAcceptedCargo_Object(TileIndex tile, CargoArray &acceptance, CargoTypes &always_accepted)
 {
 	if (MetroCityAddAcceptedCargo(tile, acceptance, always_accepted)) return;
+	if (MetroPowerAddAcceptedCargo(tile, acceptance, always_accepted)) return;
 	if (!IsObjectType(tile, OBJECT_HQ)) return;
 
 	/* HQ accepts passenger and mail; but we have to divide the values
@@ -1048,6 +1057,7 @@ static void TileLoop_Object(TileIndex tile)
 static bool ClickTile_Object(TileIndex tile)
 {
 	if (MetroCityClickTile(tile)) return true;
+	if (MetroPowerClickTile(tile)) return true;
 	if (!IsObjectType(tile, OBJECT_HQ)) return false;
 
 	ShowCompany(GetTileOwner(tile));

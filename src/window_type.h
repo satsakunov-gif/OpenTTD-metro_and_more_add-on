@@ -867,6 +867,18 @@ enum class WindowClass : uint16_t {
 	 */
 	MetroService,
 
+	/**
+	 * Metro mod power grid construction window; %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroPowerToolbar,
+
+	/**
+	 * Metro mod window of a grid building and its network; %Window numbers:
+	 *   - #TileIndex = #MetroPowerNetworkWidgets
+	 */
+	MetroPowerNetwork,
+
 	End,              ///< End sentinel.
 	Invalid = 0xFFFF, ///< Invalid window.
 };

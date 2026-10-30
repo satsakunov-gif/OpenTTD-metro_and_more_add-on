@@ -773,6 +773,9 @@ enum class Commands : uint8_t {
 	DesyncCheck,                            ///< Force desync checks to be run
 
 	MetroBuildService,                      ///< Metro mod: build a town service
+	MetroBuildPowerLine,                    ///< Metro mod: build or remove a power line
+	MetroBuildPowerObject,                  ///< Metro mod: build a plant, substation or vent shaft
+	MetroSetPowerPriority,                  ///< Metro mod: set the blackout priority
 
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)
 };

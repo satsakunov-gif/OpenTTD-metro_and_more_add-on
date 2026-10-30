@@ -2382,3 +2382,65 @@ STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_VERY_LOYAL               :Очень ло
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_LOYAL                    :Лояльные
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_NORMAL                   :Обычные
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_STRICT                   :Строгие
+STR_CONFIG_SETTING_METRO_TRAINS_NEED_GRID                       :Электровозам нужна электросеть: {STRING}
+STR_CONFIG_SETTING_METRO_TRAINS_NEED_GRID_HELPTEXT              :Мод «Метро». Электровозы игрока (пути с контактной сетью) тянут только в радиусе 8 тайлов от подстанции, получающей энергию от электростанций. Без питания они теряют тягу и катятся до остановки. Вентшахтам сеть нужна всегда.
+STR_METRO_POWER_RAIL_BUTTON                                     :{BLACK}Сеть
+STR_METRO_POWER_RAIL_BUTTON_TOOLTIP                             :{BLACK}Электросеть: ЛЭП, электростанции, подстанции и вентшахты
+STR_METRO_POWER_TOOLBAR_CAPTION                                 :{WHITE}Электросеть
+STR_METRO_POWER_TOOLBAR_LIST_TOOLTIP                            :{BLACK}Выберите инструмент, затем кликните по карте
+STR_METRO_POWER_TOOLBAR_HINT                                    :{BLACK}ЛЭП тянется прямой линией над землёй, дорогами, путями и водой (не над зданиями). Станции, подстанции и вентшахты входят в сеть, если их касается ЛЭП или другая постройка сети; так же подключается ванильная угольная электростанция. Подстанция питает электровозы и вентшахты в радиусе 8 тайлов. Клик по постройке сети — окно сети.
+STR_METRO_POWER_ROW_LINE                                        :{BLACK}ЛЭП: {CURRENCY_LONG} за тайл
+STR_METRO_POWER_ROW_LINE_REMOVE                                 :{BLACK}Убрать ЛЭП
+STR_METRO_POWER_ROW_LOCKED                                      :{SILVER}{STRING}: с {NUM} года
+STR_METRO_POWER_ROW_SUBSTATION                                  :{BLACK}{STRING}: {CURRENCY_LONG}, радиус {NUM}
+STR_METRO_POWER_ROW_PLANT                                       :{BLACK}{STRING}: {CURRENCY_LONG}, {NUM} кВт
+STR_METRO_POWER_ROW_CONSUMER                                    :{BLACK}{STRING}: {CURRENCY_LONG}, потребляет {NUM} кВт
+STR_METRO_POWER_SUBSTATION                                      :Подстанция
+STR_METRO_POWER_GAS                                             :Газовая электростанция
+STR_METRO_POWER_NUCLEAR                                         :Атомная электростанция
+STR_METRO_POWER_SOLAR                                           :Солнечная электростанция
+STR_METRO_POWER_WIND                                            :Ветряная электростанция
+STR_METRO_POWER_VENT                                            :Вентшахта
+STR_METRO_POWER_EFFECT_SUBSTATION                               :{BLACK}Питает электровозы и вентшахты в радиусе 8 тайлов.
+STR_METRO_POWER_EFFECT_GAS                                      :{BLACK}Сжигает нефть, привезённую на соседнюю станцию. Без нефти мощность за месяц падает до нуля.
+STR_METRO_POWER_EFFECT_NUCLEAR                                  :{BLACK}Топливо не нужно, но содержание дорогое.
+STR_METRO_POWER_EFFECT_SOLAR                                    :{BLACK}Слабая, топливо не нужно.
+STR_METRO_POWER_EFFECT_WIND                                     :{BLACK}Слабая, топливо не нужно.
+STR_METRO_POWER_EFFECT_VENT                                     :{BLACK}Проветривает глубокое метро (слой −3) в радиусе 8 тайлов. Нужна подстанция рядом; с 1970 года при блэкауте работает аварийный дизель.
+STR_METRO_POWER_CAPTION                                         :{WHITE}{STRING}
+STR_METRO_POWER_FUEL_STOCK                                      :{BLACK}{STRING} на складе: {NUM}; мощность сейчас {NUM} кВт
+STR_METRO_POWER_SUBSTATION_ON                                   :{GREEN}Под напряжением{BLACK}: потребление {NUM} кВт, электровозов рядом: {NUM}
+STR_METRO_POWER_SUBSTATION_OFF                                  :{RED}Без питания{BLACK}: потребление {NUM} кВт, электровозов рядом: {NUM}
+STR_METRO_POWER_VENT_GRID                                       :{GREEN}Работает от сети{BLACK} ({NUM} кВт)
+STR_METRO_POWER_VENT_DIESEL                                     :{YELLOW}Работает на аварийном дизеле{BLACK} (из сети не хватает {NUM} кВт)
+STR_METRO_POWER_VENT_OFF                                        :{RED}Не работает: нет питания{BLACK} (нужно {NUM} кВт)
+STR_METRO_POWER_NOT_CONNECTED                                   :{RED}Не подключена ни к одной электростанции
+STR_METRO_POWER_NET_HEADER                                      :{GOLD}Сеть{BLACK} (тайлов ЛЭП: {NUM})
+STR_METRO_POWER_NET_CAPACITY                                    :{BLACK}Мощность: {NUM} кВт из {NUM} кВт номинала
+STR_METRO_POWER_NET_DEMAND                                      :{BLACK}Потребление: {NUM} кВт (вентиляция {NUM}, пути {NUM}), подано {NUM} кВт
+STR_METRO_POWER_NET_SUBSTATIONS                                 :{BLACK}Подстанций: {NUM}, без питания: {NUM}; электровозов: {NUM}, без питания: {NUM}
+STR_METRO_POWER_NET_VENTS                                       :{BLACK}Вентшахт: {NUM}, на дизеле: {NUM}, не работают: {NUM}
+STR_METRO_POWER_NET_PRIORITY_VENTS                              :{BLACK}При блэкауте: вентиляция питается первой, пути отключаются первыми
+STR_METRO_POWER_NET_PRIORITY_TRACKS                             :{BLACK}При блэкауте: пути питаются первыми, вентиляция отключается первой
+STR_METRO_POWER_NET_BLACKOUT                                    :{RED}Блэкаут: станции дают меньше, чем нужно
+STR_METRO_POWER_PLANT_LINE                                      :{BLACK}  {STRING}: {NUM} из {NUM} кВт
+STR_METRO_POWER_PLANT_FUEL_LINE                                 :{BLACK}  {STRING}: {NUM} из {NUM} кВт, топливо {NUM}
+STR_METRO_POWER_PRIORITY_BUTTON                                 :{BLACK}Сменить приоритет
+STR_METRO_POWER_PRIORITY_TOOLTIP                                :{BLACK}Что питать первым при блэкауте: вентиляцию или пути (для всех ваших сетей)
+STR_METRO_POWER_REMOVE                                          :{BLACK}Снести
+STR_METRO_POWER_REMOVE_TOOLTIP                                  :{BLACK}Снести постройку
+STR_METRO_POWER_INDUSTRY_STOCK                                  :{BLACK}Электросеть: угля на складе {NUM} т, мощность {NUM} из {NUM} кВт
+STR_METRO_POWER_INDUSTRY_CONNECTED                              :{GREEN}Подключена к вашей электросети
+STR_METRO_POWER_INDUSTRY_NOT_CONNECTED                          :{SILVER}Не подключена к электросети: проведите к ней ЛЭП
+STR_METRO_POWER_NEWS_TRAIN_STOPPED                              :{WHITE}{VEHICLE} встал: нет питания на электрифицированных путях
+STR_METRO_POWER_NEWS_BLACKOUT                                   :{BIG_FONT}{BLACK}Блэкаут!{}Электростанции дают меньше, чем нужно; подстанции отключаются
+STR_METRO_POWER_NEWS_BLACKOUT_OVER                              :{WHITE}Блэкаут закончился: все подстанции снова под напряжением
+STR_METRO_POWER_ERR_CANT_BUILD                                  :{WHITE}Здесь нельзя построить...
+STR_METRO_POWER_ERR_CANT_BUILD_LINE                             :{WHITE}Здесь нельзя провести ЛЭП...
+STR_METRO_POWER_ERR_CANT_REMOVE_LINE                            :{WHITE}Здесь нельзя убрать ЛЭП...
+STR_METRO_POWER_ERR_BUILDING                                    :{WHITE}... ЛЭП не проходит над зданиями
+STR_METRO_POWER_ERR_STRAIGHT                                    :{WHITE}... линия должна быть прямой
+STR_METRO_POWER_ERR_NO_LINE                                     :{WHITE}... здесь нет ЛЭП
+STR_METRO_POWER_ERR_NOT_OWNER                                   :{WHITE}... ЛЭП принадлежит другой компании
+STR_METRO_POWER_ERR_YEAR                                        :{WHITE}... доступно с {NUM} года
+STR_METRO_POWER_ERR_LINE_IN_WAY                                 :{WHITE}... мешает ЛЭП

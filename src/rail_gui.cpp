@@ -40,6 +40,7 @@
 #include "zoom_func.h"
 #include "rail_cmd.h"
 #include "rail_gui.h"
+#include "metro_power.h"
 #include "tracerestrict.h"
 #include "programmable_signals.h"
 #include "newgrf_newsignals.h"
@@ -763,6 +764,11 @@ struct BuildRailToolbarWindow : Window {
 	{
 		if (widget < WID_RAT_BUILD_NS) return;
 
+		if (widget == WID_RAT_METRO_POWER) {
+			ShowMetroPowerToolbar();
+			return;
+		}
+
 		_remove_button_clicked = false;
 
 		if (widget == WID_RAT_REMOVE) {
@@ -1170,6 +1176,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_build_rail_widgets =
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_REMOVE, STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR),
 		NWidget(WWT_IMGBTN, Colours::DarkGreen, WID_RAT_CONVERT_RAIL),
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_CONVERT_RAIL, STR_NULL),
+		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_POWER),
+						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_POWER_RAIL_BUTTON, STR_METRO_POWER_RAIL_BUTTON_TOOLTIP),
 	EndContainer(),
 };
 

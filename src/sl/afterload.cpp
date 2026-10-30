@@ -39,6 +39,7 @@
 #include "../aircraft.h"
 #include "../object_map.h"
 #include "../object_base.h"
+#include "../metro_power.h"
 #include "../tree_map.h"
 #include "../company_func.h"
 #include "../road_cmd.h"
@@ -300,6 +301,8 @@ static void InitializeWindowsAndCaches()
 	for (Object *o : Object::Iterate()) {
 		/* Metro mod: object types 5..8 are town services since metro_city v2, older NewGRF objects move up. */
 		if (!SlXvIsFeaturePresent(XSLFI_METRO_CITY, 2) && o->type >= OBJECT_METRO_SCHOOL && o->type < NUM_OBJECTS - METRO_OBJECT_COUNT) o->type += METRO_OBJECT_COUNT;
+		/* Metro mod: object types 9..14 are the power grid since metro_power v1, older NewGRF objects move up. */
+		if (!SlXvIsFeaturePresent(XSLFI_METRO_POWER, 1) && o->type >= OBJECT_METRO_SUBSTATION && o->type < NUM_OBJECTS - METRO_POWER_OBJECT_COUNT) o->type += METRO_POWER_OBJECT_COUNT;
 		if (o->type >= NUM_OBJECTS) SlErrorCorrupt("Invalid object type");
 		Object::IncTypeCount(o->type);
 	}
@@ -4722,6 +4725,9 @@ bool AfterLoadGame()
 		Company *c = DoStartupNewCompany(DSNC_DURING_LOAD);
 		c->settings = _settings_client.company;
 	}
+
+	/* Metro mod: networks, supply and the power of the trains are not saved. */
+	MetroPowerAfterLoad();
 
 	return true;
 }

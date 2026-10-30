@@ -971,6 +971,7 @@ SettingsContainer &GetSettingsTree()
 			SettingsPage *physics = vehicles->Add(new SettingsPage(STR_CONFIG_SETTING_VEHICLES_PHYSICS));
 			{
 				physics->Add(new SettingEntry("vehicle.train_acceleration_model"));
+				physics->Add(new SettingEntry("vehicle.metro_trains_need_grid"));
 				physics->Add(new SettingEntry("vehicle.train_braking_model"));
 				physics->Add(new ConditionallyHiddenSettingEntry("vehicle.realistic_braking_aspect_limited", []() -> bool { return GetGameSettings().vehicle.train_braking_model != TBM_REALISTIC; }));
 				physics->Add(new ConditionallyHiddenSettingEntry("vehicle.limit_train_acceleration", []() -> bool { return GetGameSettings().vehicle.train_braking_model != TBM_REALISTIC; }));

@@ -72,6 +72,7 @@
 #include <ranges>
 
 #include "metro_city.h"
+#include "metro_power.h"
 
 #include "safeguards.h"
 
@@ -1350,6 +1351,8 @@ static Money DeliverGoods(int num_pieces, CargoType cargo_type, StationID dest, 
 	const CargoSpec *cs = CargoSpec::Get(cargo_type);
 	st->town->received[cs->town_acceptance_effect].new_act += accepted_total;
 	if (accepted_total - accepted_ind > 0) {
+		/* Metro mod: oil for the gas power plants near the station. */
+		MetroPowerOnCargoDelivered(st, cargo_type, accepted_total - accepted_ind);
 		/* Cargo not delivered to an industry must go to the town. */
 		st->town->GetOrCreateCargoAccepted(cargo_type).history[THIS_MONTH].accepted += accepted_total - accepted_ind;
 	}
@@ -1387,6 +1390,7 @@ static void TriggerIndustryProduction(Industry *i)
 	IndustryCallbackMasks cbm = indspec->callback_mask;
 
 	i->was_cargo_delivered = true;
+	MetroPowerOnIndustryCargo(i); // Metro mod: coal in stock of a power station.
 
 	if (cbm.Test(IndustryCallbackMask::ProductionCargoArrival) || cbm.Test(IndustryCallbackMask::Production256Ticks)) {
 		if (cbm.Test(IndustryCallbackMask::ProductionCargoArrival)) {

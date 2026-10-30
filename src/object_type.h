@@ -25,8 +25,15 @@ static const ObjectType OBJECT_METRO_HOSPITAL     = 6; ///< Metro mod: hospital 
 static const ObjectType OBJECT_METRO_UNIVERSITY   = 7; ///< Metro mod: university of a town
 static const ObjectType OBJECT_METRO_RETIRED      = 8; ///< Metro mod: reserved, was the fire station (metro_city v2..v3); such objects are removed on load
 static const ObjectType METRO_OBJECT_COUNT        = 4; ///< Metro mod: number of reserved object types (NewGRF objects of older saves are moved up by this)
+static const ObjectType OBJECT_METRO_SUBSTATION    =  9; ///< Metro mod: power substation
+static const ObjectType OBJECT_METRO_GAS_PLANT     = 10; ///< Metro mod: gas power plant
+static const ObjectType OBJECT_METRO_NUCLEAR_PLANT = 11; ///< Metro mod: nuclear power plant
+static const ObjectType OBJECT_METRO_SOLAR_PLANT   = 12; ///< Metro mod: solar power plant
+static const ObjectType OBJECT_METRO_WIND_PLANT    = 13; ///< Metro mod: wind farm
+static const ObjectType OBJECT_METRO_VENT_SHAFT    = 14; ///< Metro mod: vent shaft of the deep metro
+static const ObjectType METRO_POWER_OBJECT_COUNT   =  6; ///< Metro mod: object types of the power grid (NewGRF objects of saves before metro_power move up by this)
 
-static const ObjectType NEW_OBJECT_OFFSET   =   9;    ///< Offset for new objects
+static const ObjectType NEW_OBJECT_OFFSET   =  15;    ///< Offset for new objects
 static const ObjectType NUM_OBJECTS         = 64000;  ///< Number of supported objects overall
 static const ObjectType NUM_OBJECTS_PER_GRF = NUM_OBJECTS; ///< Number of supported objects per NewGRF
 static const ObjectType INVALID_OBJECT_TYPE = 0xFFFF; ///< An invalid object

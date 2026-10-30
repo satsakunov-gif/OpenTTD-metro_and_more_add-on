@@ -31,6 +31,12 @@ static void Load_OBID()
 		for (size_t i = mappings.size() - 1; i >= OBJECT_METRO_SCHOOL + METRO_OBJECT_COUNT; i--) mappings[i] = mappings[i - METRO_OBJECT_COUNT];
 		for (size_t i = OBJECT_METRO_SCHOOL; i < OBJECT_METRO_SCHOOL + METRO_OBJECT_COUNT; i++) mappings[i] = {};
 	}
+	/* Metro mod: object types 9..14 are the power grid since metro_power v1, older NewGRF objects move up. */
+	if (!SlXvIsFeaturePresent(XSLFI_METRO_POWER, 1)) {
+		auto &mappings = _object_mngr.mappings;
+		for (size_t i = mappings.size() - 1; i >= OBJECT_METRO_SUBSTATION + METRO_POWER_OBJECT_COUNT; i--) mappings[i] = mappings[i - METRO_POWER_OBJECT_COUNT];
+		for (size_t i = OBJECT_METRO_SUBSTATION; i < OBJECT_METRO_SUBSTATION + METRO_POWER_OBJECT_COUNT; i++) mappings[i] = {};
+	}
 }
 
 static const ChunkHandler object_chunk_handlers[] = {

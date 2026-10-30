@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "metro_ai.h"
 #include "metro_city.h"
+#include "metro_power.h"
 #include "misc/history_type.hpp"
 #include "misc/history_func.hpp"
 #include "road.h"
@@ -2893,6 +2894,9 @@ using CanBuildHouseHereFlags = EnumBitSet<CanBuildHouseHereFlag, uint8_t>;
  */
 static inline CommandCost CanBuildHouseHere(TileIndex tile, TownID town, CanBuildHouseHereFlags flags)
 {
+	/* Metro mod: houses are not built under power lines. */
+	if (HasMetroPowerLine(tile)) return CommandCost(STR_METRO_POWER_ERR_LINE_IN_WAY);
+
 	/* cannot build on these slopes... */
 	if (flags.Test(CanBuildHouseHereFlag::NoSlope)) {
 		if (!IsTileFlat(tile)) return CommandCost(STR_ERROR_FLAT_LAND_REQUIRED);

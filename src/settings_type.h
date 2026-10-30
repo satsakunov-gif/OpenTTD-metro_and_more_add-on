@@ -829,6 +829,7 @@ enum class RoadVehicleDrivingSide : uint8_t {
 
 /** Settings related to vehicles. */
 struct VehicleSettings {
+	bool     metro_trains_need_grid;          ///< Metro mod: electric trains of human players need power from the grid
 	uint8_t                max_train_length;                      ///< maximum length for trains
 	uint8_t                smoke_amount;                          ///< amount of smoke/sparks locomotives produce
 	AccelerationModel      train_acceleration_model;              ///< realistic acceleration for trains

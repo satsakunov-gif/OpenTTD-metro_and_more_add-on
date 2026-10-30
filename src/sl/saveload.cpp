@@ -368,6 +368,7 @@ static const std::vector<ChunkHandler> &ChunkHandlers()
 	extern const ChunkHandlerTable _debug_chunk_handlers;
 	extern const ChunkHandlerTable _metro_ai_chunk_handlers;
 	extern const ChunkHandlerTable _metro_city_chunk_handlers;
+	extern const ChunkHandlerTable _metro_power_chunk_handlers;
 
 	/** List of all chunks in a savegame. */
 	static const ChunkHandlerTable _chunk_handler_tables[] = {
@@ -419,6 +420,7 @@ static const std::vector<ChunkHandler> &ChunkHandlers()
 		_debug_chunk_handlers,
 		_metro_ai_chunk_handlers,
 		_metro_city_chunk_handlers,
+		_metro_power_chunk_handlers,
 	};
 
 	static std::vector<ChunkHandler> _chunk_handlers;

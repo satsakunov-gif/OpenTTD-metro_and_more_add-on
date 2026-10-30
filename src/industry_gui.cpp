@@ -18,6 +18,7 @@
 #include "command_func.h"
 #include "viewport_func.h"
 #include "industry.h"
+#include "metro_power.h"
 #include "industry_cmd.h"
 #include "town.h"
 #include "cargo_type.h"
@@ -1037,6 +1038,11 @@ public:
 			ir.top += WidgetDimensions::scaled.vsep_wide;
 			ir.top = DrawStringMultiLine(ir, i->text.GetDecodedString(), TextColour::Black);
 		}
+
+		/* Metro mod: coal in stock and the grid of a power station. */
+		std::vector<std::string> power_lines = MetroPowerGetIndustryLines(i);
+		if (!power_lines.empty()) ir.top += WidgetDimensions::scaled.vsep_wide;
+		for (const std::string &line : power_lines) ir.top = DrawStringMultiLine(ir, line, TextColour::Black);
 
 		/* Return required bottom position, the last pixel row plus some padding. */
 		return ir.top - 1 + WidgetDimensions::scaled.framerect.bottom;

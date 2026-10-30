@@ -140,6 +140,7 @@
 #include "table/string_colours.h"
 
 #include "metro_city.h"
+#include "metro_power.h"
 
 #include "safeguards.h"
 
@@ -1981,6 +1982,7 @@ static void ViewportAddLandscape()
 					DrawTileSelection(&_cur_ti);
 					DrawTileZoning(&_cur_ti);
 					MetroCityDrawTile(&_cur_ti);
+					MetroPowerDrawTile(&_cur_ti);
 				}
 			}
 		}

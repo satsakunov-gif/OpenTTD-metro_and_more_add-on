@@ -190,6 +190,8 @@ enum ViewportDragDropSelectionProcess : uint8_t {
 	DDSP_BUY_LAND,             ///< Purchase land
 	DDSP_BUILD_OBJECT,         ///< Build an object
 	DDSP_PLACE_HOUSE,          ///< Place a house
+	DDSP_METRO_POWER_LINE,     ///< Metro mod: build a power line
+	DDSP_METRO_POWER_LINE_REMOVE, ///< Metro mod: remove a power line
 
 	/* Rail specific actions */
 	DDSP_PLACE_RAIL,           ///< Rail placement

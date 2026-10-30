@@ -40,6 +40,31 @@ static const DrawTileSeqStruct _object_metro_university_seq[] = {
 	{   0,  0,  0, 16, 16, 42, {0x5b4, PAL_NONE}},
 };
 
+/* Metro mod power grid, temporarily drawn with vanilla power station and transmitter sprites. */
+static const DrawTileSeqStruct _object_metro_substation_seq[] = {
+	{   1,  0,  0, 14, 15, 21, {0x805, PALETTE_TO_GREY}},
+};
+
+static const DrawTileSeqStruct _object_metro_gas_plant_seq[] = {
+	{   0,  2,  0, 16, 12, 50, {0x802, PALETTE_TO_STRUCT_YELLOW}},
+};
+
+static const DrawTileSeqStruct _object_metro_nuclear_plant_seq[] = {
+	{   1,  1,  0, 14, 14, 44, {0x7ff, PALETTE_TO_STRUCT_WHITE}},
+};
+
+static const DrawTileSeqStruct _object_metro_solar_plant_seq[] = {
+	{   1,  0,  0, 14, 15,  5, {0x803, PALETTE_TO_STRUCT_BLUE}},
+};
+
+static const DrawTileSeqStruct _object_metro_wind_plant_seq[] = {
+	{   7,  7,  0,  2,  2, 70, {SPR_TRANSMITTER, PALETTE_TO_STRUCT_WHITE}},
+};
+
+static const DrawTileSeqStruct _object_metro_vent_shaft_seq[] = {
+	{   1,  1,  0, 14, 14, 12, {0x813, PALETTE_TO_STRUCT_CONCRETE}},
+};
+
 extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_transmitter_seq },
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_lighthouse_seq  },
@@ -50,6 +75,12 @@ extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_hospital_seq     },
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_university_seq   },
 	{ { SPR_FLAT_BARE_LAND,          PAL_NONE } }, // OBJECT_METRO_RETIRED, never on the map
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_substation_seq    },
+	{ { 0xf54,                       PAL_NONE }, _object_metro_gas_plant_seq     },
+	{ { 0xf54,                       PAL_NONE }, _object_metro_nuclear_plant_seq },
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_solar_plant_seq   },
+	{ { SPR_FLAT_GRASS_TILE,         PAL_NONE }, _object_metro_wind_plant_seq    },
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_vent_shaft_seq    },
 };
 
 
@@ -147,6 +178,13 @@ extern const ObjectSpec _original_objects[] = {
 	M(STR_METRO_SERVICE_UNIVERSITY,                    0x11,   0,  20,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 	/* Reserved slot of the removed fire station: keeps the object type numbers of saves; never built. */
 	M(STR_METRO_OBJECT_RETIRED,                        0x11,   0,   0,  0, CalTime::Date{}, LandscapeTypes{},          0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	/* Metro mod power grid: built only by CmdMetroBuildPowerObject, which computes the cost itself. */
+	M(STR_METRO_POWER_SUBSTATION,                      0x11,   0,  20,  3, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_POWER_GAS,                             0x22,   0,  20,  7, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_POWER_NUCLEAR,                         0x22,   0,  40,  6, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_POWER_SOLAR,                           0x22,   0,  10,  1, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_POWER_WIND,                            0x11,   0,  10,  9, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	M(STR_METRO_POWER_VENT,                            0x11,   0,  20,  2, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 };
 
 #undef M

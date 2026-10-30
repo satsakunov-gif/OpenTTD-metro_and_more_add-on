@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "error.h"
+#include "metro_power.h"
 #include "articulated_vehicles.h"
 #include "command_func.h"
 #include "pathfinder/yapf/yapf.hpp"
@@ -5007,12 +5008,16 @@ int Train::UpdateSpeed(MaxSpeedInfo max_speed_info)
 	}
 	switch (_settings_game.vehicle.train_acceleration_model) {
 		default: NOT_REACHED();
-		case AccelerationModel::Original:
-			return this->DoUpdateSpeed({ this->acceleration * (accel_status == AS_BRAKE ? -4 : 2), this->acceleration * -4 }, 0,
+		case AccelerationModel::Original: {
+			/* Metro mod: electric engines without power from the grid give no traction; the train rolls out slowly. */
+			uint percent = accel_status == AS_ACCEL ? MetroPowerGetTrainPowerPercent(this) : 100;
+			int accel = percent < 100 ? (percent == 0 ? -1 : static_cast<int>(this->acceleration * percent / 100) * 2) : this->acceleration * (accel_status == AS_BRAKE ? -4 : 2);
+			return this->DoUpdateSpeed({ accel, this->acceleration * -4 }, 0,
 					max_speed_info.strict_max_speed, max_speed_info.advisory_max_speed, this->UsingRealisticBraking());
+		}
 
 		case AccelerationModel::Realistic:
-			return this->DoUpdateSpeed(this->GetAcceleration(), accel_status == AS_BRAKE ? 0 : 2,
+			return this->DoUpdateSpeed(this->GetAcceleration(), (accel_status == AS_BRAKE || MetroPowerGetTrainPowerPercent(this) == 0) ? 0 : 2,
 					max_speed_info.strict_max_speed, max_speed_info.advisory_max_speed, this->UsingRealisticBraking());
 	}
 }

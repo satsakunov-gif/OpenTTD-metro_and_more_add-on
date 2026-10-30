@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "train.h"
+#include "metro_power.h"
 #include "train_settings.h"
 #include "roadveh.h"
 #include "depot_map.h"
@@ -208,6 +209,13 @@ GroundVehicleAcceleration GroundVehicle<T, Type>::GetAcceleration()
 	}
 
 
+	/* Metro mod: electric engines without power from the grid give no traction (braking is not affected). */
+	uint metro_power_percent = (Type == VehicleType::Train && mode == AS_ACCEL) ? MetroPowerGetTrainPowerPercent(Train::From(this)) : 100;
+	if (metro_power_percent < 100) {
+		power = power * metro_power_percent / 100;
+		max_te = static_cast<uint32_t>(static_cast<uint64_t>(max_te) * metro_power_percent / 100);
+	}
+
 	/* Constructed from power, with need to multiply by 18 and assuming
 	 * low speed, it needs to be a 64 bit integer too. */
 	int64_t force;
@@ -234,7 +242,7 @@ GroundVehicleAcceleration GroundVehicle<T, Type>::GetAcceleration()
 	}
 
 	/* If power is 0 because of a breakdown, we make the force 0 if accelerating */
-	if (Type == VehicleType::Train && mode == AS_ACCEL && Train::From(this)->flags.Test(VehicleRailFlag::BreakdownPower) && power == 0) {
+	if (Type == VehicleType::Train && mode == AS_ACCEL && (Train::From(this)->flags.Test(VehicleRailFlag::BreakdownPower) || metro_power_percent < 100) && power == 0) {
 		force = 0;
 	}
 
@@ -303,7 +311,7 @@ GroundVehicleAcceleration GroundVehicle<T, Type>::GetAcceleration()
 				accel -= this->acceleration >> 1;
 			}
 
-			if (this->cur_speed < 3 && accel < 5 &&
+			if (this->cur_speed < 3 && accel < 5 && metro_power_percent == 100 &&
 					this->IsFrontEngine() && !(this->current_order_time & 0x3FF) &&
 					!(this->current_order.IsType(OT_LOADING)) &&
 					!(Train::From(this)->flags.Any(VehicleRailFlagsIsBroken | VehicleRailFlags{VehicleRailFlag::Stuck})) &&

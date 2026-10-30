@@ -2701,3 +2701,65 @@ STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_VERY_LOYAL               :Very loyal
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_LOYAL                    :Loyal
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_NORMAL                   :Normal
 STR_CONFIG_SETTING_METRO_MAYOR_LOYALTY_STRICT                   :Strict
+STR_CONFIG_SETTING_METRO_TRAINS_NEED_GRID                       :Electric trains need the power grid: {STRING2}
+STR_CONFIG_SETTING_METRO_TRAINS_NEED_GRID_HELPTEXT              :Metro mod. Electric engines of human players (rail types with catenary) pull only within 8 tiles of a substation fed by power plants. Without power they lose traction and roll to a stop. Vent shafts always need the grid.
+STR_METRO_POWER_RAIL_BUTTON                                     :{BLACK}Grid
+STR_METRO_POWER_RAIL_BUTTON_TOOLTIP                             :{BLACK}Power grid: power lines, plants, substations and vent shafts
+STR_METRO_POWER_TOOLBAR_CAPTION                                 :{WHITE}Power grid
+STR_METRO_POWER_TOOLBAR_LIST_TOOLTIP                            :{BLACK}Click a tool, then the map
+STR_METRO_POWER_TOOLBAR_HINT                                    :{BLACK}Drag power lines along a straight line over land, roads, rails and water (not over buildings). Plants, substations and vent shafts join a network when a line or another grid building touches them, as does a vanilla coal power station. A substation feeds electric trains and vent shafts 8 tiles around it. Click a grid building for its network.
+STR_METRO_POWER_ROW_LINE                                        :{BLACK}Power line: {CURRENCY_LONG} per tile
+STR_METRO_POWER_ROW_LINE_REMOVE                                 :{BLACK}Remove power line
+STR_METRO_POWER_ROW_LOCKED                                      :{SILVER}{STRING}: from {NUM}
+STR_METRO_POWER_ROW_SUBSTATION                                  :{BLACK}{STRING}: {CURRENCY_LONG}, radius {NUM}
+STR_METRO_POWER_ROW_PLANT                                       :{BLACK}{STRING}: {CURRENCY_LONG}, {NUM} kW
+STR_METRO_POWER_ROW_CONSUMER                                    :{BLACK}{STRING}: {CURRENCY_LONG}, uses {NUM} kW
+STR_METRO_POWER_SUBSTATION                                      :Substation
+STR_METRO_POWER_GAS                                             :Gas power plant
+STR_METRO_POWER_NUCLEAR                                         :Nuclear power plant
+STR_METRO_POWER_SOLAR                                           :Solar power plant
+STR_METRO_POWER_WIND                                            :Wind farm
+STR_METRO_POWER_VENT                                            :Vent shaft
+STR_METRO_POWER_EFFECT_SUBSTATION                               :{BLACK}Feeds electric trains and vent shafts 8 tiles around it.
+STR_METRO_POWER_EFFECT_GAS                                      :{BLACK}Burns oil delivered to a station next to it. Without oil the output falls to zero within a month.
+STR_METRO_POWER_EFFECT_NUCLEAR                                  :{BLACK}Needs no fuel, but its upkeep is expensive.
+STR_METRO_POWER_EFFECT_SOLAR                                    :{BLACK}Weak, needs no fuel.
+STR_METRO_POWER_EFFECT_WIND                                     :{BLACK}Weak, needs no fuel.
+STR_METRO_POWER_EFFECT_VENT                                     :{BLACK}Ventilates the deep metro (level -3) 8 tiles around it. Needs a substation nearby; from 1970 an emergency diesel runs it in a blackout.
+STR_METRO_POWER_CAPTION                                         :{WHITE}{STRING}
+STR_METRO_POWER_FUEL_STOCK                                      :{BLACK}{STRING} in stock: {NUM}; output now {NUM} kW
+STR_METRO_POWER_SUBSTATION_ON                                   :{GREEN}Powered{BLACK}: demand {NUM} kW, electric trains around: {NUM}
+STR_METRO_POWER_SUBSTATION_OFF                                  :{RED}No power{BLACK}: demand {NUM} kW, electric trains around: {NUM}
+STR_METRO_POWER_VENT_GRID                                       :{GREEN}Working on the grid{BLACK} ({NUM} kW)
+STR_METRO_POWER_VENT_DIESEL                                     :{YELLOW}Working on the emergency diesel{BLACK} ({NUM} kW from the grid are missing)
+STR_METRO_POWER_VENT_OFF                                        :{RED}Not working: no power{BLACK} (needs {NUM} kW)
+STR_METRO_POWER_NOT_CONNECTED                                   :{RED}Not connected to any plant
+STR_METRO_POWER_NET_HEADER                                      :{GOLD}Network{BLACK} (power line tiles: {NUM})
+STR_METRO_POWER_NET_CAPACITY                                    :{BLACK}Capacity: {NUM} kW of {NUM} kW nominal
+STR_METRO_POWER_NET_DEMAND                                      :{BLACK}Demand: {NUM} kW (ventilation {NUM}, tracks {NUM}), fed {NUM} kW
+STR_METRO_POWER_NET_SUBSTATIONS                                 :{BLACK}Substations: {NUM}, without power: {NUM}; electric trains: {NUM}, without power: {NUM}
+STR_METRO_POWER_NET_VENTS                                       :{BLACK}Vent shafts: {NUM}, on diesel: {NUM}, not working: {NUM}
+STR_METRO_POWER_NET_PRIORITY_VENTS                              :{BLACK}Blackout order: ventilation is fed first, tracks are cut first
+STR_METRO_POWER_NET_PRIORITY_TRACKS                             :{BLACK}Blackout order: tracks are fed first, ventilation is cut first
+STR_METRO_POWER_NET_BLACKOUT                                    :{RED}Blackout: the plants give less than the demand
+STR_METRO_POWER_PLANT_LINE                                      :{BLACK}  {STRING}: {NUM} of {NUM} kW
+STR_METRO_POWER_PLANT_FUEL_LINE                                 :{BLACK}  {STRING}: {NUM} of {NUM} kW, fuel {NUM}
+STR_METRO_POWER_PRIORITY_BUTTON                                 :{BLACK}Swap priority
+STR_METRO_POWER_PRIORITY_TOOLTIP                                :{BLACK}Choose what is fed first in a blackout: ventilation or tracks (for all your networks)
+STR_METRO_POWER_REMOVE                                          :{BLACK}Remove
+STR_METRO_POWER_REMOVE_TOOLTIP                                  :{BLACK}Remove the building
+STR_METRO_POWER_INDUSTRY_STOCK                                  :{BLACK}Power grid: coal in stock {NUM} t, output {NUM} of {NUM} kW
+STR_METRO_POWER_INDUSTRY_CONNECTED                              :{GREEN}Connected to your power grid
+STR_METRO_POWER_INDUSTRY_NOT_CONNECTED                          :{SILVER}Not connected to a power grid: build a power line to it
+STR_METRO_POWER_NEWS_TRAIN_STOPPED                              :{WHITE}{VEHICLE} has stopped: no power on the electric tracks
+STR_METRO_POWER_NEWS_BLACKOUT                                   :{BIG_FONT}{BLACK}Blackout!{}The power plants give less than the demand; substations are cut off
+STR_METRO_POWER_NEWS_BLACKOUT_OVER                              :{WHITE}The blackout is over: all substations have power again
+STR_METRO_POWER_ERR_CANT_BUILD                                  :{WHITE}Can't build this here...
+STR_METRO_POWER_ERR_CANT_BUILD_LINE                             :{WHITE}Can't build the power line here...
+STR_METRO_POWER_ERR_CANT_REMOVE_LINE                            :{WHITE}Can't remove the power line here...
+STR_METRO_POWER_ERR_BUILDING                                    :{WHITE}... a power line can't pass over buildings
+STR_METRO_POWER_ERR_STRAIGHT                                    :{WHITE}... the line must be straight
+STR_METRO_POWER_ERR_NO_LINE                                     :{WHITE}... there is no power line
+STR_METRO_POWER_ERR_NOT_OWNER                                   :{WHITE}... the power line belongs to another company
+STR_METRO_POWER_ERR_YEAR                                        :{WHITE}... available from {NUM}
+STR_METRO_POWER_ERR_LINE_IN_WAY                                 :{WHITE}... a power line is in the way
