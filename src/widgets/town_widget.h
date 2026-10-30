@@ -50,6 +50,7 @@ enum TownViewWidgets : WidgetID {
 	WID_TV_GRAPH,
 	WID_TV_METRO_SERVICES,  ///< Metro mod: services of the town.
 	WID_TV_METRO_LANDMARKS, ///< Metro mod: toggle the frame around landmarks.
+	WID_TV_METRO_DISTRICTS, ///< Metro mod: district map.
 };
 
 /** Widgets of the #FoundTownWindow class. */

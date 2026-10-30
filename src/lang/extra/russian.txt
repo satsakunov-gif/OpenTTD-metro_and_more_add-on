@@ -2444,3 +2444,14 @@ STR_METRO_POWER_ERR_NO_LINE                                     :{WHITE}... зд
 STR_METRO_POWER_ERR_NOT_OWNER                                   :{WHITE}... ЛЭП принадлежит другой компании
 STR_METRO_POWER_ERR_YEAR                                        :{WHITE}... доступно с {NUM} года
 STR_METRO_POWER_ERR_LINE_IN_WAY                                 :{WHITE}... мешает ЛЭП
+STR_METRO_TOWN_DISTRICT_BUSINESS                                :Деловые (голубые)
+STR_METRO_TOWN_DISTRICT_RESIDENTIAL                             :Спальные (зелёные)
+STR_METRO_TOWN_DISTRICTS_BUTTON                                 :{BLACK}Районы
+STR_METRO_TOWN_DISTRICTS_TOOLTIP                                :{BLACK}Карта деловых и спальных районов города
+STR_METRO_TOWN_DISTRICTS_CAPTION                                :{WHITE}{TOWN}: районы
+STR_METRO_TOWN_DISTRICTS_NONE                                   :{SILVER}Районов пока нет: они появляются через месяц после того, как город стал активным.
+STR_METRO_TOWN_DISTRICTS_LEGEND                                 :{BLACK}{STRING}: районов {NUM}, домов {NUM}, жителей {NUM}
+STR_METRO_TOWN_DISTRICTS_LINE                                   :{BLACK}Районы: деловых {NUM}, спальных {NUM}
+STR_METRO_TOWN_JOBS_LINE                                        :{BLACK}Работников: {NUM}, рабочих мест: {NUM}
+STR_METRO_TOWN_COMMUTERS_LINE                                   :{BLACK}Поездок на работу за прошлый месяц: {NUM} (в соседний город: {NUM})
+STR_METRO_TOWN_ATTRACT_LINE                                     :{BLACK}Привлекательность: {NUM}/100; приехало / уехало за год: {NUM} / {NUM} (в прошлом году {NUM} / {NUM})

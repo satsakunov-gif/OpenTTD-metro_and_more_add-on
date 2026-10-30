@@ -16,6 +16,7 @@
 #include "stdafx.h"
 #include "metro_city.h"
 #include "metro_city_cmd.h"
+#include "metro_town.h"
 #include "bridge_map.h"
 #include "cargotype.h"
 #include "clear_map.h"
@@ -339,7 +340,7 @@ uint MetroCityAdjustGrowthRate(const Town *t, uint rate)
 		rate = rate * METRO_GROWTH_NO_SCHOOL_PERCENT / 100;
 	}
 	if (CountMetroServices(t, MetroServiceType::University) > 0) rate = rate * METRO_GROWTH_UNIVERSITY_PERCENT / 100;
-	return std::max(rate, 1u);
+	return MetroTownAdjustGrowthRate(t, std::max(rate, 1u)); // Migration: towns losing people grow slower.
 }
 
 /** A hospital without a road next to it lowers the town rating of its owner. */
@@ -702,6 +703,7 @@ std::vector<std::string> MetroCityGetTownViewLines(const Town *t)
 	if (state->next_match != 0 && state->match_announced) {
 		lines.push_back(GetString(STR_METRO_CITY_TOWN_MATCH, _metro_match_specs[state->match_level].name, CalTime::Date{state->next_match}));
 	}
+	for (std::string &line : MetroTownGetViewLines(t)) lines.push_back(std::move(line));
 	return lines;
 }
 

@@ -11,6 +11,7 @@
 #include "metro_ai.h"
 #include "metro_city.h"
 #include "metro_power.h"
+#include "metro_town.h"
 #include "misc/history_type.hpp"
 #include "misc/history_func.hpp"
 #include "road.h"
@@ -130,6 +131,7 @@ Town::~Town()
 
 	MetroAiOnTownDeleted(this->index);
 	MetroCityOnTownDeleted(this->index);
+	MetroTownOnTownDeleted(this->index);
 
 	/* Delete town authority window
 	 * and remove from list of sorted towns */
@@ -3200,7 +3202,7 @@ static bool TryBuildTownHouse(Town *t, TileIndex tile, TownExpandModes modes)
 		if (IsHouseTypeAllowed(hs.Index(), above_snowline, zone).Failed()) continue;
 		if (IsAnotherHouseTypeAllowedInTown(t, hs.Index()).Failed()) continue;
 
-		uint cur_prob = hs.probability;
+		uint cur_prob = MetroTownAdjustHouseProbability(t, tile, hs, hs.probability); // Metro mod: business buildings in business districts and near metro.
 		probability_max += cur_prob;
 		probs.emplace_back(hs.Index(), cur_prob);
 	}

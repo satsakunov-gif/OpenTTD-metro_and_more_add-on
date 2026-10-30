@@ -879,6 +879,12 @@ enum class WindowClass : uint16_t {
 	 */
 	MetroPowerNetwork,
 
+	/**
+	 * Metro mod district map of a town; %Window numbers:
+	 *   - #TownID = #MetroDistrictsWidgets
+	 */
+	MetroTownDistricts,
+
 	End,              ///< End sentinel.
 	Invalid = 0xFFFF, ///< Invalid window.
 };

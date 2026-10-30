@@ -303,6 +303,9 @@ add_files(
     metro_power.h
     metro_power_cmd.h
     metro_power_gui.cpp
+    metro_town.cpp
+    metro_town.h
+    metro_town_gui.cpp
     misc.cpp
     misc_cmd.cpp
     misc_cmd.h

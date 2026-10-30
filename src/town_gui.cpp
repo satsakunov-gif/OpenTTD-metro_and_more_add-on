@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "metro_ai.h"
 #include "metro_city.h"
+#include "metro_town.h"
 #include "town.h"
 #include "viewport_func.h"
 #include "error.h"
@@ -772,6 +773,10 @@ public:
 				ShowMetroTownServicesWindow(this->town->index);
 				break;
 
+			case WID_TV_METRO_DISTRICTS:
+				ShowMetroDistrictsWindow(this->town->index);
+				break;
+
 			case WID_TV_METRO_LANDMARKS:
 				MetroCityToggleLandmarks();
 				SetWindowClassesDirty(WindowClass::TownView);
@@ -912,6 +917,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widge
 	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_SERVICES), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_SERVICES_BUTTON, STR_METRO_CITY_SERVICES_TOOLTIP),
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_METRO_LANDMARKS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_LANDMARKS_BUTTON, STR_METRO_CITY_LANDMARKS_TOOLTIP),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_DISTRICTS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_TOWN_DISTRICTS_BUTTON, STR_METRO_TOWN_DISTRICTS_TOOLTIP),
 	EndContainer(),
 };
 

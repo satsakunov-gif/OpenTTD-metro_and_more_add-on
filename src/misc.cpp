@@ -11,6 +11,7 @@
 #include "metro_ai.h"
 #include "metro_city.h"
 #include "metro_power.h"
+#include "metro_town.h"
 #include "landscape.h"
 #include "news_func.h"
 #include "ai/ai.hpp"
@@ -237,6 +238,7 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	MetroAiReset();
 	MetroCityReset();
 	MetroPowerReset();
+	MetroTownReset();
 
 	InitTextEffects();
 	NetworkInitChatMessage();

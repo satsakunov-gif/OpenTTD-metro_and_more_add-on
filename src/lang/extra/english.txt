@@ -2763,3 +2763,14 @@ STR_METRO_POWER_ERR_NO_LINE                                     :{WHITE}... ther
 STR_METRO_POWER_ERR_NOT_OWNER                                   :{WHITE}... the power line belongs to another company
 STR_METRO_POWER_ERR_YEAR                                        :{WHITE}... available from {NUM}
 STR_METRO_POWER_ERR_LINE_IN_WAY                                 :{WHITE}... a power line is in the way
+STR_METRO_TOWN_DISTRICT_BUSINESS                                :Business (blue)
+STR_METRO_TOWN_DISTRICT_RESIDENTIAL                             :Residential (green)
+STR_METRO_TOWN_DISTRICTS_BUTTON                                 :{BLACK}Districts
+STR_METRO_TOWN_DISTRICTS_TOOLTIP                                :{BLACK}Map of the business and residential districts of the town
+STR_METRO_TOWN_DISTRICTS_CAPTION                                :{WHITE}{TOWN}: districts
+STR_METRO_TOWN_DISTRICTS_NONE                                   :{SILVER}No districts yet: they appear in the month after the town becomes active.
+STR_METRO_TOWN_DISTRICTS_LEGEND                                 :{BLACK}{STRING}: districts {NUM}, houses {NUM}, residents {NUM}
+STR_METRO_TOWN_DISTRICTS_LINE                                   :{BLACK}Districts: business {NUM}, residential {NUM}
+STR_METRO_TOWN_JOBS_LINE                                        :{BLACK}Workers: {NUM}, jobs: {NUM}
+STR_METRO_TOWN_COMMUTERS_LINE                                   :{BLACK}Commuters last month: {NUM} (to work in a neighbour town: {NUM})
+STR_METRO_TOWN_ATTRACT_LINE                                     :{BLACK}Attractiveness: {NUM}/100; moved in / out this year: {NUM} / {NUM} (last year {NUM} / {NUM})
