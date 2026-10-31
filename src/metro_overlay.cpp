@@ -199,6 +199,14 @@ bool MetroOverlayHasTrainOn(TileIndex tile)
 	return false;
 }
 
+/** Station of the underground tile, StationID::Invalid() if it is no station tile. */
+StationID MetroOverlayStationIndex(TileIndex tile)
+{
+	auto it = _metro_overlay.find(tile.base());
+	if (it == _metro_overlay.end() || GB(it->second.m.type, 4, 4) != to_underlying(TileType::Station)) return StationID::Invalid();
+	return StationID{it->second.m.m2};
+}
+
 /** Whether a vehicle on the tile is under the ground (hidden in the surface view). */
 bool MetroIsUndergroundVehicleTile(TileIndex tile)
 {

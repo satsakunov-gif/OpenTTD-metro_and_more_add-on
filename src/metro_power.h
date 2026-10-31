@@ -11,6 +11,7 @@
 #define METRO_POWER_H
 
 #include "cargo_type.h"
+#include "tilearea_type.h"
 #include "company_type.h"
 #include "economy_type.h"
 #include "industry_type.h"
@@ -96,6 +97,7 @@ std::vector<std::string> MetroPowerGetIndustryLines(const Industry *i);
 
 /* Trains. */
 uint MetroPowerGetTrainPowerPercent(const Train *front);
+bool MetroPowerHasWorkingVentNear(const TileArea &area, uint radius, Owner owner);
 
 /* Drawing. */
 void MetroPowerDrawTile(const TileInfo *ti);

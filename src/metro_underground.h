@@ -18,6 +18,7 @@
 
 #include "command_type.h"
 #include "company_type.h"
+#include "economy_type.h"
 #include "object_type.h"
 #include "tile_type.h"
 #include "track_type.h"
@@ -64,6 +65,7 @@ const MetroUndergroundTile *GetMetroUndergroundTile(TileIndex tile, uint layer);
 bool IsMetroLayerAvailable(uint layer);
 RailType GetMetroLayerRailType(uint layer);
 int32_t GetMetroLayerYear(uint layer);
+Money MetroGetUndergroundPiecePrice(uint layer);
 CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer);
 bool IsMetroEntranceObject(ObjectType type);
 CommandCost MetroCheckSurfaceRail(TileIndex tile, uint8_t bits);

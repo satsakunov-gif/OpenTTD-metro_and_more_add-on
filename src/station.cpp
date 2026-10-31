@@ -8,6 +8,7 @@
 /** @file station.cpp Implementation of the station base class. */
 
 #include "stdafx.h"
+#include "metro_stations.h"
 #include "metro_overlay.h"
 #include "metro_underground.h"
 #include "company_func.h"
@@ -108,6 +109,8 @@ Station::~Station()
 	while (!this->loading_vehicles.empty()) {
 		this->loading_vehicles.front()->LeaveStation();
 	}
+
+	MetroStationsOnStationDeleted(this->index); // Metro mod: level of an underground station.
 
 	for (Aircraft *a : Aircraft::Iterate()) {
 		if (!a->IsNormalAircraft()) continue;

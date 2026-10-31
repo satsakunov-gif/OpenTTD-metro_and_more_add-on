@@ -875,6 +875,21 @@ uint MetroPowerGetTrainPowerPercent(const Train *front)
 	return it == _train_power_percent.end() ? 100 : it->second;
 }
 
+/** Whether a vent shaft of the company within @p radius of the area works (from the grid or on the diesel). */
+bool MetroPowerHasWorkingVentNear(const TileArea &area, uint radius, Owner owner)
+{
+	int left = TileX(area.tile), top = TileY(area.tile), right = left + area.w - 1, bottom = top + area.h - 1;
+	for (const auto &[object, vent] : _vents) {
+		if (!vent.grid && !vent.diesel) continue;
+		const Object *o = GetPowerObject(object);
+		if (o == nullptr || GetTileOwner(o->location.tile) != owner) continue;
+		int x = TileX(o->location.tile), y = TileY(o->location.tile);
+		int d = std::max({0, left - x, x - right, top - y, y - bottom});
+		if (d <= static_cast<int>(radius)) return true;
+	}
+	return false;
+}
+
 /** Monthly upkeep of the lines and buildings. */
 static void PayUpkeep()
 {

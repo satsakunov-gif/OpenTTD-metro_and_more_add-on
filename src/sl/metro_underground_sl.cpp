@@ -10,6 +10,7 @@
 #include "../stdafx.h"
 #include "../metro_underground.h"
 #include "../metro_overlay.h"
+#include "../metro_stations.h"
 
 #include "saveload.h"
 
@@ -114,10 +115,80 @@ static void Load_MTUO()
 	}
 }
 
+/** Level of an underground station in the save. */
+struct MetroStationLevelRecord {
+	uint16_t station = 0;
+	uint8_t level = 0;
+};
+
+static const NamedSaveLoad _metro_station_level_desc[] = {
+	NSL("station", SLE_VAR(MetroStationLevelRecord, station, SLE_UINT16)),
+	NSL("level",   SLE_VAR(MetroStationLevelRecord, level,   SLE_UINT8)),
+};
+
+static void Save_MTSL()
+{
+	SaveLoadTableData slt = SlTableHeader(_metro_station_level_desc);
+	int index = 0;
+	for (const auto &[station, level] : _metro_station_levels) {
+		MetroStationLevelRecord r{station, level};
+		SlSetArrayIndex(index++);
+		SlObjectSaveFiltered(&r, slt);
+	}
+}
+
+static void Load_MTSL()
+{
+	SaveLoadTableData slt = SlTableHeaderOrRiff(_metro_station_level_desc);
+	_metro_station_levels.clear();
+	while (SlIterateArray() != -1) {
+		MetroStationLevelRecord r;
+		SlObjectLoadFiltered(&r, slt);
+		_metro_station_levels[r.station] = r.level;
+	}
+}
+
+/** An entrance on a sidewalk or in a basement in the save. */
+struct MetroExtraEntranceRecord {
+	uint32_t tile = 0;
+	uint8_t owner = 0;
+	uint8_t kind = 0;
+};
+
+static const NamedSaveLoad _metro_extra_entrance_desc[] = {
+	NSL("tile",  SLE_VAR(MetroExtraEntranceRecord, tile,  SLE_UINT32)),
+	NSL("owner", SLE_VAR(MetroExtraEntranceRecord, owner, SLE_UINT8)),
+	NSL("kind",  SLE_VAR(MetroExtraEntranceRecord, kind,  SLE_UINT8)),
+};
+
+static void Save_MTEE()
+{
+	SaveLoadTableData slt = SlTableHeader(_metro_extra_entrance_desc);
+	int index = 0;
+	for (const auto &[tile, e] : _metro_extra_entrances) {
+		MetroExtraEntranceRecord r{tile, e.owner, static_cast<uint8_t>(e.kind)};
+		SlSetArrayIndex(index++);
+		SlObjectSaveFiltered(&r, slt);
+	}
+}
+
+static void Load_MTEE()
+{
+	SaveLoadTableData slt = SlTableHeaderOrRiff(_metro_extra_entrance_desc);
+	_metro_extra_entrances.clear();
+	while (SlIterateArray() != -1) {
+		MetroExtraEntranceRecord r;
+		SlObjectLoadFiltered(&r, slt);
+		_metro_extra_entrances[r.tile] = {r.owner, static_cast<MetroEntranceKind>(r.kind)};
+	}
+}
+
 /** Chunk handlers of the metro mod underground. */
 static const ChunkHandler metro_underground_chunk_handlers[] = {
 	{ 'MTUG', Save_MTUG, Load_MTUG, nullptr, nullptr, ChunkType::Table },
 	{ 'MTUO', Save_MTUO, Load_MTUO, nullptr, nullptr, ChunkType::Table },
+	{ 'MTSL', Save_MTSL, Load_MTSL, nullptr, nullptr, ChunkType::Table },
+	{ 'MTEE', Save_MTEE, Load_MTEE, nullptr, nullptr, ChunkType::Table },
 };
 
 extern const ChunkHandlerTable _metro_underground_chunk_handlers(metro_underground_chunk_handlers);

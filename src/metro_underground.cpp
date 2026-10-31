@@ -20,6 +20,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_stations.h"
 #include "train_cmd.h"
 #include "metro_trains.h"
 #include "depot_func.h"
@@ -89,6 +90,7 @@ void MetroUndergroundReset()
 {
 	_metro_underground.clear();
 	MetroOverlayReset();
+	MetroStationsReset();
 	if (_metro_underground_view) MetroToggleUndergroundView();
 	_metro_underground_view_layer = 1;
 }
@@ -294,6 +296,12 @@ CommandCost MetroCheckSurfaceRail(TileIndex tile, uint8_t bits)
 static Money GetUndergroundPiecePrice(uint layer)
 {
 	return _price[Price::BuildRail] * _metro_layer_specs[layer - 1].cost_percent / 100;
+}
+
+/** Price of a piece of track of the layer. */
+Money MetroGetUndergroundPiecePrice(uint layer)
+{
+	return GetUndergroundPiecePrice(layer);
 }
 
 /**
@@ -589,13 +597,12 @@ CommandCost CmdMetroBuildUndergroundDepot(DoCommandFlags flags, TileIndex tile, 
 	return ret;
 }
 
-/** Whether an entrance of the company stands within #METRO_ENTRANCE_PLATFORM_RADIUS of the tile. */
+/** Whether an entrance of the company (pavilion, sidewalk or basement) stands within #METRO_ENTRANCE_PLATFORM_RADIUS of the tile. */
 static bool HasEntranceNear(TileIndex tile, Owner owner)
 {
-	for (TileIndex t : SpiralTileSequence(tile, 2 * METRO_ENTRANCE_PLATFORM_RADIUS + 1)) {
-		if (IsTileType(t, TileType::Object) && GetObjectType(t) == OBJECT_METRO_ENTRANCE && GetTileOwner(t) == owner) return true;
-	}
-	return false;
+	bool found = false;
+	MetroForEachEntranceNear(TileArea(tile, 1, 1), METRO_ENTRANCE_PLATFORM_RADIUS, owner, [&](TileIndex) { found = true; });
+	return found;
 }
 
 /**
@@ -627,11 +634,15 @@ CommandCost CmdMetroBuildUndergroundStation(DoCommandFlags flags, TileIndex tile
 	}
 	if (!entrance) return CommandCost(STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE);
 
+	/* An entrance near the platform that touches a station of the company joins the platform to it (DESIGN.md "Вход"). */
+	StationID join = MetroFindEntranceJoinStation(area, _current_company);
 	for (TileIndex t : area) MetroOverlayPrepareBlank(t);
 	CommandCost ret;
 	{
 		MetroUndergroundScope scope;
-		ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, GetMetroLayerRailType(layer), axis, 1, static_cast<uint8_t>(std::max(area.w, area.h)), STAT_CLASS_DFLT, 0, StationID::Invalid(), false);
+		uint8_t length = static_cast<uint8_t>(std::max(area.w, area.h));
+		if (join != StationID::Invalid()) ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, GetMetroLayerRailType(layer), axis, 1, length, STAT_CLASS_DFLT, 0, join, false);
+		if (join == StationID::Invalid() || ret.Failed()) ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, GetMetroLayerRailType(layer), axis, 1, length, STAT_CLASS_DFLT, 0, StationID::Invalid(), false);
 	}
 	for (TileIndex t : area) MetroOverlayDropIfClear(t);
 	if (ret.Failed()) return ret;
@@ -666,21 +677,17 @@ uint MetroEntranceCatchmentMargin()
 void MetroAddEntranceCatchment(Station *st)
 {
 	uint r = st->GetCatchmentRadius();
-	TileArea around = st->train_station;
-	around.Expand(METRO_ENTRANCE_PLATFORM_RADIUS);
-	for (TileIndex t : around) {
-		if (!IsTileType(t, TileType::Object) || GetObjectType(t) != OBJECT_METRO_ENTRANCE || GetTileOwner(t) != st->owner) continue;
-		if (Object::GetByTile(t)->view != 0) continue; // A transformer portal is no entrance.
+	/* Within the initialized catchment rectangle only. */
+	Rect bounds = st->GetCatchmentRectUsingRadius(r + METRO_ENTRANCE_PLATFORM_RADIUS);
+	MetroForEachEntranceNear(st->train_station, METRO_ENTRANCE_PLATFORM_RADIUS, st->owner, [&](TileIndex t) {
 		TileArea area(t, 1, 1);
 		area.Expand(r);
-		/* Within the initialized catchment rectangle only. */
-		Rect bounds = st->GetCatchmentRectUsingRadius(st->GetCatchmentRadius() + METRO_ENTRANCE_PLATFORM_RADIUS);
 		for (TileIndex c : area) {
 			int x = static_cast<int>(TileX(c));
 			int y = static_cast<int>(TileY(c));
 			if (x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom) st->catchment_tiles.SetTile(c);
 		}
-	}
+	});
 }
 
 /** Rail type an underground tile gets from its layer records (saves before the metro rail types). */
@@ -732,6 +739,7 @@ CommandCost CmdMetroBuildEntrance(DoCommandFlags flags, TileIndex tile, [[maybe_
 	if (flags.Test(DoCommandFlag::Execute)) {
 		BuildObject(OBJECT_METRO_ENTRANCE, tile, _current_company, nullptr, 0);
 		MarkTileDirtyByTile(tile);
+		MetroStationsRecomputeNear(tile);
 	}
 	return cost;
 }
@@ -859,6 +867,8 @@ enum MetroUndergroundRow : int {
 	MUR_TRANSFORMER, ///< Transformer to the surface (click again to turn).
 	MUR_REMOVE, ///< Remove track along a line.
 	MUR_ENTRANCE, ///< Entrance pavilion.
+	MUR_EXTRA_ENTRANCE, ///< Entrance on a sidewalk (road tile) or in a basement (house); Ctrl removes.
+	MUR_UPGRADE, ///< Upgrade an underground station (click a platform).
 	MUR_COUNT,
 };
 
@@ -896,6 +906,8 @@ struct MetroUndergroundToolbarWindow : Window {
 			case MUR_DEPOT: return GetString(STR_METRO_UNDERGROUND_ROW_DEPOT, _metro_corner_names[this->depot_dir]);
 			case MUR_REMOVE: return GetString(STR_METRO_UNDERGROUND_ROW_REMOVE);
 			case MUR_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR);
+			case MUR_EXTRA_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_EXTRA_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR * 5);
+			case MUR_UPGRADE: return GetString(STR_METRO_UNDERGROUND_ROW_UPGRADE);
 			default: NOT_REACHED();
 		}
 	}
@@ -961,7 +973,7 @@ struct MetroUndergroundToolbarWindow : Window {
 			ResetObjectToPlace();
 			return;
 		}
-		CursorID cursor = row == MUR_REMOVE ? SPR_CURSOR_DEMOLISH_FIRST : (row == MUR_ENTRANCE ? SPR_CURSOR_TRANSMITTER : SPR_CURSOR_NS_TRACK);
+		CursorID cursor = row == MUR_REMOVE ? SPR_CURSOR_DEMOLISH_FIRST : ((row == MUR_ENTRANCE || row == MUR_EXTRA_ENTRANCE) ? SPR_CURSOR_TRANSMITTER : (row == MUR_UPGRADE ? SPR_CURSOR_QUERY : SPR_CURSOR_NS_TRACK));
 		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, this);
 		this->selected = row;
 		this->SetDirty();
@@ -985,6 +997,12 @@ struct MetroUndergroundToolbarWindow : Window {
 				break;
 			case MUR_ENTRANCE:
 				Command<Commands::MetroBuildEntrance>::Post(STR_METRO_UNDERGROUND_ERR_CANT_ENTRANCE, tile, this->Layer());
+				break;
+			case MUR_EXTRA_ENTRANCE:
+				Command<Commands::MetroBuildExtraEntrance>::Post(STR_METRO_UNDERGROUND_ERR_CANT_ENTRANCE, tile, _ctrl_pressed);
+				break;
+			case MUR_UPGRADE:
+				Command<Commands::MetroUpgradeStation>::Post(STR_METRO_STATION_ERR_CANT_UPGRADE, tile);
 				break;
 			default: break;
 		}
@@ -1081,7 +1099,7 @@ static void MetroTestAddCar(CompanyID company, uint layer, TileIndex depot, Vehi
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -1123,6 +1141,66 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[4]).value_or(0));
 		DiagDirection dir = static_cast<DiagDirection>(std::min<uint>(ParseInteger<uint>(argv[5]).value_or(0), 3));
 		ConsoleCommand<Commands::MetroBuildUndergroundDepot>(*t, layer, dir, argv.size() > 6 && argv[6] == "remove");
+		return true;
+	}
+	if (cmd == "testextra" && argv.size() > 2) {
+		/* For tests: an entrance on the first road tile and one in the first house near the platforms of the station. */
+		auto id = ParseInteger<uint>(argv[2]);
+		const Station *st = id.has_value() ? Station::GetIfValid(StationID(*id)) : nullptr;
+		CompanyID company = GetConsoleCompany();
+		if (st == nullptr || company == CompanyID::Invalid() || st->train_station.IsEmpty()) return false;
+		Backup<CompanyID> cur_company(_current_company, company, FILE_LINE);
+		TileArea around = st->train_station;
+		around.Expand(METRO_ENTRANCE_PLATFORM_RADIUS);
+		bool road = false, house = false;
+		for (TileIndex t : around) {
+			bool is_road = IsTileType(t, TileType::Road);
+			bool is_house = IsTileType(t, TileType::House);
+			if ((is_road && road) || (is_house && house) || (!is_road && !is_house)) continue;
+			CommandCost ret = Command<Commands::MetroBuildExtraEntrance>::Do(DoCommandFlag::Execute, t, false);
+			IConsolePrint(ret.Succeeded() ? CC_INFO : CC_ERROR, "{} entrance at ({}, {}): {}", is_road ? "sidewalk" : "basement", TileX(t), TileY(t), ret.Succeeded() ? "ok" : GetString(ret.GetErrorMessage()));
+			if (ret.Succeeded()) (is_road ? road : house) = true;
+			if (road && house) break;
+		}
+		cur_company.Restore();
+		return true;
+	}
+	if (cmd == "testmoney" && argv.size() > 2) {
+		/* For tests (single player): add money to the console company. */
+		Company *c = Company::GetIfValid(GetConsoleCompany());
+		auto amount = ParseInteger<int64_t>(argv[2]);
+		if (c == nullptr || !amount.has_value()) return false;
+		c->money += *amount;
+		IConsolePrint(CC_INFO, "money now {}", c->money);
+		return true;
+	}
+	if (cmd == "testclear" && argv.size() > 3) {
+		/* For tests: demolish the tile as the console company (like the bulldozer). */
+		auto t = ParseConsoleTile(argv[2], argv[3]);
+		if (!t.has_value()) return false;
+		ConsoleCommand<Commands::LandscapeClear>(*t);
+		return true;
+	}
+	if (cmd == "levels") {
+		MetroStationsConsoleList();
+		return true;
+	}
+	if (cmd == "upgrade" && argv.size() > 2) {
+		/* upgrade <x> <y> or upgrade <station>: the corner of its platforms. */
+		std::optional<TileIndex> t;
+		if (argv.size() > 3) {
+			t = ParseConsoleTile(argv[2], argv[3]);
+		} else if (auto id = ParseInteger<uint>(argv[2]); id.has_value() && Station::IsValidID(StationID(*id))) {
+			t = Station::Get(StationID(*id))->train_station.tile;
+		}
+		if (!t.has_value()) return false;
+		ConsoleCommand<Commands::MetroUpgradeStation>(*t);
+		return true;
+	}
+	if (cmd == "extraentrance" && argv.size() > 3) {
+		auto t = ParseConsoleTile(argv[2], argv[3]);
+		if (!t.has_value()) return false;
+		ConsoleCommand<Commands::MetroBuildExtraEntrance>(*t, argv.size() > 4 && argv[4] == "remove");
 		return true;
 	}
 	if (cmd == "engines") {

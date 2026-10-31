@@ -8,6 +8,7 @@
 /** @file station_cmd.cpp Handling of station tiles. */
 
 #include "stdafx.h"
+#include "metro_stations.h"
 #include "metro_underground.h"
 #include "metro_elevated.h"
 #include "metro_station_names.h"
@@ -4410,6 +4411,7 @@ int GetTargetRating(const Station *st, const CargoSpec *cs, const GoodsEntry *ge
 	}
 
 	rating += GetStatueRating(st);
+	rating += MetroStationRatingModifier(st); // Metro mod: escalators, ventilation, entrances.
 	rating += GetVehicleAgeRating(ge);
 
 	return ClampTo<uint8_t>(rating);

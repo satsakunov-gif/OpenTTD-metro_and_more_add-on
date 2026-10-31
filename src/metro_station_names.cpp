@@ -19,6 +19,7 @@
 #include "metro_station_names.h"
 #include "metro_city.h"
 #include "metro_town.h"
+#include "metro_overlay.h"
 #include "company_base.h"
 #include "company_func.h"
 #include "house.h"
@@ -67,10 +68,11 @@ static MetroNamedObject GetNamedObjectAt(TileIndex tile, const Town *t)
 }
 
 /** Whether another station of the town already has the name. */
-static bool IsStationNameUsed(const Station *st, const std::string &name)
+/** Whether another station of the town (of any town with @p any_town: metro names carry no town) has the name. */
+static bool IsStationNameUsed(const Station *st, const std::string &name, bool any_town = false)
 {
 	for (const Station *s : Station::Iterate()) {
-		if (s != st && s->town == st->town && GetString(STR_STATION_NAME, s->index) == name) return true;
+		if (s != st && (any_town || s->town == st->town) && GetString(STR_STATION_NAME, s->index) == name) return true;
 	}
 	return false;
 }
@@ -94,13 +96,27 @@ void MetroNameNewStation(Station *st, TileIndex tile)
 	}
 
 	StringID name_id = STR_NULL;
+	StringID metro_id = STR_NULL;
 	if (best != MetroNamedObject::End) {
 		name_id = _metro_named_object_names[to_underlying(best)];
+		metro_id = _metro_named_object_metro_names[to_underlying(best)];
 	} else {
 		int district = GetMetroDistrictTypeAt(t, tile);
-		if (district >= 0 && district < static_cast<int>(std::size(_metro_district_station_names))) name_id = _metro_district_station_names[district];
+		if (district >= 0 && district < static_cast<int>(std::size(_metro_district_station_names))) {
+			name_id = _metro_district_station_names[district];
+			metro_id = _metro_district_metro_names[district];
+		}
 	}
 	if (name_id == STR_NULL) return;
+
+	/* An underground station (built with the underground in the map): the metro style without the town, if free. */
+	if (IsMetroOverlayActive() && metro_id != STR_NULL) {
+		std::string metro_name = GetString(metro_id);
+		if (!IsStationNameUsed(st, metro_name, true) && Utf8StringLength(metro_name) < MAX_LENGTH_STATION_NAME_CHARS) {
+			st->name = std::move(metro_name);
+			return;
+		}
+	}
 
 	std::string name = GetString(name_id, STR_TOWN_NAME, t->index);
 	if (IsStationNameUsed(st, name)) {

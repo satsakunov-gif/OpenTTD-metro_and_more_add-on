@@ -2579,3 +2579,26 @@ STR_METRO_TRAIN_VACUUM                                          :Метро «В
 STR_METRO_TRAIN_VACUUM_CAR                                      :Вагон «Вакуум»
 STR_METRO_TRAIN_CAPSULE                                         :Метро «Капсула»
 STR_METRO_TRAIN_CAPSULE_CAR                                     :Вагон «Капсула»
+STR_METRO_STATION_LEVEL_BASIC                                   :базовая
+STR_METRO_STATION_LEVEL_ESCALATORS                              :эскалаторы
+STR_METRO_STATION_LEVEL_INTERCHANGE                             :пересадочный узел
+STR_METRO_STATION_LEVEL_MEGAHUB                                 :мегаузел
+STR_METRO_UNDERGROUND_ROW_EXTRA_ENTRANCE                        :Вход на тротуаре {CURRENCY_LONG} / в подвале {CURRENCY_LONG} (Ctrl — снести)
+STR_METRO_UNDERGROUND_ROW_UPGRADE                               :Улучшить станцию: эскалаторы 1975, узел 1990, мегаузел 2030
+STR_METRO_STATION_ERR_CANT_UPGRADE                              :{WHITE}Станцию нельзя улучшить...
+STR_METRO_STATION_ERR_NOT_STATION                               :{WHITE}... здесь нет вашей подземной станции
+STR_METRO_STATION_ERR_MAX_LEVEL                                 :{WHITE}... станция уже мегаузел
+STR_METRO_STATION_ERR_LEVEL_YEAR                                :{WHITE}... следующий уровень доступен с {NUM} года
+STR_METRO_STATION_ERR_NO_INTERCHANGE                            :{WHITE}... для пересадочного узла нужна вторая платформа, платформы на двух слоях или другая станция метро в 4 тайлах
+STR_METRO_STATION_ERR_EXTRA_PLACE                               :{WHITE}... вход на тротуаре ставится на дорогу, вход в подвале — в дом
+STR_METRO_STATION_ERR_SIDEWALK_LAYER                            :{WHITE}... входу на тротуаре нужна платформа на слое −2 или −3 в 3 тайлах
+STR_METRO_STATION_ERR_BASEMENT_LAYER                            :{WHITE}... входу в подвале нужна платформа на слое −3 в 3 тайлах
+STR_METRO_STATION_ERR_ENTRANCE_EXISTS                           :{WHITE}... здесь уже есть вход
+STR_METRO_STATION_ERR_NO_ENTRANCE                               :{WHITE}... здесь нет вашего входа
+STR_METRO_STNAME_METRO_STADIUM                                  :Стадион
+STR_METRO_STNAME_METRO_UNIVERSITY                               :Университет
+STR_METRO_STNAME_METRO_HOSPITAL                                 :Больница
+STR_METRO_STNAME_METRO_TOWN_HALL                                :пл. Ратуши
+STR_METRO_STNAME_METRO_BUSINESS                                 :Деловой центр
+STR_METRO_STNAME_METRO_RESIDENTIAL                              :Жилой массив
+STR_METRO_UNDERGROUND_ERR_PORTAL                                :{WHITE}... портал сносится вместе с трансформером: «Убрать путь» на слое −1 в окне «Метро»

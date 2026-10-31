@@ -22,6 +22,7 @@
 #include "map_type.h"
 #include "tile_type.h"
 #include "rail_type.h"
+#include "station_type.h"
 
 #include <unordered_map>
 
@@ -62,6 +63,7 @@ uint8_t MetroOverlayTrackBits(TileIndex tile);
 bool MetroOverlayIsDepot(TileIndex tile);
 bool MetroOverlayHasTrainOn(TileIndex tile);
 bool MetroIsUndergroundVehicleTile(TileIndex tile);
+StationID MetroOverlayStationIndex(TileIndex tile);
 void MetroOverlayDrawTile(struct TileInfo *ti);
 
 #endif /* METRO_OVERLAY_H */

@@ -775,6 +775,12 @@ static CommandCost ClearTile_Object(TileIndex tile, DoCommandFlags flags)
 	/* Towns can't remove any objects. */
 	if (_current_company == OWNER_TOWN) return CMD_ERROR;
 
+	/* Metro mod: the portal of a transformer goes only together with the transformer (the metro tool "Remove track"). */
+	if (type == OBJECT_METRO_ENTRANCE && o->view != 0 && !flags.Test(DoCommandFlag::Bankrupt) && _current_company != OWNER_WATER) {
+		DiagDirection transformer_dir;
+		if (GetMetroTransformerDir(tile, transformer_dir)) return CommandCost(STR_METRO_UNDERGROUND_ERR_PORTAL);
+	}
+
 	/* Water can remove everything! */
 	if (_current_company != OWNER_WATER) {
 		if (flags.Test(DoCommandFlag::NoWater) && IsTileOnWater(tile) && WouldObjectLeaveWaterBehind(tile)) {

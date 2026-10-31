@@ -61,6 +61,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_stations.h"
 #include "clear_map.h"
 #include "tree_map.h"
 #include "industry.h"
@@ -1987,6 +1988,7 @@ static void ViewportAddLandscape()
 					MetroPowerDrawTile(&_cur_ti);
 					MetroTrafficDrawTile(&_cur_ti);
 					MetroUndergroundDrawTile(&_cur_ti);
+					MetroStationsDrawTile(&_cur_ti);
 				}
 			}
 		}

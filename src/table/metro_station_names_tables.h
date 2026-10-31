@@ -30,12 +30,27 @@ static const StringID _metro_named_object_names[] = {
 };
 static_assert(std::size(_metro_named_object_names) == static_cast<size_t>(MetroNamedObject::End));
 
+/** Metro style (DESIGN.md "пл. Ратуши"): names of underground stations after each object, without the town. */
+static const StringID _metro_named_object_metro_names[] = {
+	STR_METRO_STNAME_METRO_STADIUM,
+	STR_METRO_STNAME_METRO_UNIVERSITY,
+	STR_METRO_STNAME_METRO_HOSPITAL,
+	STR_METRO_STNAME_METRO_TOWN_HALL,
+};
+static_assert(std::size(_metro_named_object_metro_names) == static_cast<size_t>(MetroNamedObject::End));
+
 static constexpr uint METRO_STATION_NAME_OBJECT_RADIUS = 4; ///< Objects within this many tiles name the station.
 
 /** Name after the district type (#MetroDistrictType: business, residential). */
 static const StringID _metro_district_station_names[] = {
 	STR_METRO_STNAME_BUSINESS,
 	STR_METRO_STNAME_RESIDENTIAL,
+};
+
+/** Metro style names after the district type. */
+static const StringID _metro_district_metro_names[] = {
+	STR_METRO_STNAME_METRO_BUSINESS,
+	STR_METRO_STNAME_METRO_RESIDENTIAL,
 };
 
 /** Clarification by the side of the town centre (#DiagDirection order NE, SE, SW, NW) when the name is taken. */

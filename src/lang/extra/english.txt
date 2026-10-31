@@ -2898,3 +2898,26 @@ STR_METRO_TRAIN_VACUUM                                          :Vacuum Metro Tr
 STR_METRO_TRAIN_VACUUM_CAR                                      :Vacuum Metro Car
 STR_METRO_TRAIN_CAPSULE                                         :Capsule Metro Train
 STR_METRO_TRAIN_CAPSULE_CAR                                     :Capsule Car
+STR_METRO_STATION_LEVEL_BASIC                                   :basic
+STR_METRO_STATION_LEVEL_ESCALATORS                              :escalators
+STR_METRO_STATION_LEVEL_INTERCHANGE                             :interchange
+STR_METRO_STATION_LEVEL_MEGAHUB                                 :megahub
+STR_METRO_UNDERGROUND_ROW_EXTRA_ENTRANCE                        :Entrance on a sidewalk {CURRENCY_LONG} / in a basement {CURRENCY_LONG} (Ctrl: remove)
+STR_METRO_UNDERGROUND_ROW_UPGRADE                               :Upgrade a station: escalators 1975, interchange 1990, megahub 2030
+STR_METRO_STATION_ERR_CANT_UPGRADE                              :{WHITE}Can't upgrade the station...
+STR_METRO_STATION_ERR_NOT_STATION                               :{WHITE}... no underground station of yours here
+STR_METRO_STATION_ERR_MAX_LEVEL                                 :{WHITE}... the station is a megahub already
+STR_METRO_STATION_ERR_LEVEL_YEAR                                :{WHITE}... the next level is available from {NUM}
+STR_METRO_STATION_ERR_NO_INTERCHANGE                            :{WHITE}... an interchange needs a second platform, platforms on two layers or another metro station within 4 tiles
+STR_METRO_STATION_ERR_EXTRA_PLACE                               :{WHITE}... a sidewalk entrance goes on a road, a basement entrance in a house
+STR_METRO_STATION_ERR_SIDEWALK_LAYER                            :{WHITE}... a sidewalk entrance needs a platform on layer -2 or -3 within 3 tiles
+STR_METRO_STATION_ERR_BASEMENT_LAYER                            :{WHITE}... a basement entrance needs a platform on layer -3 within 3 tiles
+STR_METRO_STATION_ERR_ENTRANCE_EXISTS                           :{WHITE}... there is an entrance here already
+STR_METRO_STATION_ERR_NO_ENTRANCE                               :{WHITE}... no entrance of yours here
+STR_METRO_STNAME_METRO_STADIUM                                  :Stadium
+STR_METRO_STNAME_METRO_UNIVERSITY                               :University
+STR_METRO_STNAME_METRO_HOSPITAL                                 :Hospital
+STR_METRO_STNAME_METRO_TOWN_HALL                                :Town Hall Square
+STR_METRO_STNAME_METRO_BUSINESS                                 :Business Centre
+STR_METRO_STNAME_METRO_RESIDENTIAL                              :Residential Quarter
+STR_METRO_UNDERGROUND_ERR_PORTAL                                :{WHITE}... the portal goes with its transformer: remove it with "Remove track" on layer -1 in the Metro window
