@@ -2485,3 +2485,14 @@ STR_METRO_ELEVATED_ERR_LINE_SHORT                               :{WHITE}... сл
 STR_METRO_ELEVATED_ERR_SPAN_LENGTH                              :{WHITE}... между опорами не больше 10 тайлов
 STR_METRO_ELEVATED_ERR_TALL_HOUSE                               :{WHITE}... нельзя проходить над высоткой
 STR_METRO_ELEVATED_ERR_LOW_OVER_HOUSE                           :{WHITE}... пролёт слишком низко над домом
+STR_METRO_STNAME_STADIUM                                        :{STRING} Стадион
+STR_METRO_STNAME_UNIVERSITY                                     :{STRING} Университет
+STR_METRO_STNAME_HOSPITAL                                       :{STRING} Больница
+STR_METRO_STNAME_TOWN_HALL                                      :{STRING} Ратуша
+STR_METRO_STNAME_BUSINESS                                       :{STRING} Деловой центр
+STR_METRO_STNAME_RESIDENTIAL                                    :{STRING} Жилой массив
+STR_METRO_STNAME_CLARIFIED                                      :{RAW_STRING}-{STRING}
+STR_METRO_STNAME_SIDE_NE                                        :Север
+STR_METRO_STNAME_SIDE_SE                                        :Восток
+STR_METRO_STNAME_SIDE_SW                                        :Юг
+STR_METRO_STNAME_SIDE_NW                                        :Запад

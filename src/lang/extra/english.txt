@@ -2804,3 +2804,14 @@ STR_METRO_ELEVATED_ERR_LINE_SHORT                               :{WHITE}... too 
 STR_METRO_ELEVATED_ERR_SPAN_LENGTH                              :{WHITE}... at most 10 tiles between the pillars
 STR_METRO_ELEVATED_ERR_TALL_HOUSE                               :{WHITE}... can't pass over a high-rise
 STR_METRO_ELEVATED_ERR_LOW_OVER_HOUSE                           :{WHITE}... span too low over the house
+STR_METRO_STNAME_STADIUM                                        :{STRING1} Stadium
+STR_METRO_STNAME_UNIVERSITY                                     :{STRING1} University
+STR_METRO_STNAME_HOSPITAL                                       :{STRING1} Hospital
+STR_METRO_STNAME_TOWN_HALL                                      :{STRING1} Town Hall
+STR_METRO_STNAME_BUSINESS                                       :{STRING1} Business District
+STR_METRO_STNAME_RESIDENTIAL                                    :{STRING1} Residential
+STR_METRO_STNAME_CLARIFIED                                      :{RAW_STRING} {STRING}
+STR_METRO_STNAME_SIDE_NE                                        :North
+STR_METRO_STNAME_SIDE_SE                                        :East
+STR_METRO_STNAME_SIDE_SW                                        :South
+STR_METRO_STNAME_SIDE_NW                                        :West

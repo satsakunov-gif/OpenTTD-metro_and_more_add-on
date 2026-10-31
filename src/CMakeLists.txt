@@ -311,6 +311,8 @@ add_files(
     metro_elevated.cpp
     metro_elevated.h
     metro_elevated_cmd.h
+    metro_station_names.cpp
+    metro_station_names.h
     misc.cpp
     misc_cmd.cpp
     misc_cmd.h

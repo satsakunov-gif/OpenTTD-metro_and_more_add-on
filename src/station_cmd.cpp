@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_elevated.h"
+#include "metro_station_names.h"
 #include "aircraft.h"
 #include "bridge_map.h"
 #include "viewport_func.h"
@@ -869,6 +870,7 @@ static CommandCost BuildStationPart(Station **st, DoCommandFlags flags, bool reu
 
 			(*st)->town = ClosestTownFromTile(area.tile, UINT_MAX);
 			(*st)->string_id = GenerateStationName(*st, area.tile, name_class);
+			MetroNameNewStation(*st, area.tile); // Metro mod: after a nearby object or the district.
 
 			if (Company::IsValidID(_current_company)) {
 				if (_local_company == _current_company && !(*st)->town->have_ratings.Test(_current_company)) {
