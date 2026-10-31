@@ -109,7 +109,7 @@ void MetroOverlayDropIfClear(TileIndex tile)
 }
 
 /** Add track pieces to the underground tile (a new one becomes plain rail of the metro). */
-bool MetroOverlayAddTrack(TileIndex tile, uint8_t owner, uint8_t bits)
+bool MetroOverlayAddTrack(TileIndex tile, uint8_t owner, uint8_t bits, RailType rt)
 {
 	bool ok = true;
 	EditOverlayTile(tile, [&](TileIndex t) {
@@ -121,11 +121,12 @@ bool MetroOverlayAddTrack(TileIndex tile, uint8_t owner, uint8_t bits)
 			}
 			add &= ~GetTrackBits(t);
 			SetTrackBits(t, GetTrackBits(t) | add);
+			if (GetRailType(t) != rt) SetRailType(t, RAILTYPE_METRO_X); // Layers cross or meet here.
 		} else {
-			MakeRailNormal(t, Owner{owner}, add, RAILTYPE_RAIL);
+			MakeRailNormal(t, Owner{owner}, add, rt);
 		}
 		if (Company *c = Company::GetIfValid(Owner{owner}); c != nullptr) {
-			c->infrastructure.rail[RAILTYPE_RAIL] += CountBits(add);
+			c->infrastructure.rail[GetRailType(t)] += CountBits(add);
 			DirtyCompanyInfrastructureWindows(c->index);
 		}
 	});
@@ -146,18 +147,30 @@ bool MetroOverlayRemoveTrack(TileIndex tile, uint8_t bits)
 		TrackBits remove = GetTrackBits(t) & static_cast<TrackBits>(bits);
 		TrackBits left = GetTrackBits(t) & ~remove;
 		Owner owner = GetTileOwner(t);
+		RailType rt = GetRailType(t);
 		if (left == TRACK_BIT_NONE) {
 			MakeClear(t, ClearGround::Grass, 3);
 		} else {
 			SetTrackBits(t, left);
 		}
 		if (Company *c = Company::GetIfValid(owner); c != nullptr) {
-			c->infrastructure.rail[RAILTYPE_RAIL] -= CountBits(remove);
+			c->infrastructure.rail[rt] -= CountBits(remove);
 			DirtyCompanyInfrastructureWindows(c->index);
 		}
 	});
 	YapfNotifyTrackLayoutChange(tile, FindFirstTrack(static_cast<TrackBits>(bits)));
 	return ok;
+}
+
+/** Saves before metro_underground v4: underground track was plain rail; @p layer_of gives the layer of a tile. */
+void MetroOverlayConvertRailTypes(RailType (*rail_type_of)(TileIndex))
+{
+	for (auto &[tile, o] : _metro_overlay) {
+		uint type = GB(o.m.type, 4, 4);
+		bool rail = type == to_underlying(TileType::Railway) || (type == to_underlying(TileType::Station));
+		if (!rail) continue;
+		SB(o.me.m8, 0, 6, rail_type_of(TileIndex{tile}));
+	}
 }
 
 /** Track pieces of the underground tile (plain rail), 0 for none. */

@@ -19,6 +19,10 @@ static const RailTypeLabel RAILTYPE_LABEL_RAIL{"RAIL"};
 static const RailTypeLabel RAILTYPE_LABEL_ELECTRIC{"ELRL"};
 static const RailTypeLabel RAILTYPE_LABEL_MONO{"MONO"};
 static const RailTypeLabel RAILTYPE_LABEL_MAGLEV{"MGLV"};
+static const RailTypeLabel RAILTYPE_LABEL_METRO_1{"MTR1"}; ///< Metro mod.
+static const RailTypeLabel RAILTYPE_LABEL_METRO_2{"MTR2"}; ///< Metro mod.
+static const RailTypeLabel RAILTYPE_LABEL_METRO_3{"MTR3"}; ///< Metro mod.
+static const RailTypeLabel RAILTYPE_LABEL_METRO_X{"MTRX"}; ///< Metro mod.
 
 /**
  * Enumeration for all possible railtypes.
@@ -29,6 +33,10 @@ enum RailType : uint8_t {
 	RAILTYPE_ELECTRIC = 1,          ///< Electric rails
 	RAILTYPE_MONO     = 2,          ///< Monorail
 	RAILTYPE_MAGLEV   = 3,          ///< Maglev
+	RAILTYPE_METRO_1  = 4,          ///< Metro mod: metro track of layer -1
+	RAILTYPE_METRO_2  = 5,          ///< Metro mod: metro track of layer -2
+	RAILTYPE_METRO_3  = 6,          ///< Metro mod: metro track of layer -3
+	RAILTYPE_METRO_X  = 7,          ///< Metro mod: metro track where layers cross or meet (inclines): every metro train runs on it
 	RAILTYPE_END      = 64,         ///< Used for iterations
 	INVALID_RAILTYPE  = 0xFF,       ///< Flag for invalid railtype
 };

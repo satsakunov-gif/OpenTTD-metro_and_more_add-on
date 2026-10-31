@@ -2559,3 +2559,23 @@ STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... пл
 STR_METRO_UNDERGROUND_ROW_TRANSFORMER                           :Трансформер, выход к путям поверхности: {STRING} ({CURRENCY_LONG}; щёлкните ещё раз — повернуть)
 STR_METRO_UNDERGROUND_ERR_CANT_TRANSFORMER                      :{WHITE}Здесь нельзя построить трансформер...
 STR_METRO_UNDERGROUND_ERR_TRANSFORMER_SIDE                      :{WHITE}... сторона трансформера к поверхности должна быть вне метро
+STR_METRO_RAIL_NAME_1                                           :Путь метро, слой −1
+STR_METRO_RAIL_NAME_2                                           :Путь метро, слой −2
+STR_METRO_RAIL_NAME_3                                           :Путь метро, слой −3
+STR_METRO_RAIL_NAME_X                                           :Путь метро, пересечение слоёв
+STR_METRO_TRAIN_A                                               :Метро, серия А
+STR_METRO_TRAIN_A_CAR                                           :Вагон метро серии А
+STR_METRO_TRAIN_E                                               :Метро, серия Е
+STR_METRO_TRAIN_E_CAR                                           :Вагон метро серии Е
+STR_METRO_TRAIN_PREMETRO                                        :Преметро
+STR_METRO_TRAIN_PREMETRO_CAR                                    :Вагон преметро
+STR_METRO_TRAIN_2000                                            :Метро, серия 2000
+STR_METRO_TRAIN_2000_CAR                                        :Вагон метро серии 2000
+STR_METRO_TRAIN_DIAMETR                                         :Метро «Диаметр»
+STR_METRO_TRAIN_DIAMETR_CAR                                     :Вагон «Диаметр»
+STR_METRO_TRAIN_DEEP                                            :Метро «Глубокий»
+STR_METRO_TRAIN_DEEP_CAR                                        :Вагон «Глубокий»
+STR_METRO_TRAIN_VACUUM                                          :Метро «Вакуум»
+STR_METRO_TRAIN_VACUUM_CAR                                      :Вагон «Вакуум»
+STR_METRO_TRAIN_CAPSULE                                         :Метро «Капсула»
+STR_METRO_TRAIN_CAPSULE_CAR                                     :Вагон «Капсула»

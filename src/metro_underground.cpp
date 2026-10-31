@@ -20,6 +20,8 @@
  */
 
 #include "stdafx.h"
+#include "train_cmd.h"
+#include "metro_trains.h"
 #include "depot_func.h"
 #include "metro_underground.h"
 #include "metro_underground_cmd.h"
@@ -133,6 +135,17 @@ int32_t GetMetroLayerYear(uint layer)
 		case 2: return std::max((electric + monorail) / 2, METRO_LAYER_1_YEAR + METRO_LAYER_2_MIN_GAP);
 		case 3: return std::max((monorail + maglev) / 2, METRO_LAYER_1_YEAR + METRO_LAYER_2_MIN_GAP);
 		default: return INT32_MAX;
+	}
+}
+
+/** Rail type of the metro track of a layer. */
+RailType GetMetroLayerRailType(uint layer)
+{
+	switch (layer) {
+		case 1: return RAILTYPE_METRO_1;
+		case 2: return RAILTYPE_METRO_2;
+		case 3: return RAILTYPE_METRO_3;
+		default: return RAILTYPE_METRO_X;
 	}
 }
 
@@ -419,7 +432,7 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 			MetroUndergroundTile &ut = _metro_underground[key];
 			ut.tracks |= bit;
 			ut.owner = _current_company.base();
-			MetroOverlayAddTrack(t, ut.owner, bit);
+			MetroOverlayAddTrack(t, ut.owner, bit, GetMetroLayerRailType(layer));
 			MarkTileDirtyByTile(t);
 		}
 	}
@@ -466,7 +479,7 @@ CommandCost CmdMetroBuildIncline(DoCommandFlags flags, TileIndex tile, TileIndex
 			ut.tracks = bit;
 			ut.owner = _current_company.base();
 			ut.incline = MetroUndergroundTile::MakeIncline(down, i, length);
-			MetroOverlayAddTrack(t, ut.owner, bit);
+			MetroOverlayAddTrack(t, ut.owner, bit, RAILTYPE_METRO_X); // Trains of both layers run on it.
 			MarkTileDirtyByTile(t);
 		}
 	}
@@ -504,7 +517,7 @@ CommandCost CmdMetroBuildTransformer(DoCommandFlags flags, TileIndex tile, DiagD
 		ut.tracks = DiagDirToDiagTrackBits(dir);
 		ut.owner = _current_company.base();
 		ut.depot = static_cast<uint8_t>(METRO_UNDERGROUND_TRANSFORMER + to_underlying(dir));
-		MetroOverlayAddTrack(tile, ut.owner, ut.tracks);
+		MetroOverlayAddTrack(tile, ut.owner, ut.tracks, RAILTYPE_METRO_1);
 		MarkTileDirtyByTile(tile);
 	}
 	return cost;
@@ -562,7 +575,7 @@ CommandCost CmdMetroBuildUndergroundDepot(DoCommandFlags flags, TileIndex tile, 
 	MetroOverlayPrepareBlank(tile);
 	{
 		MetroUndergroundScope scope;
-		ret = Command<Commands::BuildRailDepot>::Do(flags, tile, RAILTYPE_RAIL, dir);
+		ret = Command<Commands::BuildRailDepot>::Do(flags, tile, GetMetroLayerRailType(layer), dir);
 	}
 	MetroOverlayDropIfClear(tile);
 	if (ret.Failed()) return ret;
@@ -618,7 +631,7 @@ CommandCost CmdMetroBuildUndergroundStation(DoCommandFlags flags, TileIndex tile
 	CommandCost ret;
 	{
 		MetroUndergroundScope scope;
-		ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, RAILTYPE_RAIL, axis, 1, static_cast<uint8_t>(std::max(area.w, area.h)), STAT_CLASS_DFLT, 0, StationID::Invalid(), false);
+		ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, GetMetroLayerRailType(layer), axis, 1, static_cast<uint8_t>(std::max(area.w, area.h)), STAT_CLASS_DFLT, 0, StationID::Invalid(), false);
 	}
 	for (TileIndex t : area) MetroOverlayDropIfClear(t);
 	if (ret.Failed()) return ret;
@@ -668,6 +681,24 @@ void MetroAddEntranceCatchment(Station *st)
 			if (x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom) st->catchment_tiles.SetTile(c);
 		}
 	}
+}
+
+/** Rail type an underground tile gets from its layer records (saves before the metro rail types). */
+static RailType RailTypeOfUndergroundTile(TileIndex tile)
+{
+	RailType rt = INVALID_RAILTYPE;
+	for (uint l = 1; l <= METRO_LAYER_COUNT; l++) {
+		const MetroUndergroundTile *ut = GetMetroUndergroundTile(tile, l);
+		if (ut == nullptr) continue;
+		RailType lrt = ut->IsIncline() ? RAILTYPE_METRO_X : GetMetroLayerRailType(l);
+		rt = (rt == INVALID_RAILTYPE || rt == lrt) ? lrt : RAILTYPE_METRO_X;
+	}
+	return rt == INVALID_RAILTYPE ? RAILTYPE_METRO_1 : rt;
+}
+
+void MetroUndergroundAfterLoadRailTypes()
+{
+	MetroOverlayConvertRailTypes(RailTypeOfUndergroundTile);
 }
 
 /** Whether the station has platforms under the ground (its catchment is computed with the underground in the map). */
@@ -1034,10 +1065,23 @@ static void ConsoleCommand(TileIndex tile, Targs... args)
 	}
 }
 
+/** For tests: a car of the newest series for the layer behind the train in the depot (the underground is in the map). */
+static void MetroTestAddCar(CompanyID company, uint layer, TileIndex depot, VehicleID head)
+{
+	EngineID car = MetroFindTrainEngine(company, layer, true);
+	if (car == EngineID::Invalid()) return;
+	CommandCost c = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, depot, car, true, INVALID_CARGO, ClientID::Invalid);
+	std::optional<VehicleID> wagon = c.GetResultData<VehicleID>();
+	if (c.Failed() || !wagon.has_value()) return;
+	const Vehicle *v = Vehicle::GetIfValid(head);
+	if (v == nullptr || Vehicle::GetIfValid(*wagon) == nullptr || Vehicle::Get(*wagon)->First() == v) return;
+	Command<Commands::MoveRailVehicle>::Do(DoCommandFlag::Execute, *wagon, v->Last()->index, MoveRailVehicleFlags::None);
+}
+
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -1081,22 +1125,19 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		ConsoleCommand<Commands::MetroBuildUndergroundDepot>(*t, layer, dir, argv.size() > 6 && argv[6] == "remove");
 		return true;
 	}
+	if (cmd == "engines") {
+		MetroListTrainEngines(GetConsoleCompany());
+		return true;
+	}
 	if (cmd == "testtrain" && argv.size() > 4) {
 		/* For tests: a straight line of 12 tiles along X on the layer from (x, y), a depot at x-1 and a running train. */
 		auto start = ParseConsoleTile(argv[2], argv[3]);
 		if (!start.has_value()) return false;
 		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[4]).value_or(1));
 		CompanyID company = GetConsoleCompany();
-		const Engine *engine = nullptr;
-		for (const Engine *e : Engine::IterateType(VehicleType::Train)) {
-			if (company == CompanyID::Invalid() || !IsEngineBuildable(e->index, VehicleType::Train, company) || e->VehInfo<RailVehicleInfo>().power == 0) continue;
-			if (e->VehInfo<RailVehicleInfo>().railtypes.Test(RAILTYPE_RAIL)) {
-				engine = e;
-				break;
-			}
-		}
-		if (engine == nullptr) {
-			IConsolePrint(CC_ERROR, "No company or no rail engine.");
+		EngineID engine = company == CompanyID::Invalid() ? EngineID::Invalid() : MetroFindTrainEngine(company, layer, false);
+		if (engine == EngineID::Invalid()) {
+			IConsolePrint(CC_ERROR, "No company or no metro train for the layer.");
 			return true;
 		}
 		TileIndex a = *start;
@@ -1110,8 +1151,9 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		std::optional<VehicleID> vehicle;
 		if (ret.Succeeded()) {
 			MetroUndergroundScope scope;
-			ret = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, depot, engine->index, true, INVALID_CARGO, ClientID::Invalid);
+			ret = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, depot, engine, true, INVALID_CARGO, ClientID::Invalid);
 			vehicle = ret.GetResultData<VehicleID>();
+			if (ret.Succeeded() && vehicle.has_value()) MetroTestAddCar(company, layer, depot, *vehicle);
 		}
 		if (ret.Succeeded() && vehicle.has_value()) ret = Command<Commands::StartStopVehicle>::Do(DoCommandFlag::Execute, *vehicle, false);
 		cur_company.Restore();
@@ -1129,14 +1171,11 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[3]).value_or(1));
 		CompanyID company = GetConsoleCompany();
 		if (town == nullptr || company == CompanyID::Invalid()) return false;
-		const Engine *engine = nullptr;
-		for (const Engine *e : Engine::IterateType(VehicleType::Train)) {
-			if (IsEngineBuildable(e->index, VehicleType::Train, company) && e->VehInfo<RailVehicleInfo>().power != 0 && e->VehInfo<RailVehicleInfo>().railtypes.Test(RAILTYPE_RAIL)) {
-				engine = e;
-				break;
-			}
+		EngineID engine = MetroFindTrainEngine(company, layer, false);
+		if (engine == EngineID::Invalid()) {
+			IConsolePrint(CC_ERROR, "No metro train for the layer.");
+			return true;
 		}
-		if (engine == nullptr) return false;
 		Backup<CompanyID> cur_company(_current_company, company, FILE_LINE);
 		DoCommandFlags test{DoCommandFlag::Bankrupt};
 		DoCommandFlags exec{DoCommandFlag::Execute, DoCommandFlag::Bankrupt};
@@ -1170,9 +1209,10 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 				std::optional<VehicleID> vehicle;
 				if (ok) {
 					MetroUndergroundScope scope;
-					CommandCost v = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, t(-1), engine->index, true, INVALID_CARGO, ClientID::Invalid);
+					CommandCost v = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, t(-1), engine, true, INVALID_CARGO, ClientID::Invalid);
 					vehicle = v.GetResultData<VehicleID>();
 					ok = v.Succeeded() && vehicle.has_value();
+					if (ok) MetroTestAddCar(company, layer, t(-1), *vehicle);
 				}
 				if (ok) ok = Command<Commands::StartStopVehicle>::Do(DoCommandFlag::Execute, *vehicle, false).Succeeded();
 				IConsolePrint(ok ? CC_INFO : CC_ERROR, "test line on layer -{} from ({}, {}), platform ({}, {})..({}, {}), entrance ({}, {}), train {}: {}", layer, TileX(t(0)), TileY(t(0)),
@@ -1266,8 +1306,14 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 	}
 	if (cmd == "trains") {
 		for (const Train *v : Train::IterateFrontOnly()) {
-			IConsolePrint(CC_DEFAULT, "train {} at ({}, {}) speed {} {}{}", v->index, TileX(v->tile), TileY(v->tile), v->cur_speed, IsMetroOverlayTile(v->tile) ? "underground" : "surface",
-					v->IsInDepot() ? ", in depot" : "");
+			uint cars = 0, capacity = 0;
+			for (const Train *u = v; u != nullptr; u = u->Next()) {
+				cars++;
+				capacity += u->cargo_cap;
+			}
+			IConsolePrint(CC_DEFAULT, "train {} '{}' at ({}, {}) speed {} {}{}{}, {} cars, power {} hp, capacity {}", v->index, GetString(Engine::Get(v->engine_type)->info.string_id), TileX(v->tile), TileY(v->tile),
+					v->cur_speed, IsMetroOverlayTile(v->tile) ? "underground" : "surface", v->IsInDepot() ? ", in depot" : "", v->IsStoppedInDepot() ? " (stopped)" : "", cars,
+					v->gcache.cached_power, capacity);
 		}
 		IConsolePrint(CC_DEFAULT, "underground map tiles: {}", _metro_overlay.size());
 		return true;

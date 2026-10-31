@@ -8,6 +8,7 @@
 /** @file rail.cpp Implementation of rail specific functions. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
 #include "station_map.h"
 #include "tunnelbridge_map.h"
 #include "date_func.h"
@@ -177,6 +178,8 @@ bool HasAnyRailTypesAvail(const CompanyID company)
  */
 bool ValParamRailType(const RailType rail)
 {
+	/* Metro mod: the hidden metro track is built by the metro tools while the underground is in the map. */
+	if (rail >= RAILTYPE_METRO_1 && rail <= RAILTYPE_METRO_X && IsMetroOverlayActive()) return Company::IsValidID(_current_company);
 	return rail < RAILTYPE_END && HasRailTypeAvail(_current_company, rail);
 }
 

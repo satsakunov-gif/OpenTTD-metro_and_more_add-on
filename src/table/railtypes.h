@@ -59,10 +59,10 @@ static const RailTypeInfo _original_railtypes[] = {
 		SPR_RAIL_SNOW_OFFSET,
 
 		/* Powered railtypes */
-		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC},
+		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC, RAILTYPE_METRO_1, RAILTYPE_METRO_X},
 
 		/* Compatible railtypes */
-		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC},
+		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC, RAILTYPE_METRO_1, RAILTYPE_METRO_X},
 
 		/* Computed compatible railtypes */
 		{},
@@ -170,10 +170,10 @@ static const RailTypeInfo _original_railtypes[] = {
 		SPR_RAIL_SNOW_OFFSET,
 
 		/* Powered railtypes */
-		{RAILTYPE_ELECTRIC},
+		{RAILTYPE_ELECTRIC, RAILTYPE_METRO_1, RAILTYPE_METRO_X},
 
 		/* Compatible railtypes */
-		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC},
+		{RAILTYPE_RAIL, RAILTYPE_ELECTRIC, RAILTYPE_METRO_1, RAILTYPE_METRO_X},
 
 		/* Computed compatible railtypes */
 		{},
@@ -447,6 +447,434 @@ static const RailTypeInfo _original_railtypes[] = {
 		{ nullptr },
 		{},
 	},
+	/** Metro mod: metro track of layer -1 (hidden: built only by the metro tools) */
+	{ // Main Sprites
+		{ SPR_RAIL_TRACK_Y, SPR_RAIL_TRACK_N_S, SPR_RAIL_TRACK_BASE, SPR_RAIL_SINGLE_X, SPR_RAIL_SINGLE_Y,
+			SPR_RAIL_SINGLE_NORTH, SPR_RAIL_SINGLE_SOUTH, SPR_RAIL_SINGLE_EAST, SPR_RAIL_SINGLE_WEST,
+			SPR_TRACKS_FOR_SLOPES_RAIL_BASE,
+			SPR_CROSSING_OFF_X_RAIL,
+			SPR_TUNNEL_ENTRY_REAR_RAIL, SPR_BRIDGE_DECKS_RAIL,
+		},
+
+		/* GUI sprites */
+		{ 0x4E3, 0x4E4, 0x4E5, 0x4E6,
+			SPR_IMG_AUTORAIL,
+			SPR_IMG_DEPOT_RAIL,
+			SPR_IMG_TUNNEL_RAIL,
+			SPR_IMG_CONVERT_RAIL,
+			{}
+		},
+
+		{
+			SPR_CURSOR_NS_TRACK,
+			SPR_CURSOR_SWNE_TRACK,
+			SPR_CURSOR_EW_TRACK,
+			SPR_CURSOR_NWSE_TRACK,
+			SPR_CURSOR_AUTORAIL,
+			SPR_CURSOR_RAIL_DEPOT,
+			SPR_CURSOR_TUNNEL_RAIL,
+			SPR_CURSOR_CONVERT_RAIL
+		},
+
+		/* strings */
+		{
+			STR_METRO_RAIL_NAME_1,
+			STR_RAIL_TOOLBAR_RAILROAD_CONSTRUCTION_CAPTION,
+			STR_RAIL_MENU_RAILROAD_CONSTRUCTION,
+			STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION,
+			STR_REPLACE_RAIL_VEHICLES,
+			STR_ENGINE_PREVIEW_RAILROAD_LOCOMOTIVE,
+		},
+
+		/* Offset of snow tiles */
+		SPR_RAIL_SNOW_OFFSET,
+
+		/* Powered railtypes */
+		{RAILTYPE_METRO_1, RAILTYPE_METRO_X},
+
+		/* Compatible railtypes */
+		{RAILTYPE_METRO_1, RAILTYPE_METRO_X},
+
+		/* Computed compatible railtypes */
+		{},
+
+		/* bridge offset */
+		0,
+
+		/* fallback_railtype */
+		0,
+
+		/* curve speed advantage (multiplier) */
+		0,
+
+		/* flags */
+		{RailTypeFlag::Hidden},
+
+		/* control flags */
+		{},
+
+		/* signal extra aspects */
+		0,
+
+		/* cost multiplier */
+		8,
+
+		/* maintenance cost multiplier */
+		8,
+
+		/* acceleration type */
+		VehicleAccelerationModel::Normal,
+
+		/* max speed */
+		0,
+
+		/* rail type label */
+		RAILTYPE_LABEL_METRO_1,
+
+		/* alternate labels */
+		{},
+
+		/* map colour */
+		PC_GREY,
+
+		/* introduction date */
+		CalTime::INVALID_DATE,
+
+		/* railtypes required for this to be introduced */
+		{},
+
+		/* introduction rail types */
+		{RAILTYPE_METRO_1},
+
+		/* sort order */
+		4 << 4 | 1,
+
+		{ nullptr },
+		{ nullptr },
+		{},
+	},
+
+	/** Metro mod: metro track of layer -2 (hidden: built only by the metro tools) */
+	{ // Main Sprites
+		{ SPR_RAIL_TRACK_Y, SPR_RAIL_TRACK_N_S, SPR_RAIL_TRACK_BASE, SPR_RAIL_SINGLE_X, SPR_RAIL_SINGLE_Y,
+			SPR_RAIL_SINGLE_NORTH, SPR_RAIL_SINGLE_SOUTH, SPR_RAIL_SINGLE_EAST, SPR_RAIL_SINGLE_WEST,
+			SPR_TRACKS_FOR_SLOPES_RAIL_BASE,
+			SPR_CROSSING_OFF_X_RAIL,
+			SPR_TUNNEL_ENTRY_REAR_RAIL, SPR_BRIDGE_DECKS_RAIL,
+		},
+
+		/* GUI sprites */
+		{ 0x4E3, 0x4E4, 0x4E5, 0x4E6,
+			SPR_IMG_AUTORAIL,
+			SPR_IMG_DEPOT_RAIL,
+			SPR_IMG_TUNNEL_RAIL,
+			SPR_IMG_CONVERT_RAIL,
+			{}
+		},
+
+		{
+			SPR_CURSOR_NS_TRACK,
+			SPR_CURSOR_SWNE_TRACK,
+			SPR_CURSOR_EW_TRACK,
+			SPR_CURSOR_NWSE_TRACK,
+			SPR_CURSOR_AUTORAIL,
+			SPR_CURSOR_RAIL_DEPOT,
+			SPR_CURSOR_TUNNEL_RAIL,
+			SPR_CURSOR_CONVERT_RAIL
+		},
+
+		/* strings */
+		{
+			STR_METRO_RAIL_NAME_2,
+			STR_RAIL_TOOLBAR_RAILROAD_CONSTRUCTION_CAPTION,
+			STR_RAIL_MENU_RAILROAD_CONSTRUCTION,
+			STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION,
+			STR_REPLACE_RAIL_VEHICLES,
+			STR_ENGINE_PREVIEW_RAILROAD_LOCOMOTIVE,
+		},
+
+		/* Offset of snow tiles */
+		SPR_RAIL_SNOW_OFFSET,
+
+		/* Powered railtypes */
+		{RAILTYPE_METRO_2, RAILTYPE_METRO_X},
+
+		/* Compatible railtypes */
+		{RAILTYPE_METRO_2, RAILTYPE_METRO_X},
+
+		/* Computed compatible railtypes */
+		{},
+
+		/* bridge offset */
+		0,
+
+		/* fallback_railtype */
+		0,
+
+		/* curve speed advantage (multiplier) */
+		0,
+
+		/* flags */
+		{RailTypeFlag::Hidden},
+
+		/* control flags */
+		{},
+
+		/* signal extra aspects */
+		0,
+
+		/* cost multiplier */
+		8,
+
+		/* maintenance cost multiplier */
+		8,
+
+		/* acceleration type */
+		VehicleAccelerationModel::Normal,
+
+		/* max speed */
+		0,
+
+		/* rail type label */
+		RAILTYPE_LABEL_METRO_2,
+
+		/* alternate labels */
+		{},
+
+		/* map colour */
+		PC_GREY,
+
+		/* introduction date */
+		CalTime::INVALID_DATE,
+
+		/* railtypes required for this to be introduced */
+		{},
+
+		/* introduction rail types */
+		{RAILTYPE_METRO_2},
+
+		/* sort order */
+		4 << 4 | 2,
+
+		{ nullptr },
+		{ nullptr },
+		{},
+	},
+
+	/** Metro mod: metro track of layer -3 (hidden: built only by the metro tools) */
+	{ // Main Sprites
+		{ SPR_RAIL_TRACK_Y, SPR_RAIL_TRACK_N_S, SPR_RAIL_TRACK_BASE, SPR_RAIL_SINGLE_X, SPR_RAIL_SINGLE_Y,
+			SPR_RAIL_SINGLE_NORTH, SPR_RAIL_SINGLE_SOUTH, SPR_RAIL_SINGLE_EAST, SPR_RAIL_SINGLE_WEST,
+			SPR_TRACKS_FOR_SLOPES_RAIL_BASE,
+			SPR_CROSSING_OFF_X_RAIL,
+			SPR_TUNNEL_ENTRY_REAR_RAIL, SPR_BRIDGE_DECKS_RAIL,
+		},
+
+		/* GUI sprites */
+		{ 0x4E3, 0x4E4, 0x4E5, 0x4E6,
+			SPR_IMG_AUTORAIL,
+			SPR_IMG_DEPOT_RAIL,
+			SPR_IMG_TUNNEL_RAIL,
+			SPR_IMG_CONVERT_RAIL,
+			{}
+		},
+
+		{
+			SPR_CURSOR_NS_TRACK,
+			SPR_CURSOR_SWNE_TRACK,
+			SPR_CURSOR_EW_TRACK,
+			SPR_CURSOR_NWSE_TRACK,
+			SPR_CURSOR_AUTORAIL,
+			SPR_CURSOR_RAIL_DEPOT,
+			SPR_CURSOR_TUNNEL_RAIL,
+			SPR_CURSOR_CONVERT_RAIL
+		},
+
+		/* strings */
+		{
+			STR_METRO_RAIL_NAME_3,
+			STR_RAIL_TOOLBAR_RAILROAD_CONSTRUCTION_CAPTION,
+			STR_RAIL_MENU_RAILROAD_CONSTRUCTION,
+			STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION,
+			STR_REPLACE_RAIL_VEHICLES,
+			STR_ENGINE_PREVIEW_RAILROAD_LOCOMOTIVE,
+		},
+
+		/* Offset of snow tiles */
+		SPR_RAIL_SNOW_OFFSET,
+
+		/* Powered railtypes */
+		{RAILTYPE_METRO_3, RAILTYPE_METRO_X},
+
+		/* Compatible railtypes */
+		{RAILTYPE_METRO_3, RAILTYPE_METRO_X},
+
+		/* Computed compatible railtypes */
+		{},
+
+		/* bridge offset */
+		0,
+
+		/* fallback_railtype */
+		0,
+
+		/* curve speed advantage (multiplier) */
+		0,
+
+		/* flags */
+		{RailTypeFlag::Hidden},
+
+		/* control flags */
+		{},
+
+		/* signal extra aspects */
+		0,
+
+		/* cost multiplier */
+		8,
+
+		/* maintenance cost multiplier */
+		8,
+
+		/* acceleration type */
+		VehicleAccelerationModel::Normal,
+
+		/* max speed */
+		0,
+
+		/* rail type label */
+		RAILTYPE_LABEL_METRO_3,
+
+		/* alternate labels */
+		{},
+
+		/* map colour */
+		PC_GREY,
+
+		/* introduction date */
+		CalTime::INVALID_DATE,
+
+		/* railtypes required for this to be introduced */
+		{},
+
+		/* introduction rail types */
+		{RAILTYPE_METRO_3},
+
+		/* sort order */
+		4 << 4 | 3,
+
+		{ nullptr },
+		{ nullptr },
+		{},
+	},
+
+	/** Metro mod: metro track where layers cross or meet (hidden: built only by the metro tools) */
+	{ // Main Sprites
+		{ SPR_RAIL_TRACK_Y, SPR_RAIL_TRACK_N_S, SPR_RAIL_TRACK_BASE, SPR_RAIL_SINGLE_X, SPR_RAIL_SINGLE_Y,
+			SPR_RAIL_SINGLE_NORTH, SPR_RAIL_SINGLE_SOUTH, SPR_RAIL_SINGLE_EAST, SPR_RAIL_SINGLE_WEST,
+			SPR_TRACKS_FOR_SLOPES_RAIL_BASE,
+			SPR_CROSSING_OFF_X_RAIL,
+			SPR_TUNNEL_ENTRY_REAR_RAIL, SPR_BRIDGE_DECKS_RAIL,
+		},
+
+		/* GUI sprites */
+		{ 0x4E3, 0x4E4, 0x4E5, 0x4E6,
+			SPR_IMG_AUTORAIL,
+			SPR_IMG_DEPOT_RAIL,
+			SPR_IMG_TUNNEL_RAIL,
+			SPR_IMG_CONVERT_RAIL,
+			{}
+		},
+
+		{
+			SPR_CURSOR_NS_TRACK,
+			SPR_CURSOR_SWNE_TRACK,
+			SPR_CURSOR_EW_TRACK,
+			SPR_CURSOR_NWSE_TRACK,
+			SPR_CURSOR_AUTORAIL,
+			SPR_CURSOR_RAIL_DEPOT,
+			SPR_CURSOR_TUNNEL_RAIL,
+			SPR_CURSOR_CONVERT_RAIL
+		},
+
+		/* strings */
+		{
+			STR_METRO_RAIL_NAME_X,
+			STR_RAIL_TOOLBAR_RAILROAD_CONSTRUCTION_CAPTION,
+			STR_RAIL_MENU_RAILROAD_CONSTRUCTION,
+			STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION,
+			STR_REPLACE_RAIL_VEHICLES,
+			STR_ENGINE_PREVIEW_RAILROAD_LOCOMOTIVE,
+		},
+
+		/* Offset of snow tiles */
+		SPR_RAIL_SNOW_OFFSET,
+
+		/* Powered railtypes */
+		{RAILTYPE_METRO_X},
+
+		/* Compatible railtypes */
+		{RAILTYPE_METRO_X},
+
+		/* Computed compatible railtypes */
+		{},
+
+		/* bridge offset */
+		0,
+
+		/* fallback_railtype */
+		0,
+
+		/* curve speed advantage (multiplier) */
+		0,
+
+		/* flags */
+		{RailTypeFlag::Hidden},
+
+		/* control flags */
+		{},
+
+		/* signal extra aspects */
+		0,
+
+		/* cost multiplier */
+		8,
+
+		/* maintenance cost multiplier */
+		8,
+
+		/* acceleration type */
+		VehicleAccelerationModel::Normal,
+
+		/* max speed */
+		0,
+
+		/* rail type label */
+		RAILTYPE_LABEL_METRO_X,
+
+		/* alternate labels */
+		{},
+
+		/* map colour */
+		PC_GREY,
+
+		/* introduction date */
+		CalTime::INVALID_DATE,
+
+		/* railtypes required for this to be introduced */
+		{},
+
+		/* introduction rail types */
+		{RAILTYPE_METRO_X},
+
+		/* sort order */
+		4 << 4 | 4,
+
+		{ nullptr },
+		{ nullptr },
+		{},
+	},
+
 };
 
 #endif /* RAILTYPES_H */

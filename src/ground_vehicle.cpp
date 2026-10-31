@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "train.h"
 #include "metro_power.h"
+#include "metro_overlay.h"
 #include "train_settings.h"
 #include "roadveh.h"
 #include "depot_map.h"
@@ -27,6 +28,7 @@ template <class T, VehicleType Type>
 void GroundVehicle<T, Type>::PowerChanged()
 {
 	assert(this->First() == this);
+	MetroUndergroundScope metro_scope(Type == VehicleType::Train && IsMetroOverlayTile(this->tile)); // Metro mod: power from the track under the ground.
 	const T *v = T::From(this);
 
 	uint32_t total_power = 0;

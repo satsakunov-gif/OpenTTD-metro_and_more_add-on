@@ -21,6 +21,7 @@
 
 #include "map_type.h"
 #include "tile_type.h"
+#include "rail_type.h"
 
 #include <unordered_map>
 
@@ -52,7 +53,8 @@ public:
 };
 
 void MetroOverlayReset();
-bool MetroOverlayAddTrack(TileIndex tile, uint8_t owner, uint8_t bits);
+void MetroOverlayConvertRailTypes(RailType (*rail_type_of)(TileIndex));
+bool MetroOverlayAddTrack(TileIndex tile, uint8_t owner, uint8_t bits, RailType rt);
 bool MetroOverlayRemoveTrack(TileIndex tile, uint8_t bits);
 void MetroOverlayPrepareBlank(TileIndex tile);
 void MetroOverlayDropIfClear(TileIndex tile);

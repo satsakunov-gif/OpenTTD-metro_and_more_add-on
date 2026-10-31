@@ -8,6 +8,7 @@
 /** @file build_vehicle_gui.cpp GUI for building vehicles. */
 
 #include "stdafx.h"
+#include "metro_trains.h"
 #include "metro_overlay.h"
 #include "engine_base.h"
 #include "engine_cmd.h"
@@ -1699,6 +1700,7 @@ struct BuildVehicleWindow : BuildVehicleWindowBase {
 				if (this->listview_mode || this->virtual_train_mode) {
 					this->filter.railtype = INVALID_RAILTYPE;
 				} else {
+					MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex(this->window_number))); // Metro mod: underground depot.
 					this->filter.railtype = GetRailType(TileIndex(this->window_number));
 				}
 				break;
@@ -1821,6 +1823,7 @@ struct BuildVehicleWindow : BuildVehicleWindowBase {
 			const RailVehicleInfo *rvi = &e->VehInfo<RailVehicleInfo>();
 
 			if (this->filter.railtype != INVALID_RAILTYPE && !HasPowerOnRail(rvi->railtypes, this->filter.railtype)) continue;
+			if (this->filter.railtype != INVALID_RAILTYPE && MetroDepotRefusesEngine(rvi->railtypes, this->filter.railtype)) continue; // Metro mod.
 			if (!IsEngineBuildable(eid, VehicleType::Train, _local_company)) continue;
 
 			/* Filter now! So num_engines and num_wagons is valid */
@@ -2660,6 +2663,7 @@ struct BuildVehicleWindowTrainAdvanced final : BuildVehicleWindowBase {
 		if (this->listview_mode || this->virtual_train_mode) {
 			this->railtype = INVALID_RAILTYPE;
 		} else {
+			MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex(this->window_number))); // Metro mod: underground depot.
 			this->railtype = GetRailType(TileIndex(this->window_number));
 		}
 	}
@@ -2782,6 +2786,7 @@ struct BuildVehicleWindowTrainAdvanced final : BuildVehicleWindowBase {
 			const RailVehicleInfo &rvi = engine->VehInfo<RailVehicleInfo>();
 
 			if (this->railtype != RAILTYPE_END && !HasPowerOnRail(rvi.railtypes, this->railtype)) continue;
+			if (this->railtype != RAILTYPE_END && this->railtype != INVALID_RAILTYPE && MetroDepotRefusesEngine(rvi.railtypes, this->railtype)) continue; // Metro mod.
 			if (!IsEngineBuildable(eid, VehicleType::Train, _local_company)) continue;
 
 			if (!FilterSingleEngine(state, eid)) continue;

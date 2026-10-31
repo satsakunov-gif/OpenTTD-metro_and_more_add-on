@@ -8,6 +8,8 @@
 /** @file train_cmd.cpp Handling of trains. */
 
 #include "stdafx.h"
+#include "metro_trains.h"
+#include "metro_overlay.h"
 #include "metro_underground.h"
 #include "error.h"
 #include "metro_power.h"
@@ -285,6 +287,7 @@ uint16_t GetTrainVehicleMaxSpeed(const Train *u, const RailVehicleInfo &rvi_u, c
  */
 void Train::ConsistChanged(ConsistChangeFlags allowed_changes)
 {
+	MetroUndergroundScope metro_scope(IsMetroOverlayTile(this->tile)); // Metro mod: the track of a train under the ground.
 	uint16_t max_speed = UINT16_MAX;
 
 	dbg_assert(this->IsFrontEngine() || this->IsFreeWagon());
@@ -1564,6 +1567,7 @@ static CommandCost CmdBuildRailWagon(TileIndex tile, DoCommandFlags flags, const
 
 	/* Check that the wagon can drive on the track in question */
 	if (!IsCompatibleRail(rvi->railtypes, GetRailType(tile))) return CommandCost(STR_ERROR_DEPOT_HAS_WRONG_RAIL_TYPE);
+	if (MetroDepotRefusesEngine(rvi->railtypes, GetRailType(tile))) return CommandCost(STR_ERROR_DEPOT_HAS_WRONG_RAIL_TYPE); // Metro mod.
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		Train *v = Train::Create();
@@ -1734,6 +1738,7 @@ CommandCost CmdBuildRailVehicle(TileIndex tile, DoCommandFlags flags, const Engi
 	/* Check if depot and new engine uses the same kind of tracks *
 	 * We need to see if the engine got power on the tile to avoid electric engines in non-electric depots */
 	if (!HasPowerOnRail(rvi->railtypes, GetRailType(tile))) return CommandCost(STR_ERROR_DEPOT_HAS_WRONG_RAIL_TYPE);
+	if (MetroDepotRefusesEngine(rvi->railtypes, GetRailType(tile))) return CommandCost(STR_ERROR_DEPOT_HAS_WRONG_RAIL_TYPE); // Metro mod.
 
 	if (flags.Test(DoCommandFlag::Execute)) {
 		DiagDirection dir = GetRailDepotDirection(tile);

@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_trams.h"
+#include "metro_trains.h"
 #include "core/backup_type.hpp"
 #include "core/bit_cast.hpp"
 #include "core/container_func.hpp"
@@ -1026,7 +1027,7 @@ static void FinaliseEngineArray()
 	for (Engine *e : Engine::Iterate()) {
 		if (e->GetGRF() == nullptr) {
 			const EngineIDMapping &eid = _engine_mngr.mappings[e->index];
-			if ((eid.grfid != INVALID_GRFID || eid.internal_id != eid.substitute_id) && !IsMetroTramEngineScope(eid.grfid)) { // Metro mod: built-in trams.
+			if ((eid.grfid != INVALID_GRFID || eid.internal_id != eid.substitute_id) && !IsMetroTramEngineScope(eid.grfid) && !IsMetroTrainEngineScope(eid.grfid)) { // Metro mod: built-in trams and metro trains.
 				e->info.string_id = STR_NEWGRF_INVALID_ENGINE;
 			}
 		}
@@ -1827,9 +1828,11 @@ static void AfterLoadGRFs()
 
 	/* Metro mod: the built-in trams, before the refit masks are computed. */
 	MetroSetupTramEngines();
+	MetroSetupTrainEngines();
 
 	/* Pre-calculate all refit masks after loading GRF files. */
 	CalculateRefitMasks();
+	MetroFinaliseTrainRefits(); // Metro mod: metro cars carry any cargo.
 
 	/* Polish engines */
 	FinaliseEngineArray();

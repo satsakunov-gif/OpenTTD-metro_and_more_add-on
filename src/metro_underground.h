@@ -21,6 +21,7 @@
 #include "object_type.h"
 #include "tile_type.h"
 #include "track_type.h"
+#include "rail_type.h"
 #include "direction_type.h"
 #include "core/bitmath_func.hpp"
 
@@ -61,6 +62,7 @@ extern uint8_t _metro_underground_view_layer; ///< Layer shown bright in the und
 void MetroUndergroundReset();
 const MetroUndergroundTile *GetMetroUndergroundTile(TileIndex tile, uint layer);
 bool IsMetroLayerAvailable(uint layer);
+RailType GetMetroLayerRailType(uint layer);
 int32_t GetMetroLayerYear(uint layer);
 CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer);
 bool IsMetroEntranceObject(ObjectType type);
@@ -78,6 +80,7 @@ void MetroToggleUndergroundView();
 void MetroCycleUndergroundLayer();
 void ShowMetroUndergroundToolbar();
 
+void MetroUndergroundAfterLoadRailTypes();
 bool ConMetroUnderground(std::span<std::string_view> argv);
 
 #endif /* METRO_UNDERGROUND_H */

@@ -313,6 +313,8 @@ add_files(
     metro_elevated_cmd.h
     metro_station_names.cpp
     metro_station_names.h
+    metro_trains.cpp
+    metro_trains.h
     metro_trams.cpp
     metro_trams.h
     metro_overlay.cpp

@@ -2878,3 +2878,23 @@ STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... the 
 STR_METRO_UNDERGROUND_ROW_TRANSFORMER                           :Transformer to the surface track {STRING} ({CURRENCY_LONG}; click again to turn)
 STR_METRO_UNDERGROUND_ERR_CANT_TRANSFORMER                      :{WHITE}Can't build the transformer here...
 STR_METRO_UNDERGROUND_ERR_TRANSFORMER_SIDE                      :{WHITE}... the surface side of the transformer must be outside the metro
+STR_METRO_RAIL_NAME_1                                           :Metro track, layer -1
+STR_METRO_RAIL_NAME_2                                           :Metro track, layer -2
+STR_METRO_RAIL_NAME_3                                           :Metro track, layer -3
+STR_METRO_RAIL_NAME_X                                           :Metro track, crossing of layers
+STR_METRO_TRAIN_A                                               :Metro Series A
+STR_METRO_TRAIN_A_CAR                                           :Metro Series A Car
+STR_METRO_TRAIN_E                                               :Metro Series E
+STR_METRO_TRAIN_E_CAR                                           :Metro Series E Car
+STR_METRO_TRAIN_PREMETRO                                        :Premetro
+STR_METRO_TRAIN_PREMETRO_CAR                                    :Premetro Car
+STR_METRO_TRAIN_2000                                            :Metro Series 2000
+STR_METRO_TRAIN_2000_CAR                                        :Metro Series 2000 Car
+STR_METRO_TRAIN_DIAMETR                                         :Diametr Metro Train
+STR_METRO_TRAIN_DIAMETR_CAR                                     :Diametr Car
+STR_METRO_TRAIN_DEEP                                            :Deep Metro Train
+STR_METRO_TRAIN_DEEP_CAR                                        :Deep Metro Car
+STR_METRO_TRAIN_VACUUM                                          :Vacuum Metro Train
+STR_METRO_TRAIN_VACUUM_CAR                                      :Vacuum Metro Car
+STR_METRO_TRAIN_CAPSULE                                         :Capsule Metro Train
+STR_METRO_TRAIN_CAPSULE_CAR                                     :Capsule Car
