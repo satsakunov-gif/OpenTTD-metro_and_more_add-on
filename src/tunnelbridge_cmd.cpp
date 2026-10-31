@@ -12,6 +12,7 @@
 
 #include "stdafx.h"
 #include "metro_ai.h"
+#include "metro_elevated.h"
 #include "newgrf_object.h"
 #include "viewport_func.h"
 #include "command_func.h"
@@ -487,6 +488,14 @@ CommandCost CmdBuildBridge(DoCommandFlags flags, TileIndex tile_end, TileIndex t
 	if (transport_type == TransportType::Water && (tileh_start == SLOPE_FLAT || tileh_end == SLOPE_FLAT)) return CommandCost(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	if (z_start != z_end) return CommandCost(STR_ERROR_BRIDGEHEADS_NOT_SAME_HEIGHT);
 
+	/* Metro mod: a span of the elevated monorail lies higher, between flat elevated heads (pillars). */
+	const uint metro_level = (transport_type == TransportType::Rail) ? _metro_elevated_bridge_level : 0;
+	if (metro_level != 0) {
+		if (tileh_start != SLOPE_FLAT || tileh_end != SLOPE_FLAT) return CommandCost(STR_METRO_ELEVATED_ERR_FLAT);
+		z_start += metro_level - 1;
+		z_end += metro_level - 1;
+	}
+
 	const BridgeAboveInfo bridge_above{
 		.northern_end = tile_start,
 		.southern_end = tile_end,
@@ -666,6 +675,17 @@ CommandCost CmdBuildBridge(DoCommandFlags flags, TileIndex tile_end, TileIndex t
 		if (terraform_cost_south.Failed() || (terraform_cost_south.GetCost() != 0 && !allow_on_slopes)) return CommandCost(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 		cost.AddCost(terraform_cost_south.GetCost());
 
+		/* Metro mod: a ramp on the ground does not join elevated track. */
+		if (metro_level == 0 && transport_type == TransportType::Rail) {
+			DiagDirection south = AxisToDiagDir(direction);
+			for (auto [head, outer] : {std::pair{tile_start, ReverseDiagDir(south)}, std::pair{tile_end, south}}) {
+				TileIndex next = TileAddByDiagDir(head, outer);
+				if (!IsValidTile(next) || !IsMetroElevatedTile(next)) continue;
+				CommandCost metro_ret = MetroCheckEdgeAgainstZ(head, outer, z_start * TILE_HEIGHT);
+				if (metro_ret.Failed()) return metro_ret;
+			}
+		}
+
 		/* Check for bridges above the bridge ramps. */
 		for (TileIndex tile : {tile_start, tile_end}) {
 			if (!IsBridgeAbove(tile)) continue;
@@ -694,7 +714,19 @@ CommandCost CmdBuildBridge(DoCommandFlags flags, TileIndex tile_end, TileIndex t
 				return CommandCost(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 			}
 
+			/* Metro mod: no bridge over the elevated monorail. */
+			if (IsMetroElevatedTile(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_OVER_ELEVATED);
+
 			switch (GetTileType(tile)) {
+				case TileType::House:
+					/* Metro mod: spans of the elevated monorail pass over low houses. */
+					if (metro_level == 0) goto not_valid_below;
+					{
+						CommandCost metro_ret = MetroCheckBridgeAboveHouse(tile, z_start + 1);
+						if (metro_ret.Failed()) return metro_ret;
+					}
+					break;
+
 				case TileType::Water:
 					if (IsLock(tile)) {
 						CommandCost ret = IsLockBridgeAboveOK(tile, (LockPart)GetLockPart(tile), GetLockDirection(tile), bridge_above);
@@ -830,9 +862,17 @@ CommandCost CmdBuildBridge(DoCommandFlags flags, TileIndex tile_end, TileIndex t
 		switch (transport_type) {
 			case TransportType::Rail:
 				if (is_upgrade) SubtractRailTunnelBridgeInfrastructure(tile_start, tile_end);
-				/* Add to company infrastructure count if required. */
-				MakeRailBridgeRamp(tile_start, owner, bridge_type, dir,                 railtype, is_upgrade);
-				MakeRailBridgeRamp(tile_end,   owner, bridge_type, ReverseDiagDir(dir), railtype, is_upgrade);
+				{
+					/* Metro mod: heads of the elevated monorail keep their level. */
+					const uint metro_keep = is_upgrade ? GetMetroElevation(tile_start) : metro_level;
+					/* Add to company infrastructure count if required. */
+					MakeRailBridgeRamp(tile_start, owner, bridge_type, dir,                 railtype, is_upgrade);
+					MakeRailBridgeRamp(tile_end,   owner, bridge_type, ReverseDiagDir(dir), railtype, is_upgrade);
+					if (metro_keep != 0) {
+						SetMetroElevation(tile_start, metro_keep);
+						SetMetroElevation(tile_end, metro_keep);
+					}
+				}
 				AddRailTunnelBridgeInfrastructure(tile_start, tile_end);
 				break;
 
@@ -2393,6 +2433,14 @@ static void DrawTile_TunnelBridge(TileInfo *ti, DrawTileProcParams params)
 			DrawBridgeMiddle(ti);
 			return;
 		}
+		if (transport_type == TransportType::Rail && GetMetroElevation(ti->tile) != 0) {
+			/* Metro mod: head of the elevated monorail, a pillar with the track on top. */
+			extern void DrawTrackBits(TileInfo *ti, TrackBits track, RailType rt, RailGroundType rgt, bool is_bridge, Corner halftile_corner, Corner draw_half_tile);
+			MetroDrawElevatedBase(ti, GetMetroElevation(ti->tile), DiagDirToAxis(tunnelbridge_direction));
+			DrawTrackBits(ti, GetCustomBridgeHeadTrackBits(ti->tile), GetRailType(ti->tile), GetTunnelBridgeGroundType(ti->tile), true, Corner::Invalid, Corner::Invalid);
+			DrawBridgeMiddle(ti);
+			return;
+		}
 		if (transport_type == TransportType::Rail && IsRailCustomBridgeHead(ti->tile)) {
 			const RailTypeInfo *rti = GetRailTypeInfo(GetRailType(ti->tile));
 			DrawTrackBits(ti, GetCustomBridgeHeadTrackBits(ti->tile));
@@ -2769,6 +2817,9 @@ void DrawBridgeMiddle(const TileInfo *ti)
 	/* Do not draw anything more if bridges are invisible */
 	if (IsInvisibilitySet(TransparencyOption::Bridges)) return;
 
+	/* Metro mod: spans of the elevated monorail stand on their heads (pillars) only. */
+	if (transport_type == TransportType::Rail && GetMetroElevation(rampsouth) != 0) return;
+
 	psid++;
 	DrawBridgePillars(*psid, ti, axis, drawfarpillar, x, y, z);
 }
@@ -2786,6 +2837,7 @@ static int GetSlopePixelZ_TunnelBridge(TileIndex tile, uint x, uint y, bool grou
 		/* In the tunnel entrance? */
 		if (ground_vehicle) return z;
 	} else { // IsBridge(tile)
+		if (uint level = GetMetroElevation(tile); level != 0) return z + static_cast<int>(level * TILE_HEIGHT); // Metro mod: flat elevated head.
 		if (IsCustomBridgeHeadTile(tile)) {
 			return z + TILE_HEIGHT + (IsSteepSlope(tileh) ? TILE_HEIGHT : 0);
 		}
@@ -2813,6 +2865,7 @@ static int GetSlopePixelZ_TunnelBridge(TileIndex tile, uint x, uint y, bool grou
 /** @copydoc GetFoundationProc */
 static Foundation GetFoundation_TunnelBridge(TileIndex tile, Slope tileh)
 {
+	if (IsMetroElevatedTile(tile)) return Foundation::None; // Metro mod: elevated heads stand on flat ground.
 	if (IsCustomBridgeHeadTile(tile)) return Foundation::Leveled;
 	return IsTunnel(tile) ? Foundation::None : GetBridgeFoundation(tileh, DiagDirToAxis(GetTunnelBridgeDirection(tile)));
 }
@@ -3548,6 +3601,7 @@ static VehicleEnterTileStates VehicleEnterTile_TunnelBridge(Vehicle *v, TileInde
 /** @copydoc TerraformTileProc */
 static CommandCost TerraformTile_TunnelBridge(TileIndex tile, DoCommandFlags flags, int z_new, Slope tileh_new)
 {
+	if (IsMetroElevatedTile(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_ELEVATED); // Metro mod: pillars stand on flat ground.
 	if (_settings_game.construction.build_on_slopes && AutoslopeEnabled() && IsBridge(tile) && GetTunnelBridgeTransportType(tile) != TransportType::Water) {
 		DiagDirection direction = GetTunnelBridgeDirection(tile);
 		Axis axis = DiagDirToAxis(direction);

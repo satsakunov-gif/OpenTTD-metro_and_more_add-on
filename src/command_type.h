@@ -776,6 +776,9 @@ enum class Commands : uint8_t {
 	MetroBuildPowerLine,                    ///< Metro mod: build or remove a power line
 	MetroBuildPowerObject,                  ///< Metro mod: build a plant, substation or vent shaft
 	MetroSetPowerPriority,                  ///< Metro mod: set the blackout priority
+	MetroElevateRail,                       ///< Metro mod: raise or lower monorail track and stations
+	MetroElevateLine,                       ///< Metro mod: raise a straight stretch of monorail with ramps at its ends
+	MetroBuildElevatedSpan,                 ///< Metro mod: build a span (bridge) of the elevated monorail
 
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)
 };

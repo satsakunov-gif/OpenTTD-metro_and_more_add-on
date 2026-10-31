@@ -8,6 +8,7 @@
 /** @file rail_cmd.cpp Handling of rail tiles. */
 
 #include "stdafx.h"
+#include "metro_elevated.h"
 #include "viewport_func.h"
 #include "command_func.h"
 #include "depot_base.h"
@@ -729,6 +730,13 @@ CommandCost CmdBuildSingleRail(DoCommandFlags flags, TileIndex tile, RailType ra
 	Slope tileh = GetTileSlope(tile);
 	TrackBits trackbit = TrackToTrackBits(track);
 
+	{
+		/* Metro mod: a ramp carries only its straight track; track at different heights does not join. */
+		if (IsMetroRamp(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_RAMP_HERE);
+		CommandCost ret = MetroCheckTrackEdges(tile, trackbit);
+		if (ret.Failed()) return ret;
+	}
+
 	switch (GetTileType(tile)) {
 		case TileType::Railway: {
 			CommandCost ret = CheckTileOwnership(tile);
@@ -1435,6 +1443,17 @@ CommandCost CmdBuildTrainDepot(DoCommandFlags flags, TileIndex tile, RailType ra
 	Slope tileh = GetTileSlope(tile);
 
 	CommandCost cost(ExpensesType::Construction);
+
+	{
+		/* Metro mod: depots stay on the ground; their exit cannot join elevated track. */
+		CommandCost ret = MetroCheckNotElevated(tile);
+		if (ret.Failed()) return ret;
+		TileIndex exit = TileAddByDiagDir(tile, dir);
+		if (IsValidTile(exit) && IsMetroElevatedTile(exit)) {
+			ret = MetroCheckEdgeAgainstZ(tile, dir, GetTileMaxPixelZ(tile));
+			if (ret.Failed()) return ret;
+		}
+	}
 
 	/* Prohibit construction if
 	 * The tile is non-flat AND
@@ -2626,6 +2645,12 @@ CommandCost CmdConvertRail(DoCommandFlags flags, TileIndex tile, TileIndex area_
 		CommandCost ret = CheckTileOwnership(tile);
 		if (ret.Failed()) {
 			error = std::move(ret);
+			continue;
+		}
+
+		/* Metro mod: elevated track is monorail only. */
+		if (IsMetroElevatedTile(tile) && !IsMetroElevatedRailType(totype)) {
+			error = CommandCost(STR_METRO_ELEVATED_ERR_ELEVATED);
 			continue;
 		}
 
@@ -4129,9 +4154,15 @@ static void DrawTile_Rail(TileInfo *ti, DrawTileProcParams params)
 	PaletteID pal = GetCompanyPalette(GetTileOwner(ti->tile));
 
 	if (IsPlainRail(ti->tile)) {
-		if (!IsBridgeAbove(ti->tile) && params.min_visible_height > std::max<int>(SIGNAL_DIRTY_TOP, (TILE_HEIGHT + BB_HEIGHT_UNDER_BRIDGE) * ZOOM_BASE) && !_signal_sprite_oversized) return;
+		/* Metro mod: elevated monorail is drawn higher. */
+		const uint metro_level = GetMetroElevation(ti->tile);
+		const bool metro_ramp = IsMetroRamp(ti->tile);
+		const int metro_extra = static_cast<int>((metro_level + (metro_ramp ? 1 : 0)) * TILE_HEIGHT * ZOOM_BASE);
+		if (!IsBridgeAbove(ti->tile) && params.min_visible_height > std::max<int>(SIGNAL_DIRTY_TOP, (TILE_HEIGHT + BB_HEIGHT_UNDER_BRIDGE) * ZOOM_BASE) + metro_extra && !_signal_sprite_oversized) return;
 
 		TrackBits rails = GetTrackBits(ti->tile);
+		if (metro_level != 0) MetroDrawElevatedBase(ti, metro_level, (rails & TRACK_BIT_Y) != TRACK_BIT_NONE && (rails & TRACK_BIT_X) == TRACK_BIT_NONE ? Axis::Y : Axis::X);
+		if (metro_ramp) ti->tileh = InclinedSlope(GetMetroRampUpDir(ti->tile));
 
 		DrawTrackBits(ti, rails);
 
@@ -4300,6 +4331,7 @@ static int GetSlopePixelZ_Rail(TileIndex tile, uint x, uint y, [[maybe_unused]] 
 {
 	if (IsPlainRail(tile)) {
 		auto [tileh, z] = GetTilePixelSlope(tile);
+		if (IsMetroElevatedTile(tile)) return MetroElevatedTrackPixelZ(tile, x, y, z); // Metro mod: elevated monorail (flat tiles).
 		if (tileh == SLOPE_FLAT) return z;
 
 		z += ApplyPixelFoundationToSlope(GetRailFoundation(tileh, GetTrackBits(tile)), tileh);
@@ -4945,6 +4977,7 @@ static CommandCost TestAutoslopeOnRailTile(TileIndex tile, DoCommandFlags flags,
 /** @copydoc TerraformTileProc */
 static CommandCost TerraformTile_Rail(TileIndex tile, DoCommandFlags flags, int z_new, Slope tileh_new)
 {
+	if (IsMetroElevatedTile(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_ELEVATED); // Metro mod: pillars stand on flat ground.
 	auto [tileh_old, z_old] = GetTileSlopeZ(tile);
 	if (IsPlainRail(tile)) {
 		TrackBits rail_bits = GetTrackBits(tile);

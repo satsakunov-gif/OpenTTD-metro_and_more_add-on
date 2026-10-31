@@ -192,6 +192,10 @@ enum ViewportDragDropSelectionProcess : uint8_t {
 	DDSP_PLACE_HOUSE,          ///< Place a house
 	DDSP_METRO_POWER_LINE,     ///< Metro mod: build a power line
 	DDSP_METRO_POWER_LINE_REMOVE, ///< Metro mod: remove a power line
+	DDSP_METRO_ELEVATED_LINE,  ///< Metro mod: raise a straight stretch of monorail
+	DDSP_METRO_ELEVATED_RAISE, ///< Metro mod: raise monorail track to the elevated level
+	DDSP_METRO_ELEVATED_LOWER, ///< Metro mod: lower elevated monorail to the ground
+	DDSP_METRO_ELEVATED_SPAN,  ///< Metro mod: build a span of the elevated monorail
 
 	/* Rail specific actions */
 	DDSP_PLACE_RAIL,           ///< Rail placement

@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "landscape.h"
+#include "metro_elevated.h"
 #include "tunnelbridge.h"
 #include "tunnelbridge_map.h"
 #include "bridge_signal_map.h"
@@ -78,6 +79,7 @@ TileIndex GetOtherBridgeEnd(TileIndex tile)
 int GetBridgeHeight(TileIndex t)
 {
 	auto [tileh, h] = GetTileSlopeZ(t);
+	if (uint level = GetMetroElevation(t); level != 0) return h + static_cast<int>(level); // Metro mod: elevated monorail span.
 	Foundation f = GetBridgeFoundation(tileh, DiagDirToAxis(GetTunnelBridgeDirection(t)));
 
 	/* one height level extra for the ramp */

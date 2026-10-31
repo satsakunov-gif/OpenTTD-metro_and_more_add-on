@@ -32,6 +32,7 @@ enum RailToolbarWidgets : WidgetID {
 	WID_RAT_CONVERT_RAIL,   ///< Convert other rail to this type.
 	WID_RAT_CONVERT_RAIL_TRACK, ///< Convert other rail to this type (track).
 	WID_RAT_METRO_POWER,    ///< Metro mod: open the power grid construction window.
+	WID_RAT_METRO_ELEVATED, ///< Metro mod: open the elevated monorail construction window.
 };
 
 /** Widgets of the #BuildRailStationWindow class. */

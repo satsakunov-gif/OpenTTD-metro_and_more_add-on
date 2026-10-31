@@ -35,6 +35,7 @@
 #include "newgrf_debug.h"
 #include "newgrf_house.h"
 #include "autoslope.h"
+#include "bridge.h"
 #include "tunnelbridge_cmd.h"
 #include "tunnelbridge_map.h"
 #include "strings_func.h"
@@ -310,7 +311,7 @@ static TownDrawTileProc * const _town_draw_tile_procs[1] = {
 };
 
 /** @copydoc DrawTileProc */
-static void DrawTile_Town(TileInfo *ti, DrawTileProcParams params)
+static void DrawTile_TownHouse(TileInfo *ti)
 {
 	HouseID house_id = GetHouseType(ti->tile);
 
@@ -351,6 +352,12 @@ static void DrawTile_Town(TileInfo *ti, DrawTileProcParams params)
 
 		if (proc >= 0) _town_draw_tile_procs[proc](ti);
 	}
+}
+
+static void DrawTile_Town(TileInfo *ti, DrawTileProcParams params)
+{
+	DrawTile_TownHouse(ti);
+	DrawBridgeMiddle(ti); // Metro mod: spans of the elevated monorail pass over low houses.
 }
 
 /** @copydoc GetSlopePixelZProc */

@@ -8,6 +8,7 @@
 /** @file station_cmd.cpp Handling of station tiles. */
 
 #include "stdafx.h"
+#include "metro_elevated.h"
 #include "aircraft.h"
 #include "bridge_map.h"
 #include "viewport_func.h"
@@ -1659,6 +1660,14 @@ CommandCost CmdBuildRailStation(DoCommandFlags flags, TileIndex tile_org, RailTy
 			}
 			tile_track += track_delta;
 		}
+	}
+
+	/* Metro mod: new platforms are built on the ground and do not join elevated track (raise them afterwards). */
+	for (TileIndex t : new_location) {
+		CommandCost metro_ret = MetroCheckNotElevated(t);
+		if (metro_ret.Failed()) return metro_ret;
+		metro_ret = MetroCheckTrackEdges(t, AxisToTrackBits(axis));
+		if (metro_ret.Failed()) return metro_ret;
 	}
 
 	/* Clear the land below the station. */
@@ -3497,6 +3506,12 @@ static bool DrawCustomStationFoundations(const StationSpec *statspec, BaseStatio
 }
 
 /** @copydoc DrawTileProc */
+/** @copydoc GetSlopePixelZProc */
+static int GetSlopePixelZ_Station(TileIndex tile, [[maybe_unused]] uint x, [[maybe_unused]] uint y, [[maybe_unused]] bool ground_vehicle)
+{
+	return GetTileMaxPixelZ(tile) + static_cast<int>(GetMetroElevation(tile) * TILE_HEIGHT); // Metro mod: elevated monorail stations.
+}
+
 static void DrawTile_Station(TileInfo *ti, DrawTileProcParams params)
 {
 	const NewGRFSpriteLayout *layout = nullptr;
@@ -3592,6 +3607,9 @@ static void DrawTile_Station(TileInfo *ti, DrawTileProcParams params)
 			DrawFoundation(ti, Foundation::Leveled);
 		}
 	}
+
+	/* Metro mod: elevated monorail station on pillars, the entrance below. */
+	if (IsRailStation(ti->tile) && GetMetroElevation(ti->tile) != 0) MetroDrawElevatedBase(ti, GetMetroElevation(ti->tile), GetRailStationAxis(ti->tile));
 
 	bool draw_ground = false;
 
@@ -5469,6 +5487,7 @@ CommandCost ClearTile_Station(TileIndex tile, DoCommandFlags flags)
 /** @copydoc TerraformTileProc */
 static CommandCost TerraformTile_Station(TileIndex tile, DoCommandFlags flags, int z_new, Slope tileh_new)
 {
+	if (IsMetroElevatedTile(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_ELEVATED); // Metro mod: pillars stand on flat ground.
 	if (_settings_game.construction.build_on_slopes && AutoslopeEnabled()) {
 		/* TODO: If you implement newgrf callback 149 'land slope check', you have to decide what to do with it here.
 		 *       TTDP does not call it.
@@ -5927,7 +5946,7 @@ void ForAllStationsAroundTilesIntl(const TileArea &ta, ForAllStationsAroundTiles
 /** TileTypeProcs definitions for TileType::Station tiles. */
 extern const TileTypeProcs _tile_type_station_procs = {
 	.draw_tile_proc = DrawTile_Station,
-	.get_slope_pixel_z_proc = GetSlopePixelZ_MaxZ,
+	.get_slope_pixel_z_proc = GetSlopePixelZ_Station,
 	.clear_tile_proc = ClearTile_Station,
 	.get_tile_desc_proc = GetTileDesc_Station,
 	.get_tile_track_status_proc = GetTileTrackStatus_Station,

@@ -2459,3 +2459,29 @@ STR_CONFIG_SETTING_METRO_TOWN_CARS                              :Машинки 
 STR_CONFIG_SETTING_METRO_TOWN_CARS_HELPTEXT                     :Мод «Метро». По дорогам активных городов ездят частные машины (больше при большем населении, меньше, если город хорошо обслужен вашим транспортом). Их пробки замедляют ваши автобусы, грузовики и трамваи на городских дорогах. Выключено — нет ни машинок, ни пробок.
 STR_CONFIG_SETTING_METRO_PEDESTRIANS                            :Пешеходы: {STRING}
 STR_CONFIG_SETTING_METRO_PEDESTRIANS_HELPTEXT                   :Мод «Метро». Пешеходы идут к остановкам и станциям активных городов. Видны только при сильном приближении; на игру не влияют.
+STR_METRO_ELEVATED_RAIL_BUTTON                                  :{BLACK}Эстакада
+STR_METRO_ELEVATED_RAIL_BUTTON_TOOLTIP                          :{BLACK}Мод «Метро»: надземный монорельс — рампы, поднятые пути и станции, пролёты над домами и дорогами. Только для монорельса
+STR_METRO_ELEVATED_TOOLBAR_CAPTION                              :{WHITE}Надземный монорельс
+STR_METRO_ELEVATED_TOOLBAR_LIST_TOOLTIP                         :{BLACK}Щёлкните по уровню, чтобы сменить его, выберите инструмент и протяните по карте
+STR_METRO_ELEVATED_TOOLBAR_HINT                                 :{BLACK}Сначала постройте монорельс на земле. Поднять участок: протяните по прямому пути и платформам — там, где он встречает путь на земле, появятся рампы (по уровню на тайл). Поднять рамкой: пути и станции в рамке (развязки) — они должны встречаться только с поднятым путём, рампой или пролётом. Только ровная земля. Пролёт: мост на выбранном уровне между двумя свободными тайлами (опорами), до 10 тайлов над низкими домами, дорогами, путями и водой; не над высотками и другими мостами.
+STR_METRO_ELEVATED_ROW_LEVEL                                    :Уровень: {NUM} (щёлкните, чтобы сменить)
+STR_METRO_ELEVATED_ROW_LINE                                     :Поднять участок на уровень {NUM} (рампы по {NUM} тайла там, где он встречает землю)
+STR_METRO_ELEVATED_ROW_RAISE                                    :Поднять рамкой на уровень {NUM} ({CURRENCY_LONG} за кусок и уровень)
+STR_METRO_ELEVATED_ROW_LOWER                                    :Опустить на землю
+STR_METRO_ELEVATED_ROW_SPAN                                     :Пролёт между двумя опорами (до {NUM} тайлов)
+STR_METRO_ELEVATED_ERR_CANT_RAISE                               :{WHITE}Здесь нельзя поднять путь...
+STR_METRO_ELEVATED_ERR_CANT_LOWER                               :{WHITE}Здесь нельзя опустить путь...
+STR_METRO_ELEVATED_ERR_CANT_SPAN                                :{WHITE}Здесь нельзя построить пролёт...
+STR_METRO_ELEVATED_ERR_HEIGHT                                   :{WHITE}... путь встретится с путём на другой высоте
+STR_METRO_ELEVATED_ERR_ELEVATED                                 :{WHITE}... мешает надземный монорельс
+STR_METRO_ELEVATED_ERR_OVER_ELEVATED                            :{WHITE}... нельзя проходить над эстакадой
+STR_METRO_ELEVATED_ERR_NO_TRACK                                 :{WHITE}... здесь нет монорельса или станции
+STR_METRO_ELEVATED_ERR_NOT_MONORAIL                             :{WHITE}... поднять можно только монорельс
+STR_METRO_ELEVATED_ERR_FLAT                                     :{WHITE}... нужна ровная земля
+STR_METRO_ELEVATED_ERR_RAMP_HERE                                :{WHITE}... здесь рампа
+STR_METRO_ELEVATED_ERR_LINE                                     :{WHITE}... тяните по прямой
+STR_METRO_ELEVATED_ERR_LINE_TRACK                               :{WHITE}... вдоль протяжки нужен прямой путь или платформы (на рампах — путь без сигналов)
+STR_METRO_ELEVATED_ERR_LINE_SHORT                               :{WHITE}... слишком коротко для рамп
+STR_METRO_ELEVATED_ERR_SPAN_LENGTH                              :{WHITE}... между опорами не больше 10 тайлов
+STR_METRO_ELEVATED_ERR_TALL_HOUSE                               :{WHITE}... нельзя проходить над высоткой
+STR_METRO_ELEVATED_ERR_LOW_OVER_HOUSE                           :{WHITE}... пролёт слишком низко над домом

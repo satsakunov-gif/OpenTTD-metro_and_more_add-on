@@ -2778,3 +2778,29 @@ STR_CONFIG_SETTING_METRO_TOWN_CARS                              :Private cars in
 STR_CONFIG_SETTING_METRO_TOWN_CARS_HELPTEXT                     :Metro mod. Private cars drive on the roads of active towns (more with more residents, fewer when your transport serves the town well). Their jams slow your buses, trucks and trams on town roads. Switched off: no cars and no jams.
 STR_CONFIG_SETTING_METRO_PEDESTRIANS                            :Pedestrians in towns: {STRING2}
 STR_CONFIG_SETTING_METRO_PEDESTRIANS_HELPTEXT                   :Metro mod. Pedestrians walk to the stops and stations of active towns. Only seen when zoomed in close; they do not affect the game.
+STR_METRO_ELEVATED_RAIL_BUTTON                                  :{BLACK}Elevated
+STR_METRO_ELEVATED_RAIL_BUTTON_TOOLTIP                          :{BLACK}Metro mod: elevated monorail - ramps, raised track and stations, spans over houses and roads. Monorail only
+STR_METRO_ELEVATED_TOOLBAR_CAPTION                              :{WHITE}Elevated monorail
+STR_METRO_ELEVATED_TOOLBAR_LIST_TOOLTIP                         :{BLACK}Click the level to switch it, click a tool, then drag on the map
+STR_METRO_ELEVATED_TOOLBAR_HINT                                 :{BLACK}Build monorail on the ground first. Raise a stretch: drag along straight track and platforms - ramps (one level per tile) appear where it meets track on the ground. Raise an area: drag a rectangle over track and stations (junctions) - it must meet only raised track, ramps or spans. Flat land only. Span: a bridge at the chosen level between two free tiles (its pillars), up to 10 tiles over low houses, roads, rails and water; not over high-rises or other bridges.
+STR_METRO_ELEVATED_ROW_LEVEL                                    :Level: {NUM} (click to switch)
+STR_METRO_ELEVATED_ROW_LINE                                     :Raise a straight stretch to level {NUM} (ramps of {NUM} tiles where it meets the ground)
+STR_METRO_ELEVATED_ROW_RAISE                                    :Raise an area to level {NUM} ({CURRENCY_LONG} per piece and level)
+STR_METRO_ELEVATED_ROW_LOWER                                    :Lower to the ground
+STR_METRO_ELEVATED_ROW_SPAN                                     :Span between two pillars (up to {NUM} tiles)
+STR_METRO_ELEVATED_ERR_CANT_RAISE                               :{WHITE}Can't raise the track here...
+STR_METRO_ELEVATED_ERR_CANT_LOWER                               :{WHITE}Can't lower the track here...
+STR_METRO_ELEVATED_ERR_CANT_SPAN                                :{WHITE}Can't build the span here...
+STR_METRO_ELEVATED_ERR_HEIGHT                                   :{WHITE}... the track would meet track at another height
+STR_METRO_ELEVATED_ERR_ELEVATED                                 :{WHITE}... elevated monorail in the way
+STR_METRO_ELEVATED_ERR_OVER_ELEVATED                            :{WHITE}... can't pass over the elevated monorail
+STR_METRO_ELEVATED_ERR_NO_TRACK                                 :{WHITE}... no monorail track or station here
+STR_METRO_ELEVATED_ERR_NOT_MONORAIL                             :{WHITE}... only monorail can be elevated
+STR_METRO_ELEVATED_ERR_FLAT                                     :{WHITE}... flat land required
+STR_METRO_ELEVATED_ERR_RAMP_HERE                                :{WHITE}... a ramp is here
+STR_METRO_ELEVATED_ERR_LINE                                     :{WHITE}... drag in a straight line
+STR_METRO_ELEVATED_ERR_LINE_TRACK                               :{WHITE}... straight track or platforms along the drag needed (ramps: track without signals)
+STR_METRO_ELEVATED_ERR_LINE_SHORT                               :{WHITE}... too short for the ramps
+STR_METRO_ELEVATED_ERR_SPAN_LENGTH                              :{WHITE}... at most 10 tiles between the pillars
+STR_METRO_ELEVATED_ERR_TALL_HOUSE                               :{WHITE}... can't pass over a high-rise
+STR_METRO_ELEVATED_ERR_LOW_OVER_HOUSE                           :{WHITE}... span too low over the house

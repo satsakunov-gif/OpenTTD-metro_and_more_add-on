@@ -880,6 +880,12 @@ enum class WindowClass : uint16_t {
 	MetroPowerNetwork,
 
 	/**
+	 * Metro mod elevated monorail construction window; %Window numbers:
+	 *   - #RailType = the monorail type.
+	 */
+	MetroElevatedToolbar,
+
+	/**
 	 * Metro mod district map of a town; %Window numbers:
 	 *   - #TownID = #MetroDistrictsWidgets
 	 */
