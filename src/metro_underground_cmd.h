@@ -14,6 +14,7 @@
 #include "track_type.h"
 
 DEF_CMD_TUPLE(Commands::MetroBuildUndergroundTrack, CmdMetroBuildUndergroundTrack, CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t, Track, bool>)
+DEF_CMD_TUPLE(Commands::MetroBuildIncline,          CmdMetroBuildIncline,          CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t>)
 DEF_CMD_TUPLE(Commands::MetroBuildEntrance,         CmdMetroBuildEntrance,         CMD_NO_WATER | CMD_AUTO, CommandType::LandscapeConstruction, CmdDataT<uint8_t>)
 
 #endif /* METRO_UNDERGROUND_CMD_H */

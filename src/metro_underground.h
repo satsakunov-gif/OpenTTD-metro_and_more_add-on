@@ -21,6 +21,8 @@
 #include "object_type.h"
 #include "tile_type.h"
 #include "track_type.h"
+#include "direction_type.h"
+#include "core/bitmath_func.hpp"
 
 #include <map>
 #include <span>
@@ -32,6 +34,13 @@ struct TileInfo;
 struct MetroUndergroundTile {
 	uint8_t tracks = 0;  ///< #TrackBits.
 	uint8_t owner = 0;   ///< #Owner.
+	uint8_t incline = 0; ///< Incline to the next deeper layer: bit 7 set, bits 0..1 the direction down, 2..3 the index from the top, 4..5 the length.
+
+	bool IsIncline() const { return HasBit(this->incline, 7); }
+	DiagDirection GetInclineDown() const { return static_cast<DiagDirection>(GB(this->incline, 0, 2)); }
+	uint GetInclineIndex() const { return GB(this->incline, 2, 2); }
+	uint GetInclineLength() const { return GB(this->incline, 4, 2); }
+	static uint8_t MakeIncline(DiagDirection down, uint index, uint length) { return static_cast<uint8_t>(0x80 | (length << 4) | (index << 2) | to_underlying(down)); }
 };
 
 /** Key of an underground tile: surface tile and layer (1..3 for -1..-3). */
@@ -41,7 +50,8 @@ inline uint64_t MetroUndergroundKey(TileIndex tile, uint layer)
 }
 
 extern std::map<uint64_t, MetroUndergroundTile> _metro_underground;
-extern uint8_t _metro_underground_view_layer; ///< Layer shown in the view (0: surface); full view in step 2.
+extern bool _metro_underground_view;          ///< The view shows the underground (surface translucent).
+extern uint8_t _metro_underground_view_layer; ///< Layer shown bright in the underground view (1..3).
 
 void MetroUndergroundReset();
 const MetroUndergroundTile *GetMetroUndergroundTile(TileIndex tile, uint layer);
@@ -51,6 +61,8 @@ CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer);
 bool IsMetroEntranceObject(ObjectType type);
 
 void MetroUndergroundDrawTile(const TileInfo *ti);
+void MetroToggleUndergroundView();
+void MetroCycleUndergroundLayer();
 void ShowMetroUndergroundToolbar();
 
 bool ConMetroUnderground(std::span<std::string_view> argv);

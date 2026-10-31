@@ -37,6 +37,12 @@ static constexpr int32_t METRO_FALLBACK_MAGLEV_YEAR = 2025;
 /* What may lie above layer -1: roads, small houses (country houses) and open land. */
 static constexpr uint32_t METRO_SMALL_HOUSE_POPULATION = 30;   ///< A small house: 1x1 with at most this many residents (as in DESIGN.md "Службы").
 
+/* Inclines between layers (DESIGN.md "Переходы и пересечения"). */
+static constexpr uint METRO_INCLINE_MIN_LENGTH = 2;          ///< Shortest incline, tiles.
+static constexpr uint METRO_INCLINE_MAX_LENGTH = 3;          ///< Longest incline, tiles.
+static constexpr uint16_t METRO_INCLINE_COST_PERCENT = 150;  ///< An incline piece costs this percent of a piece of the deeper layer.
+static constexpr uint16_t METRO_INCLINE_SPEED_KMH = 60;      ///< Trains slow down to this on inclines (applied with the trains, step 5).
+
 /* Entrance: a one-tile pavilion on the surface. */
 static constexpr uint METRO_ENTRANCE_COST_FACTOR = 20;         ///< Price in plain rail pieces.
 

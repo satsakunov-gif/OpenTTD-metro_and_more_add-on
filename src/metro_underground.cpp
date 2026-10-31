@@ -13,6 +13,10 @@
  * layer -3 opens halfway between the monorail and the maglev and lies everywhere, rivers included. The years of the
  * rail types are those of their first engines in this climate. Trains, inclines, stations and depots come in the
  * next steps; for now the track is built, removed, saved and shown on a chosen layer.
+ * Step 2: the view "surface / underground" (Ctrl+U, layer Ctrl+Shift+U): the surface is translucent and dimmed,
+ * the chosen layer bright on dark tunnel ground, the others faded.
+ * Step 3: inclines of 2-3 straight tiles from a layer to the next deeper one; layers cross freely, track on one
+ * layer meets on a tile as a switch.
  */
 
 #include "stdafx.h"
@@ -43,6 +47,8 @@
 #include "tilehighlight_func.h"
 #include "town.h"
 #include "town_map.h"
+#include "transparency.h"
+#include "track_func.h"
 #include "viewport_func.h"
 #include "water_map.h"
 #include "window_func.h"
@@ -56,13 +62,16 @@
 #include "safeguards.h"
 
 std::map<uint64_t, MetroUndergroundTile> _metro_underground;
-uint8_t _metro_underground_view_layer = 0;
+bool _metro_underground_view = false;
+uint8_t _metro_underground_view_layer = 1;
+static TransparencyOptions _metro_saved_transparency; ///< Transparency of the player before the underground view.
 
 
 void MetroUndergroundReset()
 {
 	_metro_underground.clear();
-	_metro_underground_view_layer = 0;
+	if (_metro_underground_view) MetroToggleUndergroundView();
+	_metro_underground_view_layer = 1;
 }
 
 const MetroUndergroundTile *GetMetroUndergroundTile(TileIndex tile, uint layer)
@@ -195,6 +204,23 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 				last_error = CommandCost(STR_ERROR_OWNED_BY);
 				continue;
 			}
+			if (it->second.IsIncline()) {
+				/* The whole incline goes. */
+				const MetroUndergroundTile incline = it->second;
+				DiagDirection down = incline.GetInclineDown();
+				TileIndex top = t;
+				for (uint i = 0; i < incline.GetInclineIndex(); i++) top = TileAddByDiagDir(top, ReverseDiagDir(down));
+				TileIndex p = top;
+				for (uint i = 0; i < incline.GetInclineLength(); i++, p = TileAddByDiagDir(p, down)) {
+					cost.AddCost(_price[Price::ClearRail] * _metro_layer_specs[layer - 1].cost_percent / 100);
+					if (flags.Test(DoCommandFlag::Execute)) {
+						_metro_underground.erase(MetroUndergroundKey(p, layer));
+						MarkTileDirtyByTile(p);
+					}
+				}
+				done = true;
+				continue;
+			}
 			cost.AddCost(_price[Price::ClearRail] * _metro_layer_specs[layer - 1].cost_percent / 100);
 			done = true;
 			if (flags.Test(DoCommandFlag::Execute)) {
@@ -211,6 +237,10 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 				continue;
 			}
 			if ((it->second.tracks & bit) != 0) continue;
+			if (it->second.IsIncline()) {
+				last_error = CommandCost(STR_METRO_UNDERGROUND_ERR_INCLINE_HERE);
+				continue;
+			}
 		}
 		CommandCost ret = MetroCheckUndergroundSurface(t, layer);
 		if (ret.Failed()) {
@@ -227,6 +257,49 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 		}
 	}
 	return done ? cost : last_error;
+}
+
+/**
+ * Build an incline from @p layer down to the next layer: a straight line of 2-3 tiles from @p start (upper end) to @p tile.
+ * @param flags type of operation
+ * @param tile lower end
+ * @param start upper end
+ * @param layer upper layer, 1..2
+ */
+CommandCost CmdMetroBuildIncline(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t layer)
+{
+	if (start >= Map::Size() || layer < 1 || layer >= METRO_LAYER_COUNT || !Company::IsValidID(_current_company)) return CMD_ERROR;
+	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_UNDERGROUND_ERR_INCLINE_LENGTH);
+	uint length = DistanceManhattan(start, tile) + 1;
+	if (length < METRO_INCLINE_MIN_LENGTH || length > METRO_INCLINE_MAX_LENGTH) return CommandCost(STR_METRO_UNDERGROUND_ERR_INCLINE_LENGTH);
+	for (uint l : {static_cast<uint>(layer), static_cast<uint>(layer) + 1}) {
+		if (!IsMetroLayerAvailable(l)) return CommandCostWithParam(STR_METRO_UNDERGROUND_ERR_LAYER_CLOSED, GetMetroLayerYear(l));
+	}
+
+	DiagDirection down = DiagdirBetweenTiles(start, tile);
+	TrackBits bit = AxisToTrackBits(DiagDirToAxis(down));
+	CommandCost cost(ExpensesType::Construction);
+	TileIndex t = start;
+	for (uint i = 0; i < length; i++, t = TileAddByDiagDir(t, down)) {
+		if (_metro_underground.contains(MetroUndergroundKey(t, layer))) return CommandCost(STR_METRO_UNDERGROUND_ERR_INCLINE_FREE);
+		/* The incline passes through both layers: the rules of both apply. */
+		for (uint l : {static_cast<uint>(layer), static_cast<uint>(layer) + 1}) {
+			CommandCost ret = MetroCheckUndergroundSurface(t, l);
+			if (ret.Failed()) return ret;
+		}
+		cost.AddCost(GetUndergroundPiecePrice(layer + 1) * METRO_INCLINE_COST_PERCENT / 100);
+	}
+	if (flags.Test(DoCommandFlag::Execute)) {
+		t = start;
+		for (uint i = 0; i < length; i++, t = TileAddByDiagDir(t, down)) {
+			MetroUndergroundTile &ut = _metro_underground[MetroUndergroundKey(t, layer)];
+			ut.tracks = bit;
+			ut.owner = _current_company.base();
+			ut.incline = MetroUndergroundTile::MakeIncline(down, i, length);
+			MarkTileDirtyByTile(t);
+		}
+	}
+	return cost;
 }
 
 /**
@@ -257,23 +330,76 @@ CommandCost CmdMetroBuildEntrance(DoCommandFlags flags, TileIndex tile, [[maybe_
 }
 
 /* ---------------------------------------------------------------------------------------------- */
-/* Drawing (simple: the chosen layer over the surface; the full underground view is step 2)       */
+/* The view "surface / underground" (step 2)                                                      */
 /* ---------------------------------------------------------------------------------------------- */
+
+/** Transparency options turned on for the underground view: everything above ground. */
+static const TransparencyOptions METRO_VIEW_TRANSPARENT{TransparencyOption::Trees, TransparencyOption::Houses, TransparencyOption::Industries,
+		TransparencyOption::Buildings, TransparencyOption::Bridges, TransparencyOption::Structures, TransparencyOption::Catenary};
+
+void MetroToggleUndergroundView()
+{
+	_metro_underground_view = !_metro_underground_view;
+	if (_metro_underground_view) {
+		_metro_saved_transparency = _transparency_opt;
+		_transparency_opt.Set(METRO_VIEW_TRANSPARENT);
+		if (_metro_underground_view_layer < 1 || _metro_underground_view_layer > METRO_LAYER_COUNT) _metro_underground_view_layer = 1;
+	} else {
+		_transparency_opt = _metro_saved_transparency;
+	}
+	MarkWholeScreenDirty();
+	SetWindowClassesDirty(WindowClass::MetroUndergroundToolbar);
+	SetWindowClassesDirty(WindowClass::TransparencyToolbar);
+}
+
+void MetroCycleUndergroundLayer()
+{
+	_metro_underground_view_layer = _metro_underground_view_layer >= METRO_LAYER_COUNT ? 1 : _metro_underground_view_layer + 1;
+	if (!_metro_underground_view) MetroToggleUndergroundView();
+	MarkWholeScreenDirty();
+	SetWindowClassesDirty(WindowClass::MetroUndergroundToolbar);
+}
+
+/** Draw the track of one underground tile; @p bright for the chosen layer, else faded. */
+static void DrawUndergroundTrack(const TileInfo *ti, const MetroUndergroundTile &ut, bool bright)
+{
+	const RailTypeInfo *rti = GetRailTypeInfo(RAILTYPE_RAIL);
+	PaletteID pal = bright ? PAL_NONE : PALETTE_TO_TRANSPARENT;
+	SpriteID transparent = bright ? 0 : (1 << PALETTE_MODIFIER_TRANSPARENT);
+	if (bright) {
+		/* Dark tunnel ground under the chosen layer. */
+		DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+	}
+	if (ut.IsIncline()) {
+		/* The sloped piece rises towards the upper end. */
+		DrawGroundSpriteAt((rti->base_sprites.single_sloped + to_underlying(ReverseDiagDir(ut.GetInclineDown()))) | transparent, pal, 0, 0, 0);
+		return;
+	}
+	const SpriteID pieces[] = {
+		rti->base_sprites.single_x, rti->base_sprites.single_y, rti->base_sprites.single_n,
+		rti->base_sprites.single_s, rti->base_sprites.single_w, rti->base_sprites.single_e,
+	};
+	for (Track t : SetTrackBitIterator(static_cast<TrackBits>(ut.tracks))) DrawGroundSpriteAt(pieces[t] | transparent, pal, 0, 0, 0);
+}
 
 void MetroUndergroundDrawTile(const TileInfo *ti)
 {
-	if (_metro_underground_view_layer == 0 || _metro_underground.empty()) return;
-	const MetroUndergroundTile *ut = GetMetroUndergroundTile(ti->tile, _metro_underground_view_layer);
-	if (ut == nullptr) return;
-	/* Dark tunnel ground over the surface, then the rails, darkened. */
-	DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh), PALETTE_TO_TRANSPARENT, 0, 0, 0);
-	const RailTypeInfo *rti = GetRailTypeInfo(RAILTYPE_RAIL);
-	const SpriteID *const pieces[] = {
-		&rti->base_sprites.single_x, &rti->base_sprites.single_y, &rti->base_sprites.single_n,
-		&rti->base_sprites.single_s, &rti->base_sprites.single_w, &rti->base_sprites.single_e,
-	};
-	for (Track t : SetTrackBitIterator(static_cast<TrackBits>(ut->tracks))) {
-		DrawGroundSpriteAt(*pieces[t], PALETTE_TO_GREY, 0, 0, 0);
+	if (!_metro_underground_view) return;
+	/* The surface is dimmed (its buildings are translucent). */
+	DrawGroundSpriteAt((SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh)) | (1 << PALETTE_MODIFIER_TRANSPARENT), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+	if (_metro_underground.empty()) return;
+	/* Other layers faded first, the chosen one bright on top. */
+	for (uint layer = 1; layer <= METRO_LAYER_COUNT; layer++) {
+		const MetroUndergroundTile *ut = GetMetroUndergroundTile(ti->tile, layer);
+		if (ut == nullptr) continue;
+		bool chosen = layer == _metro_underground_view_layer || (ut->IsIncline() && layer + 1 == _metro_underground_view_layer);
+		if (!chosen) DrawUndergroundTrack(ti, *ut, false);
+	}
+	for (uint layer = 1; layer <= METRO_LAYER_COUNT; layer++) {
+		const MetroUndergroundTile *ut = GetMetroUndergroundTile(ti->tile, layer);
+		if (ut == nullptr) continue;
+		bool chosen = layer == _metro_underground_view_layer || (ut->IsIncline() && layer + 1 == _metro_underground_view_layer);
+		if (chosen) DrawUndergroundTrack(ti, *ut, true);
 	}
 }
 
@@ -300,9 +426,11 @@ static constexpr std::initializer_list<NWidgetPart> _nested_metro_underground_to
 
 /** Rows of the window. */
 enum MetroUndergroundRow : int {
-	MUR_LAYER,  ///< Layer (click to switch); the view shows it while the window is open.
+	MUR_VIEW,   ///< View "surface / underground" (Ctrl+U).
+	MUR_LAYER,  ///< Layer (click to switch, Ctrl+Shift+U); bright in the underground view.
 	MUR_LINE,   ///< Straight track, dragged along X or Y.
 	MUR_CORNER, ///< A corner piece (click to switch which one), then a tile.
+	MUR_INCLINE, ///< Incline to the next deeper layer, dragged from the upper end.
 	MUR_REMOVE, ///< Remove track along a line.
 	MUR_ENTRANCE, ///< Entrance pavilion.
 	MUR_COUNT,
@@ -313,36 +441,28 @@ static const StringID _metro_corner_names[] = { STR_METRO_UNDERGROUND_CORNER_N, 
 
 struct MetroUndergroundToolbarWindow : Window {
 	int selected = -1;
-	uint8_t layer = 1;
 	uint8_t corner = 0;
 
 	MetroUndergroundToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
 	{
 		this->InitNested(window_number);
-		this->ShowLayer();
+		if (!_metro_underground_view) MetroToggleUndergroundView(); // Building the metro: show the underground.
 	}
 
-	void Close(int data = 0) override
-	{
-		_metro_underground_view_layer = 0;
-		MarkWholeScreenDirty();
-		this->Window::Close(data);
-	}
-
-	void ShowLayer()
-	{
-		_metro_underground_view_layer = this->layer;
-		MarkWholeScreenDirty();
-	}
+	uint8_t Layer() const { return _metro_underground_view_layer; }
 
 	std::string GetRowText(int row, bool &available) const
 	{
 		available = true;
 		switch (row) {
+			case MUR_VIEW: return GetString(_metro_underground_view ? STR_METRO_UNDERGROUND_ROW_VIEW_UNDER : STR_METRO_UNDERGROUND_ROW_VIEW_SURFACE);
 			case MUR_LAYER:
-				available = IsMetroLayerAvailable(this->layer);
-				return GetString(available ? STR_METRO_UNDERGROUND_ROW_LAYER : STR_METRO_UNDERGROUND_ROW_LAYER_CLOSED, _metro_layer_specs[this->layer - 1].name, GetMetroLayerYear(this->layer));
-			case MUR_LINE: return GetString(STR_METRO_UNDERGROUND_ROW_LINE, GetUndergroundPiecePrice(this->layer));
+				available = IsMetroLayerAvailable(this->Layer());
+				return GetString(available ? STR_METRO_UNDERGROUND_ROW_LAYER : STR_METRO_UNDERGROUND_ROW_LAYER_CLOSED, _metro_layer_specs[this->Layer() - 1].name, GetMetroLayerYear(this->Layer()));
+			case MUR_LINE: return GetString(STR_METRO_UNDERGROUND_ROW_LINE, GetUndergroundPiecePrice(this->Layer()));
+			case MUR_INCLINE:
+				available = this->Layer() < METRO_LAYER_COUNT;
+				return available ? GetString(STR_METRO_UNDERGROUND_ROW_INCLINE, _metro_layer_specs[this->Layer() - 1].name, _metro_layer_specs[this->Layer()].name) : GetString(STR_METRO_UNDERGROUND_ROW_INCLINE_NONE);
 			case MUR_CORNER: return GetString(STR_METRO_UNDERGROUND_ROW_CORNER, _metro_corner_names[this->corner]);
 			case MUR_REMOVE: return GetString(STR_METRO_UNDERGROUND_ROW_REMOVE);
 			case MUR_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR);
@@ -388,12 +508,15 @@ struct MetroUndergroundToolbarWindow : Window {
 		if (widget != WID_MUT_LIST) return;
 		int row = this->GetRowFromWidget(pt.y, WID_MUT_LIST, WidgetDimensions::scaled.framerect.top, GetCharacterHeight(FontSize::Normal));
 		if (row < 0 || row >= MUR_COUNT) return;
-		if (row == MUR_LAYER) {
-			this->layer = this->layer >= METRO_LAYER_COUNT ? 1 : this->layer + 1;
-			this->ShowLayer();
-			this->SetDirty();
+		if (row == MUR_VIEW) {
+			MetroToggleUndergroundView();
 			return;
 		}
+		if (row == MUR_LAYER) {
+			MetroCycleUndergroundLayer();
+			return;
+		}
+		if (row == MUR_INCLINE && this->Layer() >= METRO_LAYER_COUNT) return;
 		if (row == MUR_CORNER && this->selected == MUR_CORNER) {
 			this->corner = (this->corner + 1) % std::size(_metro_corner_tracks);
 			this->SetDirty();
@@ -414,11 +537,12 @@ struct MetroUndergroundToolbarWindow : Window {
 		switch (this->selected) {
 			case MUR_LINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_LINE); break;
 			case MUR_REMOVE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_REMOVE); break;
+			case MUR_INCLINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_INCLINE); break;
 			case MUR_CORNER:
-				Command<Commands::MetroBuildUndergroundTrack>::Post(STR_METRO_UNDERGROUND_ERR_CANT_BUILD, tile, tile, this->layer, _metro_corner_tracks[this->corner], false);
+				Command<Commands::MetroBuildUndergroundTrack>::Post(STR_METRO_UNDERGROUND_ERR_CANT_BUILD, tile, tile, this->Layer(), _metro_corner_tracks[this->corner], false);
 				break;
 			case MUR_ENTRANCE:
-				Command<Commands::MetroBuildEntrance>::Post(STR_METRO_UNDERGROUND_ERR_CANT_ENTRANCE, tile, this->layer);
+				Command<Commands::MetroBuildEntrance>::Post(STR_METRO_UNDERGROUND_ERR_CANT_ENTRANCE, tile, this->Layer());
 				break;
 			default: break;
 		}
@@ -432,11 +556,15 @@ struct MetroUndergroundToolbarWindow : Window {
 	void OnPlaceMouseUp([[maybe_unused]] ViewportPlaceMethod select_method, ViewportDragDropSelectionProcess select_proc, Point pt, TileIndex start_tile, TileIndex end_tile) override
 	{
 		if (pt.x == -1) return;
+		if (select_proc == DDSP_METRO_UNDERGROUND_INCLINE) {
+			Command<Commands::MetroBuildIncline>::Post(STR_METRO_UNDERGROUND_ERR_CANT_INCLINE, end_tile, start_tile, this->Layer());
+			return;
+		}
 		if (select_proc != DDSP_METRO_UNDERGROUND_LINE && select_proc != DDSP_METRO_UNDERGROUND_REMOVE) return;
 		bool remove = select_proc == DDSP_METRO_UNDERGROUND_REMOVE;
 		Track track = TileY(start_tile) == TileY(end_tile) && start_tile != end_tile ? TRACK_X : TRACK_Y;
 		if (start_tile == end_tile) track = TRACK_X;
-		Command<Commands::MetroBuildUndergroundTrack>::Post(remove ? STR_METRO_UNDERGROUND_ERR_CANT_REMOVE : STR_METRO_UNDERGROUND_ERR_CANT_BUILD, end_tile, start_tile, this->layer, track, remove);
+		Command<Commands::MetroBuildUndergroundTrack>::Post(remove ? STR_METRO_UNDERGROUND_ERR_CANT_REMOVE : STR_METRO_UNDERGROUND_ERR_CANT_BUILD, end_tile, start_tile, this->Layer(), track, remove);
 	}
 
 	void OnPlaceObjectAbort() override
@@ -494,7 +622,7 @@ static void ConsoleCommand(TileIndex tile, Targs... args)
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -507,8 +635,12 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 	}
 	if (cmd == "count") {
 		uint counts[METRO_LAYER_COUNT + 1] = {};
-		for (const auto &[key, ut] : _metro_underground) counts[key & 3] += CountBits(ut.tracks);
-		IConsolePrint(CC_DEFAULT, "track pieces: -1 {}, -2 {}, -3 {}; entrances {}", counts[1], counts[2], counts[3], Object::GetTypeCount(OBJECT_METRO_ENTRANCE));
+		uint inclines = 0;
+		for (const auto &[key, ut] : _metro_underground) {
+			counts[key & 3] += CountBits(ut.tracks);
+			if (ut.IsIncline()) inclines++;
+		}
+		IConsolePrint(CC_DEFAULT, "track pieces: -1 {}, -2 {}, -3 {}; incline tiles {}; entrances {}", counts[1], counts[2], counts[3], inclines, Object::GetTypeCount(OBJECT_METRO_ENTRANCE));
 		return true;
 	}
 	if (cmd == "window") {
@@ -516,8 +648,21 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		return true;
 	}
 	if (cmd == "view" && argv.size() > 2) {
-		_metro_underground_view_layer = static_cast<uint8_t>(std::min<uint>(ParseInteger<uint>(argv[2]).value_or(0), METRO_LAYER_COUNT));
-		MarkWholeScreenDirty();
+		uint layer = std::min<uint>(ParseInteger<uint>(argv[2]).value_or(0), METRO_LAYER_COUNT);
+		if (layer == 0) {
+			if (_metro_underground_view) MetroToggleUndergroundView();
+		} else {
+			_metro_underground_view_layer = static_cast<uint8_t>(layer);
+			if (!_metro_underground_view) MetroToggleUndergroundView();
+			MarkWholeScreenDirty();
+		}
+		return true;
+	}
+	if (cmd == "incline" && argv.size() > 6) {
+		auto a = ParseConsoleTile(argv[2], argv[3]);
+		auto b = ParseConsoleTile(argv[4], argv[5]);
+		if (!a.has_value() || !b.has_value()) return false;
+		ConsoleCommand<Commands::MetroBuildIncline>(*b, *a, static_cast<uint8_t>(ParseInteger<uint>(argv[6]).value_or(0)));
 		return true;
 	}
 	if (cmd == "info" && argv.size() > 3) {
@@ -526,7 +671,7 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		for (uint layer = 1; layer <= METRO_LAYER_COUNT; layer++) {
 			const MetroUndergroundTile *ut = GetMetroUndergroundTile(*t, layer);
 			CommandCost surface = MetroCheckUndergroundSurface(*t, layer);
-			IConsolePrint(CC_DEFAULT, "layer -{}: tracks {:02x}, owner {}, may build here: {}", layer, ut != nullptr ? ut->tracks : 0, ut != nullptr ? ut->owner : 0xFF,
+			IConsolePrint(CC_DEFAULT, "layer -{}: tracks {:02x}, incline {:02x}, owner {}, may build here: {}", layer, ut != nullptr ? ut->tracks : 0, ut != nullptr ? ut->incline : 0, ut != nullptr ? ut->owner : 0xFF,
 					surface.Succeeded() ? "yes" : GetString(surface.GetErrorMessage()));
 		}
 		return true;

@@ -2504,8 +2504,8 @@ STR_METRO_TRAM_AERO                                             :Аэротра�
 STR_METRO_UNDERGROUND_RAIL_BUTTON                               :{BLACK}Метро
 STR_METRO_UNDERGROUND_RAIL_BUTTON_TOOLTIP                       :{BLACK}Мод «Метро»: подземка — пути на слоях −1..−3 и входы
 STR_METRO_UNDERGROUND_TOOLBAR_CAPTION                           :{WHITE}Метро
-STR_METRO_UNDERGROUND_TOOLBAR_LIST_TOOLTIP                      :{BLACK}Щёлкните по слою, чтобы сменить его, выберите инструмент и щёлкните по карте. Пока окно открыто, выбранный слой показан затемнённым поверх поверхности
-STR_METRO_UNDERGROUND_TOOLBAR_HINT                              :{BLACK}Слой −1 (с 1960): только под пустой землёй, дорогами и маленькими домами. Слой −2: под любыми зданиями, но не под водой. Слой −3: везде, и под реками. Слои между собой не соединяются (наклоны — позже). Вход: павильон на 1 тайл на свободной земле.
+STR_METRO_UNDERGROUND_TOOLBAR_LIST_TOOLTIP                      :{BLACK}Щёлкните по виду или слою, чтобы сменить их, выберите инструмент и щёлкните по карте. В подземке выбранный слой яркий, остальные блёклые
+STR_METRO_UNDERGROUND_TOOLBAR_HINT                              :{BLACK}Слой −1 (с 1960): только под пустой землёй, дорогами и маленькими домами. Слой −2: под любыми зданиями, но не под водой. Слой −3: везде, и под реками. Слои пересекаются свободно; на одном слое пути сходятся на тайле стрелкой; наклон (2–3 тайла) ведёт на слой глубже. Ctrl+U — поверхность / подземка, Ctrl+Shift+U — следующий слой. Вход: павильон на 1 тайл на свободной земле.
 STR_METRO_UNDERGROUND_ROW_LAYER                                 :Слой: {STRING} (щёлкните, чтобы сменить)
 STR_METRO_UNDERGROUND_ROW_LAYER_CLOSED                          :Слой: {STRING} — откроется в {NUM} (щёлкните, чтобы сменить)
 STR_METRO_UNDERGROUND_ROW_LINE                                  :Прямой путь, протянуть по X или Y ({CURRENCY_LONG} за кусок)
@@ -2529,3 +2529,11 @@ STR_METRO_UNDERGROUND_ERR_LAYER_2_WATER                         :{WHITE}... сл
 STR_METRO_UNDERGROUND_ERR_STRAIGHT                              :{WHITE}... тяните по прямой
 STR_METRO_UNDERGROUND_ERR_NO_TRACK                              :{WHITE}... здесь нет пути метро
 STR_METRO_UNDERGROUND_ERR_ENTRANCE_PLACE                        :{WHITE}... для входа нужна свободная земля
+STR_METRO_UNDERGROUND_ROW_VIEW_SURFACE                          :Вид: поверхность (щелчок или Ctrl+U — подземка)
+STR_METRO_UNDERGROUND_ROW_VIEW_UNDER                            :Вид: подземка (щелчок или Ctrl+U — поверхность)
+STR_METRO_UNDERGROUND_ROW_INCLINE                               :Наклон {STRING} → {STRING}: протянуть 2–3 тайла от верхнего конца
+STR_METRO_UNDERGROUND_ROW_INCLINE_NONE                          :Наклон: ниже −3 слоёв нет
+STR_METRO_UNDERGROUND_ERR_CANT_INCLINE                          :{WHITE}Здесь нельзя построить наклон...
+STR_METRO_UNDERGROUND_ERR_INCLINE_LENGTH                        :{WHITE}... наклон — 2 или 3 тайла по прямой
+STR_METRO_UNDERGROUND_ERR_INCLINE_FREE                          :{WHITE}... наклону нужны свободные тайлы на его слое
+STR_METRO_UNDERGROUND_ERR_INCLINE_HERE                          :{WHITE}... здесь наклон
