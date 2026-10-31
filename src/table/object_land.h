@@ -65,6 +65,11 @@ static const DrawTileSeqStruct _object_metro_vent_shaft_seq[] = {
 	{   1,  1,  0, 14, 14, 12, {0x813, PALETTE_TO_STRUCT_CONCRETE}},
 };
 
+/* Metro mod entrance pavilion, temporarily a vanilla structure recoloured blue. */
+static const DrawTileSeqStruct _object_metro_entrance_seq[] = {
+	{   3,  3,  0, 10, 10,  8, {0x813, PALETTE_TO_STRUCT_BLUE}},
+};
+
 extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_transmitter_seq },
 	{ { SPR_FLAT_2_THIRD_GRASS_TILE, PAL_NONE }, _object_lighthouse_seq  },
@@ -81,6 +86,7 @@ extern const DrawTileSpriteSpan _objects[] = {
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_solar_plant_seq   },
 	{ { SPR_FLAT_GRASS_TILE,         PAL_NONE }, _object_metro_wind_plant_seq    },
 	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_vent_shaft_seq    },
+	{ { SPR_CONCRETE_GROUND,         PAL_NONE }, _object_metro_entrance_seq      },
 };
 
 
@@ -185,6 +191,8 @@ extern const ObjectSpec _original_objects[] = {
 	M(STR_METRO_POWER_SOLAR,                           0x22,   0,  10,  1, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 	M(STR_METRO_POWER_WIND,                            0x11,   0,  10,  9, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 	M(STR_METRO_POWER_VENT,                            0x11,   0,  20,  2, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
+	/* Metro mod underground: built only by CmdMetroBuildEntrance. */
+	M(STR_METRO_UNDERGROUND_ENTRANCE,                   0x11,   0,  20,  1, CalTime::Date{}, LandscapeTypes({T,S,A,Y}),  0, ObjectFlags({ObjectFlag::OnlyInGame}), ObjectCtrlFlags{}),
 };
 
 #undef M

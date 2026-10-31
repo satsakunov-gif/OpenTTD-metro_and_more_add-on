@@ -8,6 +8,7 @@
 /** @file object_cmd.cpp Handling of object tiles. */
 
 #include "stdafx.h"
+#include "metro_underground.h"
 #include "metro_city.h"
 #include "metro_power.h"
 #include "clear_map.h"
@@ -435,6 +436,7 @@ CommandCost CmdBuildObject(DoCommandFlags flags, TileIndex tile, ObjectType type
 		case OBJECT_METRO_SOLAR_PLANT:
 		case OBJECT_METRO_WIND_PLANT:
 		case OBJECT_METRO_VENT_SHAFT:
+		case OBJECT_METRO_ENTRANCE:
 			/* This may never be constructed using this method. Metro services: CmdMetroBuildService. */
 			return CMD_ERROR;
 
@@ -657,7 +659,7 @@ static void DrawTile_Object(TileInfo *ti, DrawTileProcParams params)
 		if (!IsInvisibilitySet(TransparencyOption::Structures)) {
 			for (const DrawTileSeqStruct &dtss : dts->GetSequence()) {
 				/* Metro mod services use recoloured house sprites. */
-				PaletteID pal = ((IsMetroServiceObject(type) || IsMetroPowerObject(type)) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;
+				PaletteID pal = ((IsMetroServiceObject(type) || IsMetroPowerObject(type) || IsMetroEntranceObject(type)) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;
 				AddSortableSpriteToDraw(dtss.image.sprite, pal, *ti, dtss, IsTransparencySet(TransparencyOption::Structures));
 			}
 		}
@@ -1282,7 +1284,7 @@ static void ChangeTileOwner_Object(TileIndex tile, Owner old_owner, Owner new_ow
 	bool do_clear = false;
 
 	ObjectType type = GetObjectType(tile);
-	if ((type == OBJECT_OWNED_LAND || type >= NEW_OBJECT_OFFSET || IsMetroServiceObject(type)) && new_owner != INVALID_OWNER) {
+	if ((type == OBJECT_OWNED_LAND || type >= NEW_OBJECT_OFFSET || IsMetroServiceObject(type) || IsMetroEntranceObject(type)) && new_owner != INVALID_OWNER) {
 		SetTileOwner(tile, new_owner);
 		if (GetWaterClass(tile) == WaterClass::Canal) {
 			Company::Get(old_owner)->infrastructure.water--;

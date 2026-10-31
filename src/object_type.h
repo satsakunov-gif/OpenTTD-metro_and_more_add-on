@@ -32,8 +32,10 @@ static const ObjectType OBJECT_METRO_SOLAR_PLANT   = 12; ///< Metro mod: solar p
 static const ObjectType OBJECT_METRO_WIND_PLANT    = 13; ///< Metro mod: wind farm
 static const ObjectType OBJECT_METRO_VENT_SHAFT    = 14; ///< Metro mod: vent shaft of the deep metro
 static const ObjectType METRO_POWER_OBJECT_COUNT   =  6; ///< Metro mod: object types of the power grid (NewGRF objects of saves before metro_power move up by this)
+static const ObjectType OBJECT_METRO_ENTRANCE      = 15; ///< Metro mod: entrance pavilion of the metro
+static const ObjectType METRO_UNDERGROUND_OBJECT_COUNT = 1; ///< Metro mod: object types of the underground (NewGRF objects of saves before metro_underground move up by this)
 
-static const ObjectType NEW_OBJECT_OFFSET   =  15;    ///< Offset for new objects
+static const ObjectType NEW_OBJECT_OFFSET   =  16;    ///< Offset for new objects
 static const ObjectType NUM_OBJECTS         = 64000;  ///< Number of supported objects overall
 static const ObjectType NUM_OBJECTS_PER_GRF = NUM_OBJECTS; ///< Number of supported objects per NewGRF
 static const ObjectType INVALID_OBJECT_TYPE = 0xFFFF; ///< An invalid object

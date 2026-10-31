@@ -202,6 +202,7 @@ enum SlXvFeatureIndex {
 	XSLFI_METRO_CITY,                             ///< Metro mod: active towns, services, matches (MTCT chunk; v2..v3 also had the fire chunks MTFP, MTFR, MTFT)
 	XSLFI_METRO_POWER,                            ///< Metro mod: power grid (MTPL, MTPP, MTPC chunks; object types 9..14)
 	XSLFI_METRO_TOWN,                             ///< Metro mod: districts, commuting, migration (MTDS, MTTL chunks)
+	XSLFI_METRO_UNDERGROUND,                      ///< Metro mod: underground layers (MTUG chunk; object type 15)
 	XSLFI_METRO_ELEVATED,                         ///< Metro mod: elevated monorail (map bits of rail, rail station and rail bridge head tiles)
 
 	XSLFI_RIFF_HEADER_60_BIT,                     ///< Size field in RIFF chunk header is 60 bit

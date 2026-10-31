@@ -42,6 +42,7 @@
 #include "rail_gui.h"
 #include "metro_power.h"
 #include "metro_elevated.h"
+#include "metro_underground.h"
 #include "tracerestrict.h"
 #include "programmable_signals.h"
 #include "newgrf_newsignals.h"
@@ -774,6 +775,10 @@ struct BuildRailToolbarWindow : Window {
 			ShowMetroElevatedToolbar(this->railtype);
 			return;
 		}
+		if (widget == WID_RAT_METRO_UNDERGROUND) {
+			ShowMetroUndergroundToolbar();
+			return;
+		}
 
 		_remove_button_clicked = false;
 
@@ -1186,6 +1191,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_build_rail_widgets =
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_POWER_RAIL_BUTTON, STR_METRO_POWER_RAIL_BUTTON_TOOLTIP),
 		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_ELEVATED),
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_ELEVATED_RAIL_BUTTON, STR_METRO_ELEVATED_RAIL_BUTTON_TOOLTIP),
+		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_UNDERGROUND),
+						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_UNDERGROUND_RAIL_BUTTON, STR_METRO_UNDERGROUND_RAIL_BUTTON_TOOLTIP),
 	EndContainer(),
 };
 

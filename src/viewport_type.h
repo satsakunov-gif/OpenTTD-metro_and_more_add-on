@@ -195,6 +195,8 @@ enum ViewportDragDropSelectionProcess : uint8_t {
 	DDSP_METRO_ELEVATED_LINE,  ///< Metro mod: raise a straight stretch of monorail
 	DDSP_METRO_ELEVATED_RAISE, ///< Metro mod: raise monorail track to the elevated level
 	DDSP_METRO_ELEVATED_LOWER, ///< Metro mod: lower elevated monorail to the ground
+	DDSP_METRO_UNDERGROUND_LINE,   ///< Metro mod: build underground track
+	DDSP_METRO_UNDERGROUND_REMOVE, ///< Metro mod: remove underground track
 	DDSP_METRO_ELEVATED_SPAN,  ///< Metro mod: build a span of the elevated monorail
 
 	/* Rail specific actions */

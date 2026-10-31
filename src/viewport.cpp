@@ -142,6 +142,7 @@
 #include "metro_city.h"
 #include "metro_power.h"
 #include "metro_traffic.h"
+#include "metro_underground.h"
 
 #include "safeguards.h"
 
@@ -1985,6 +1986,7 @@ static void ViewportAddLandscape()
 					MetroCityDrawTile(&_cur_ti);
 					MetroPowerDrawTile(&_cur_ti);
 					MetroTrafficDrawTile(&_cur_ti);
+					MetroUndergroundDrawTile(&_cur_ti);
 				}
 			}
 		}

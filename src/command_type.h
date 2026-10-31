@@ -778,6 +778,8 @@ enum class Commands : uint8_t {
 	MetroSetPowerPriority,                  ///< Metro mod: set the blackout priority
 	MetroElevateRail,                       ///< Metro mod: raise or lower monorail track and stations
 	MetroElevateLine,                       ///< Metro mod: raise a straight stretch of monorail with ramps at its ends
+	MetroBuildUndergroundTrack,             ///< Metro mod: build or remove underground track
+	MetroBuildEntrance,                     ///< Metro mod: build a metro entrance
 	MetroBuildElevatedSpan,                 ///< Metro mod: build a span (bridge) of the elevated monorail
 
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)

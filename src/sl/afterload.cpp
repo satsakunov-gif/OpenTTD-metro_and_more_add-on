@@ -305,6 +305,8 @@ static void InitializeWindowsAndCaches()
 		if (!SlXvIsFeaturePresent(XSLFI_METRO_CITY, 2) && o->type >= OBJECT_METRO_SCHOOL && o->type < NUM_OBJECTS - METRO_OBJECT_COUNT) o->type += METRO_OBJECT_COUNT;
 		/* Metro mod: object types 9..14 are the power grid since metro_power v1, older NewGRF objects move up. */
 		if (!SlXvIsFeaturePresent(XSLFI_METRO_POWER, 1) && o->type >= OBJECT_METRO_SUBSTATION && o->type < NUM_OBJECTS - METRO_POWER_OBJECT_COUNT) o->type += METRO_POWER_OBJECT_COUNT;
+		/* Metro mod: object type 15 is the metro entrance since metro_underground v1, older NewGRF objects move up. */
+		if (!SlXvIsFeaturePresent(XSLFI_METRO_UNDERGROUND, 1) && o->type >= OBJECT_METRO_ENTRANCE && o->type < NUM_OBJECTS - METRO_UNDERGROUND_OBJECT_COUNT) o->type += METRO_UNDERGROUND_OBJECT_COUNT;
 		if (o->type >= NUM_OBJECTS) SlErrorCorrupt("Invalid object type");
 		Object::IncTypeCount(o->type);
 	}
