@@ -8,6 +8,7 @@
 /** @file station_cmd.cpp Handling of station tiles. */
 
 #include "stdafx.h"
+#include "metro_underground.h"
 #include "metro_elevated.h"
 #include "metro_station_names.h"
 #include "aircraft.h"
@@ -1669,6 +1670,8 @@ CommandCost CmdBuildRailStation(DoCommandFlags flags, TileIndex tile_org, RailTy
 		CommandCost metro_ret = MetroCheckNotElevated(t);
 		if (metro_ret.Failed()) return metro_ret;
 		metro_ret = MetroCheckTrackEdges(t, AxisToTrackBits(axis));
+		if (metro_ret.Failed()) return metro_ret;
+		metro_ret = MetroCheckSurfaceRail(t, AxisToTrackBits(axis));
 		if (metro_ret.Failed()) return metro_ret;
 	}
 

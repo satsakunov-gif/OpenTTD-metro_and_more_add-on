@@ -8,6 +8,7 @@
 /** @file rail_cmd.cpp Handling of rail tiles. */
 
 #include "stdafx.h"
+#include "metro_underground.h"
 #include "metro_elevated.h"
 #include "viewport_func.h"
 #include "command_func.h"
@@ -735,6 +736,8 @@ CommandCost CmdBuildSingleRail(DoCommandFlags flags, TileIndex tile, RailType ra
 		if (IsMetroRamp(tile)) return CommandCost(STR_METRO_ELEVATED_ERR_RAMP_HERE);
 		CommandCost ret = MetroCheckTrackEdges(tile, trackbit);
 		if (ret.Failed()) return ret;
+		ret = MetroCheckSurfaceRail(tile, trackbit); // Metro mod: not above or joining the underground.
+		if (ret.Failed()) return ret;
 	}
 
 	switch (GetTileType(tile)) {
@@ -1445,8 +1448,10 @@ CommandCost CmdBuildTrainDepot(DoCommandFlags flags, TileIndex tile, RailType ra
 	CommandCost cost(ExpensesType::Construction);
 
 	{
-		/* Metro mod: depots stay on the ground; their exit cannot join elevated track. */
+		/* Metro mod: depots stay on the ground; their exit cannot join elevated track or the underground. */
 		CommandCost ret = MetroCheckNotElevated(tile);
+		if (ret.Failed()) return ret;
+		ret = MetroCheckSurfaceRail(tile, DiagDirToDiagTrackBits(dir));
 		if (ret.Failed()) return ret;
 		TileIndex exit = TileAddByDiagDir(tile, dir);
 		if (IsValidTile(exit) && IsMetroElevatedTile(exit)) {

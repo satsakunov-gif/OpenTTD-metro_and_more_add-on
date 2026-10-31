@@ -2545,3 +2545,14 @@ STR_METRO_ELEVATED_ROW_BUILD                                    :Построи�
 STR_METRO_ELEVATED_ERR_CANT_BUILD                               :{WHITE}Здесь нельзя построить эстакаду...
 STR_METRO_ELEVATED_ERR_LINE_ENDS                                :{WHITE}... эстакада должна начинаться и кончаться на свободной ровной земле (рампы)
 STR_METRO_ELEVATED_ERR_LINE_BLOCKED                             :{WHITE}... на пути то, над чем нельзя пройти
+STR_METRO_UNDERGROUND_ROW_DEPOT                                 :Подземное депо, выход: {STRING} (щёлкните ещё раз — повернуть; Ctrl+щелчок — снести)
+STR_METRO_UNDERGROUND_ERR_CANT_DEPOT                            :{WHITE}Здесь нельзя построить подземное депо...
+STR_METRO_UNDERGROUND_ERR_NO_DEPOT                              :{WHITE}... здесь нет подземного депо
+STR_METRO_UNDERGROUND_ERR_OTHER_LAYER                           :{WHITE}... здесь путь другого слоя (слои пересекаются только под прямым углом)
+STR_METRO_UNDERGROUND_ERR_SURFACE_JOIN                          :{WHITE}... путь метро не может соединяться с путём на поверхности (это будет делать трансформер)
+STR_METRO_UNDERGROUND_ERR_ABOVE                                 :{WHITE}... под этим тайлом метро
+STR_METRO_UNDERGROUND_ERR_UNDER_RAIL                            :{WHITE}... метро не может лежать под путями поверхности
+STR_METRO_UNDERGROUND_ROW_STATION                               :Подземная платформа: протянуть по X или Y (вход в пределах 3 тайлов)
+STR_METRO_UNDERGROUND_ERR_CANT_STATION                          :{WHITE}Здесь нельзя построить подземную платформу...
+STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE                           :{WHITE}... сначала постройте вход в пределах 3 тайлов
+STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... платформе нужны свободные тайлы под землёй

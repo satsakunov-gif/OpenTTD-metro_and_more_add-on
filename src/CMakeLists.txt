@@ -315,6 +315,8 @@ add_files(
     metro_station_names.h
     metro_trams.cpp
     metro_trams.h
+    metro_overlay.cpp
+    metro_overlay.h
     metro_underground.cpp
     metro_underground.h
     metro_underground_cmd.h

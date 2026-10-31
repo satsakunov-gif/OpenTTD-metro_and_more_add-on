@@ -43,6 +43,9 @@ static constexpr uint METRO_INCLINE_MAX_LENGTH = 3;          ///< Longest inclin
 static constexpr uint16_t METRO_INCLINE_COST_PERCENT = 150;  ///< An incline piece costs this percent of a piece of the deeper layer.
 static constexpr uint16_t METRO_INCLINE_SPEED_KMH = 60;      ///< Trains slow down to this on inclines (applied with the trains, step 5).
 
+/* Stations (step 4). */
+static constexpr uint METRO_ENTRANCE_PLATFORM_RADIUS = 3; ///< An entrance joins platforms within this many tiles (DESIGN.md "Вход").
+
 /* Underground view. */
 static constexpr uint METRO_UNDERGROUND_DECOR_RARITY = 40;  ///< One tile in this many has a decoration in the earth (placeholder rocks for now).
 

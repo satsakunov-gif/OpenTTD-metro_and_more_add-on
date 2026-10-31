@@ -8,6 +8,9 @@
 /** @file vehicle.cpp Base implementations of all vehicles. */
 
 #include "stdafx.h"
+#include "signal_func.h"
+#include "metro_underground.h"
+#include "metro_overlay.h"
 #include "error.h"
 #include "roadveh.h"
 #include "ship.h"
@@ -1348,9 +1351,11 @@ static void RunVehicleDayProc()
 
 		/* This is called once per day for each vehicle, but not in the first tick of the day */
 		switch (v->type) {
-			case VehicleType::Train:
+			case VehicleType::Train: {
+				MetroUndergroundScope metro_scope(IsMetroOverlayTile(v->tile)); // Metro mod: trains under the ground.
 				CallVehicleOnNewDay<Train>(v);
 				break;
+			}
 			case VehicleType::Road:
 				CallVehicleOnNewDay<RoadVehicle>(v);
 				break;
@@ -1612,9 +1617,11 @@ void CallVehicleTicks()
 
 			/* This is called once per day for each vehicle, but not in the first tick of the day */
 			switch (v->type) {
-				case VehicleType::Train:
+				case VehicleType::Train: {
+					MetroUndergroundScope metro_scope(IsMetroOverlayTile(v->tile)); // Metro mod: trains under the ground.
 					Train::From(v)->Train::OnPeriodic();
 					break;
+				}
 				case VehicleType::Road:
 					RoadVehicle::From(v)->RoadVehicle::OnPeriodic();
 					break;
@@ -1636,6 +1643,7 @@ void CallVehicleTicks()
 		PerformanceMeasurer framerate(PerformanceElement::GameLoopEconomy);
 		Station *si_st = nullptr;
 		SCOPE_INFO_FMT([&si_st], "CallVehicleTicks: LoadUnloadStation: {}", StationInfoDumper(si_st));
+		MetroUndergroundScope metro_scope; // Metro mod: platforms under the ground.
 		for (Station *st : Station::Iterate()) {
 			si_st = st;
 			LoadUnloadStation(st);
@@ -1669,6 +1677,8 @@ void CallVehicleTicks()
 	if (!_tick_effect_veh_cache.empty()) RecordSyncEvent(NSRE_VEH_EFFECT);
 	{
 		PerformanceMeasurer framerate(PerformanceElement::GameLoopTrains);
+		/* Metro mod: the trains run with the underground in the map (surface track never joins it). */
+		MetroUndergroundScope metro_scope;
 		for (Train *front : _tick_train_front_cache) {
 			v = front;
 			if (!front->Train::Tick()) continue;
@@ -1678,6 +1688,7 @@ void CallVehicleTicks()
 				if (u->IsEngine() && !(front->vehstatus.Test(VehState::Stopped) && front->cur_speed == 0)) VehicleTickMotion(u, front);
 			}
 		}
+		UpdateSignalsInBuffer(); // Metro mod: while the underground is in the map.
 	}
 	RecordSyncEvent(NSRE_VEH_TRAIN);
 	{
@@ -2020,7 +2031,8 @@ void ViewportAddVehiclesIntl(DrawPixelInfo *dpi)
 					if (l <= v->coord.right &&
 							t <= v->coord.bottom &&
 							r >= v->coord.left &&
-							b >= v->coord.top) {
+							b >= v->coord.top &&
+							(_metro_underground_view || !MetroIsUndergroundVehicleTile(v->tile))) { // Metro mod: under the ground only in the underground view.
 						DoDrawVehicle(v);
 					}
 				}

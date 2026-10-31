@@ -308,6 +308,7 @@ static CommandCost FinishElevationChange(DoCommandFlags flags, const std::vector
  */
 CommandCost CmdMetroElevateRail(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level)
 {
+	if (!Company::IsValidID(_current_company)) return CMD_ERROR;
 	if (start >= Map::Size() || level > METRO_ELEVATED_MAX_LEVEL || (level != 0 && level < METRO_ELEVATED_MIN_LEVEL)) return CMD_ERROR;
 
 	CommandCost cost(ExpensesType::Construction);
@@ -408,6 +409,7 @@ static CommandCost ElevateStretch(DoCommandFlags flags, TileIndex start, DiagDir
 
 CommandCost CmdMetroElevateLine(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level)
 {
+	if (!Company::IsValidID(_current_company)) return CMD_ERROR;
 	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
 	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_ELEVATED_ERR_LINE);
 	return ElevateStretch(flags, start, DiagdirBetweenTiles(start, tile), DistanceManhattan(start, tile) + 1, level, RampChoice::Auto, RampChoice::Auto);
@@ -454,6 +456,7 @@ static bool IsLineSpanTile(TileIndex tile, int bridge_height)
  */
 CommandCost CmdMetroBuildElevatedLine(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level, RailType railtype)
 {
+	if (!Company::IsValidID(_current_company)) return CMD_ERROR;
 	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
 	if (!IsMetroElevatedRailType(railtype) || !ValParamRailType(railtype)) return CommandCost(STR_METRO_ELEVATED_ERR_NOT_MONORAIL);
 	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_ELEVATED_ERR_LINE);
@@ -570,6 +573,7 @@ static BridgeType GetElevatedSpanBridgeType(uint length)
  */
 CommandCost CmdMetroBuildElevatedSpan(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level, RailType railtype)
 {
+	if (!Company::IsValidID(_current_company)) return CMD_ERROR;
 	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
 	if (!IsMetroElevatedRailType(railtype) || !ValParamRailType(railtype)) return CommandCost(STR_METRO_ELEVATED_ERR_NOT_MONORAIL);
 	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_ERROR_START_AND_END_MUST_BE_IN);

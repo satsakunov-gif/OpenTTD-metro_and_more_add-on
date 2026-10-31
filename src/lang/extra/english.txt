@@ -2864,3 +2864,14 @@ STR_METRO_ELEVATED_ROW_BUILD                                    :Build an elevat
 STR_METRO_ELEVATED_ERR_CANT_BUILD                               :{WHITE}Can't build the elevated line here...
 STR_METRO_ELEVATED_ERR_LINE_ENDS                                :{WHITE}... the line must start and end on free flat land (ramps)
 STR_METRO_ELEVATED_ERR_LINE_BLOCKED                             :{WHITE}... something on the way can't be passed over
+STR_METRO_UNDERGROUND_ROW_DEPOT                                 :Underground depot, exit {STRING} (click again to turn; Ctrl+click removes)
+STR_METRO_UNDERGROUND_ERR_CANT_DEPOT                            :{WHITE}Can't build the underground depot here...
+STR_METRO_UNDERGROUND_ERR_NO_DEPOT                              :{WHITE}... no underground depot here
+STR_METRO_UNDERGROUND_ERR_OTHER_LAYER                           :{WHITE}... track of another layer is here (layers may only cross at right angles)
+STR_METRO_UNDERGROUND_ERR_SURFACE_JOIN                          :{WHITE}... metro track can't join track on the surface (a transformer will)
+STR_METRO_UNDERGROUND_ERR_ABOVE                                 :{WHITE}... the metro lies under this tile
+STR_METRO_UNDERGROUND_ERR_UNDER_RAIL                            :{WHITE}... the metro can't lie under track on the surface
+STR_METRO_UNDERGROUND_ROW_STATION                               :Underground platform: drag along X or Y (an entrance within 3 tiles)
+STR_METRO_UNDERGROUND_ERR_CANT_STATION                          :{WHITE}Can't build the underground platform here...
+STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE                           :{WHITE}... build an entrance within 3 tiles first
+STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... the platform needs free tiles under the ground

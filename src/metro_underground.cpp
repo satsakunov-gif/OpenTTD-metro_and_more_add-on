@@ -22,6 +22,17 @@
 #include "stdafx.h"
 #include "metro_underground.h"
 #include "metro_underground_cmd.h"
+#include "metro_overlay.h"
+#include "station_cmd.h"
+#include "newgrf_station.h"
+#include "station_base.h"
+#include "town.h"
+#include "rail_cmd.h"
+#include "engine_base.h"
+#include "engine_func.h"
+#include "train.h"
+#include "vehicle_cmd.h"
+#include "tile_track_func.h"
 #include "command_func.h"
 #include "company_base.h"
 #include "company_func.h"
@@ -39,6 +50,8 @@
 #include "object_base.h"
 #include "object_map.h"
 #include "rail.h"
+#include "station_map.h"
+#include "tunnelbridge_map.h"
 #include "road_map.h"
 #include "slope_func.h"
 #include "sprite.h"
@@ -70,6 +83,7 @@ TransparencyOptions _metro_view_transparency; ///< Extra transparency while the 
 void MetroUndergroundReset()
 {
 	_metro_underground.clear();
+	MetroOverlayReset();
 	if (_metro_underground_view) MetroToggleUndergroundView();
 	_metro_underground_view_layer = 1;
 }
@@ -154,14 +168,77 @@ CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer)
 
 		case 2:
 			if (IsTileType(tile, TileType::Water) || (HasTileWaterClass(tile) && IsTileOnWater(tile))) return CommandCost(STR_METRO_UNDERGROUND_ERR_LAYER_2_WATER);
-			return CommandCost();
+			[[fallthrough]];
 
 		case 3:
+			/* The trains of both worlds use the same map while they run: no metro under surface track. */
+			if (IsTileType(tile, TileType::Railway) || (IsTileType(tile, TileType::Station) && HasStationRail(tile)) ||
+					(IsTileType(tile, TileType::TunnelBridge) && GetTunnelBridgeTransportType(tile) == TransportType::Rail) || IsLevelCrossingTile(tile)) {
+				return CommandCost(STR_METRO_UNDERGROUND_ERR_UNDER_RAIL);
+			}
 			return CommandCost();
 
 		default:
 			return CMD_ERROR;
 	}
+}
+
+/** Track of the other layers on the tile, and whether one of them has a depot there. */
+static uint8_t GetOtherLayersTracks(TileIndex tile, uint layer, bool &depot)
+{
+	uint8_t bits = 0;
+	depot = false;
+	for (uint l = 1; l <= METRO_LAYER_COUNT; l++) {
+		if (l == layer) continue;
+		const MetroUndergroundTile *ut = GetMetroUndergroundTile(tile, l);
+		if (ut == nullptr) continue;
+		bits |= ut->tracks;
+		depot |= ut->depot != 0;
+	}
+	return bits;
+}
+
+/** Track of different layers may share a tile only crossing at right angles (one along X, the other along Y). */
+static CommandCost CheckOtherLayers(TileIndex tile, uint layer, uint8_t bits)
+{
+	bool depot;
+	uint8_t others = GetOtherLayersTracks(tile, layer, depot);
+	if (depot || MetroOverlayIsDepot(tile)) return CommandCost(STR_METRO_UNDERGROUND_ERR_OTHER_LAYER);
+	if (others == 0) return CommandCost();
+	bool crossing = (bits == TRACK_BIT_X && others == TRACK_BIT_Y) || (bits == TRACK_BIT_Y && others == TRACK_BIT_X);
+	return crossing ? CommandCost() : CommandCost(STR_METRO_UNDERGROUND_ERR_OTHER_LAYER);
+}
+
+/** Underground track @p bits on @p tile must not meet track of the surface on a neighbour tile. */
+static CommandCost CheckSurfaceJoin(TileIndex tile, uint8_t bits)
+{
+	for (DiagDirection dir : EnumRange(DiagDirection::End)) {
+		if ((static_cast<TrackBits>(bits) & DiagdirReachesTracks(ReverseDiagDir(dir))) == TRACK_BIT_NONE) continue;
+		TileIndex next = TileAddByDiagDir(tile, dir);
+		if (!IsValidTile(next) || IsMetroOverlayTile(next)) continue;
+		TrackBits there = TrackdirBitsToTrackBits(GetTileTrackStatus(next, TransportType::Rail, 0).trackdirs);
+		if ((there & DiagdirReachesTracks(dir)) != TRACK_BIT_NONE) return CommandCost(STR_METRO_UNDERGROUND_ERR_SURFACE_JOIN);
+	}
+	return CommandCost();
+}
+
+/**
+ * Surface construction of rail on @p tile with @p bits: not above the metro, not joining it.
+ * Not checked while the underground is swapped in (the metro builds its own depots with the vanilla command).
+ */
+CommandCost MetroCheckSurfaceRail(TileIndex tile, uint8_t bits)
+{
+	if (IsMetroOverlayActive() || _metro_overlay.empty()) return CommandCost();
+	if (IsMetroOverlayTile(tile)) return CommandCost(STR_METRO_UNDERGROUND_ERR_ABOVE);
+	for (DiagDirection dir : EnumRange(DiagDirection::End)) {
+		if ((static_cast<TrackBits>(bits) & DiagdirReachesTracks(ReverseDiagDir(dir))) == TRACK_BIT_NONE) continue;
+		TileIndex next = TileAddByDiagDir(tile, dir);
+		if (!IsValidTile(next) || !IsMetroOverlayTile(next)) continue;
+		if ((static_cast<TrackBits>(MetroOverlayTrackBits(next)) & DiagdirReachesTracks(dir)) != TRACK_BIT_NONE || MetroOverlayIsDepot(next)) {
+			return CommandCost(STR_METRO_UNDERGROUND_ERR_SURFACE_JOIN);
+		}
+	}
+	return CommandCost();
 }
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -200,6 +277,30 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 		auto it = _metro_underground.find(key);
 		if (remove) {
 			if (it == _metro_underground.end() || (it->second.tracks & bit) == 0) continue;
+			if (it->second.depot == METRO_UNDERGROUND_PLATFORM) {
+				/* A platform tile goes as a station tile, with the underground in the map. */
+				if (Owner{it->second.owner} != _current_company) {
+					last_error = CommandCost(STR_ERROR_OWNED_BY);
+					continue;
+				}
+				CommandCost ret;
+				{
+					MetroUndergroundScope scope;
+					ret = Command<Commands::LandscapeClear>::Do(flags, t);
+				}
+				if (ret.Failed()) {
+					last_error = ret;
+					continue;
+				}
+				cost.AddCost(ret.GetCost());
+				done = true;
+				if (flags.Test(DoCommandFlag::Execute)) {
+					MetroOverlayDropIfClear(t);
+					_metro_underground.erase(it);
+					MarkTileDirtyByTile(t);
+				}
+				continue;
+			}
 			if (Owner{it->second.owner} != _current_company) {
 				last_error = CommandCost(STR_ERROR_OWNED_BY);
 				continue;
@@ -211,9 +312,17 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 				TileIndex top = t;
 				for (uint i = 0; i < incline.GetInclineIndex(); i++) top = TileAddByDiagDir(top, ReverseDiagDir(down));
 				TileIndex p = top;
+				bool train = false;
+				for (uint i = 0; i < incline.GetInclineLength(); i++, p = TileAddByDiagDir(p, down)) train |= MetroOverlayHasTrainOn(p);
+				if (train) {
+					last_error = CommandCost(STR_ERROR_TRAIN_IN_THE_WAY);
+					continue;
+				}
+				p = top;
 				for (uint i = 0; i < incline.GetInclineLength(); i++, p = TileAddByDiagDir(p, down)) {
 					cost.AddCost(_price[Price::ClearRail] * _metro_layer_specs[layer - 1].cost_percent / 100);
 					if (flags.Test(DoCommandFlag::Execute)) {
+						MetroOverlayRemoveTrack(p, incline.tracks);
 						_metro_underground.erase(MetroUndergroundKey(p, layer));
 						MarkTileDirtyByTile(p);
 					}
@@ -221,9 +330,14 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 				done = true;
 				continue;
 			}
+			if (MetroOverlayHasTrainOn(t)) {
+				last_error = CommandCost(STR_ERROR_TRAIN_IN_THE_WAY);
+				continue;
+			}
 			cost.AddCost(_price[Price::ClearRail] * _metro_layer_specs[layer - 1].cost_percent / 100);
 			done = true;
 			if (flags.Test(DoCommandFlag::Execute)) {
+				MetroOverlayRemoveTrack(t, bit);
 				it->second.tracks &= ~bit;
 				if (it->second.tracks == 0) _metro_underground.erase(it);
 				MarkTileDirtyByTile(t);
@@ -243,6 +357,8 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 			}
 		}
 		CommandCost ret = MetroCheckUndergroundSurface(t, layer);
+		if (ret.Succeeded()) ret = CheckOtherLayers(t, layer, bit);
+		if (ret.Succeeded()) ret = CheckSurfaceJoin(t, bit);
 		if (ret.Failed()) {
 			last_error = ret;
 			continue;
@@ -253,6 +369,7 @@ CommandCost CmdMetroBuildUndergroundTrack(DoCommandFlags flags, TileIndex tile, 
 			MetroUndergroundTile &ut = _metro_underground[key];
 			ut.tracks |= bit;
 			ut.owner = _current_company.base();
+			MetroOverlayAddTrack(t, ut.owner, bit);
 			MarkTileDirtyByTile(t);
 		}
 	}
@@ -287,6 +404,9 @@ CommandCost CmdMetroBuildIncline(DoCommandFlags flags, TileIndex tile, TileIndex
 			CommandCost ret = MetroCheckUndergroundSurface(t, l);
 			if (ret.Failed()) return ret;
 		}
+		CommandCost ret = CheckOtherLayers(t, layer, bit);
+		if (ret.Succeeded()) ret = CheckSurfaceJoin(t, bit);
+		if (ret.Failed()) return ret;
 		cost.AddCost(GetUndergroundPiecePrice(layer + 1) * METRO_INCLINE_COST_PERCENT / 100);
 	}
 	if (flags.Test(DoCommandFlag::Execute)) {
@@ -296,10 +416,132 @@ CommandCost CmdMetroBuildIncline(DoCommandFlags flags, TileIndex tile, TileIndex
 			ut.tracks = bit;
 			ut.owner = _current_company.base();
 			ut.incline = MetroUndergroundTile::MakeIncline(down, i, length);
+			MetroOverlayAddTrack(t, ut.owner, bit);
 			MarkTileDirtyByTile(t);
 		}
 	}
 	return cost;
+}
+
+/**
+ * Build or remove an underground depot on a layer (step 5): the vanilla train depot, built while the underground is
+ * swapped into the map.
+ * @param flags type of operation
+ * @param tile the tile
+ * @param layer 1..3
+ * @param dir exit direction
+ * @param remove remove the depot instead
+ */
+CommandCost CmdMetroBuildUndergroundDepot(DoCommandFlags flags, TileIndex tile, uint8_t layer, DiagDirection dir, bool remove)
+{
+	if (layer < 1 || layer > METRO_LAYER_COUNT || !IsValidDiagDirection(dir) || !Company::IsValidID(_current_company)) return CMD_ERROR;
+	uint64_t key = MetroUndergroundKey(tile, layer);
+	if (remove) {
+		auto it = _metro_underground.find(key);
+		if (it == _metro_underground.end() || it->second.depot == 0 || it->second.depot == METRO_UNDERGROUND_PLATFORM || !MetroOverlayIsDepot(tile)) return CommandCost(STR_METRO_UNDERGROUND_ERR_NO_DEPOT);
+		if (Owner{it->second.owner} != _current_company) return CommandCost(STR_ERROR_OWNED_BY);
+		CommandCost ret;
+		{
+			MetroUndergroundScope scope;
+			ret = Command<Commands::LandscapeClear>::Do(flags, tile);
+		}
+		if (ret.Failed()) return ret;
+		if (flags.Test(DoCommandFlag::Execute)) {
+			MetroOverlayDropIfClear(tile);
+			_metro_underground.erase(it);
+			MarkTileDirtyByTile(tile);
+		}
+		return ret;
+	}
+
+	if (!IsMetroLayerAvailable(layer)) return CommandCostWithParam(STR_METRO_UNDERGROUND_ERR_LAYER_CLOSED, GetMetroLayerYear(layer));
+	if (IsMetroOverlayTile(tile)) return CommandCost(STR_METRO_UNDERGROUND_ERR_OTHER_LAYER);
+	CommandCost ret = MetroCheckUndergroundSurface(tile, layer);
+	if (ret.Succeeded()) ret = CheckSurfaceJoin(tile, DiagDirToDiagTrackBits(dir));
+	if (ret.Failed()) return ret;
+
+	MetroOverlayPrepareBlank(tile);
+	{
+		MetroUndergroundScope scope;
+		ret = Command<Commands::BuildRailDepot>::Do(flags, tile, RAILTYPE_RAIL, dir);
+	}
+	MetroOverlayDropIfClear(tile);
+	if (ret.Failed()) return ret;
+	ret.AddCost(GetUndergroundPiecePrice(layer) * 4); // Digging the hall.
+	if (flags.Test(DoCommandFlag::Execute)) {
+		MetroUndergroundTile &ut = _metro_underground[key];
+		ut.depot = static_cast<uint8_t>(to_underlying(dir) + 1);
+		ut.owner = _current_company.base();
+		MarkTileDirtyByTile(tile);
+	}
+	return ret;
+}
+
+/** Whether an entrance of the company stands within #METRO_ENTRANCE_PLATFORM_RADIUS of the tile. */
+static bool HasEntranceNear(TileIndex tile, Owner owner)
+{
+	for (TileIndex t : SpiralTileSequence(tile, 2 * METRO_ENTRANCE_PLATFORM_RADIUS + 1)) {
+		if (IsTileType(t, TileType::Object) && GetObjectType(t) == OBJECT_METRO_ENTRANCE && GetTileOwner(t) == owner) return true;
+	}
+	return false;
+}
+
+/**
+ * Build an underground station platform on a layer (step 4): a straight platform of one track from @p start to
+ * @p tile, joined to a touching station as in vanilla. An entrance of the company must stand within 3 tiles of it.
+ * @param flags type of operation
+ * @param tile end of the platform
+ * @param start start of the platform
+ * @param layer 1..3
+ */
+CommandCost CmdMetroBuildUndergroundStation(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t layer)
+{
+	if (start >= Map::Size() || layer < 1 || layer > METRO_LAYER_COUNT || !Company::IsValidID(_current_company)) return CMD_ERROR;
+	if (!IsMetroLayerAvailable(layer)) return CommandCostWithParam(STR_METRO_UNDERGROUND_ERR_LAYER_CLOSED, GetMetroLayerYear(layer));
+	if (TileX(start) != TileX(tile) && TileY(start) != TileY(tile)) return CommandCost(STR_METRO_UNDERGROUND_ERR_STRAIGHT);
+	Axis axis = (start == tile || TileY(start) == TileY(tile)) ? Axis::X : Axis::Y;
+	TrackBits bit = AxisToTrackBits(axis);
+	TileArea area(start, tile);
+	if (std::max(area.w, area.h) > _settings_game.station.station_spread) return CommandCost(STR_ERROR_STATION_TOO_SPREAD_OUT);
+
+	bool entrance = false;
+	for (TileIndex t : area) {
+		if (IsMetroOverlayTile(t) || _metro_underground.contains(MetroUndergroundKey(t, layer))) return CommandCost(STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE);
+		CommandCost ret = MetroCheckUndergroundSurface(t, layer);
+		if (ret.Succeeded()) ret = CheckOtherLayers(t, layer, bit);
+		if (ret.Succeeded()) ret = CheckSurfaceJoin(t, bit);
+		if (ret.Failed()) return ret;
+		entrance |= HasEntranceNear(t, _current_company);
+	}
+	if (!entrance) return CommandCost(STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE);
+
+	for (TileIndex t : area) MetroOverlayPrepareBlank(t);
+	CommandCost ret;
+	{
+		MetroUndergroundScope scope;
+		ret = Command<Commands::BuildRailStation>::Do(flags, area.tile, RAILTYPE_RAIL, axis, 1, static_cast<uint8_t>(std::max(area.w, area.h)), STAT_CLASS_DFLT, 0, StationID::Invalid(), false);
+	}
+	for (TileIndex t : area) MetroOverlayDropIfClear(t);
+	if (ret.Failed()) return ret;
+	ret.AddCost(GetUndergroundPiecePrice(layer) * 3 * area.w * area.h); // Digging the hall.
+	if (flags.Test(DoCommandFlag::Execute)) {
+		for (TileIndex t : area) {
+			MetroUndergroundTile &ut = _metro_underground[MetroUndergroundKey(t, layer)];
+			ut.tracks = bit;
+			ut.owner = _current_company.base();
+			ut.depot = METRO_UNDERGROUND_PLATFORM;
+			MarkTileDirtyByTile(t);
+		}
+	}
+	return ret;
+}
+
+/** Whether the station has platforms under the ground (its catchment is computed with the underground in the map). */
+bool MetroStationIsUnderground(const BaseStation *st)
+{
+	if (_metro_overlay.empty()) return false;
+	const Station *s = Station::IsExpected(st) ? Station::From(st) : nullptr;
+	return s != nullptr && !s->train_station.IsEmpty() && IsMetroOverlayTile(s->train_station.tile);
 }
 
 /**
@@ -407,7 +649,15 @@ void MetroUndergroundDrawTile(const TileInfo *ti)
 		const MetroUndergroundTile *ut = GetMetroUndergroundTile(ti->tile, layer);
 		if (ut == nullptr) continue;
 		bool chosen = layer == _metro_underground_view_layer || (ut->IsIncline() && layer + 1 == _metro_underground_view_layer);
-		if (chosen) DrawUndergroundTrack(ti, *ut, true);
+		if (!chosen) continue;
+		if (IsMetroOverlayTile(ti->tile) && !ut->IsIncline()) {
+			/* Dark tunnel ground, then the real tile of the underground. */
+			DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+			TileInfo uti = *ti;
+			MetroOverlayDrawTile(&uti);
+			break;
+		}
+		DrawUndergroundTrack(ti, *ut, true);
 	}
 }
 
@@ -439,6 +689,8 @@ enum MetroUndergroundRow : int {
 	MUR_LINE,   ///< Straight track, dragged along X or Y.
 	MUR_CORNER, ///< A corner piece (click to switch which one), then a tile.
 	MUR_INCLINE, ///< Incline to the next deeper layer, dragged from the upper end.
+	MUR_STATION, ///< Underground platform, dragged along X or Y.
+	MUR_DEPOT,  ///< Underground depot (click again to turn the exit).
 	MUR_REMOVE, ///< Remove track along a line.
 	MUR_ENTRANCE, ///< Entrance pavilion.
 	MUR_COUNT,
@@ -450,6 +702,7 @@ static const StringID _metro_corner_names[] = { STR_METRO_UNDERGROUND_CORNER_N, 
 struct MetroUndergroundToolbarWindow : Window {
 	int selected = -1;
 	uint8_t corner = 0;
+	uint8_t depot_dir = 0; ///< Exit of the depot: index in the corner names (north, east, south, west = NE, SE, SW, NW).
 
 	MetroUndergroundToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
 	{
@@ -472,6 +725,8 @@ struct MetroUndergroundToolbarWindow : Window {
 				available = this->Layer() < METRO_LAYER_COUNT;
 				return available ? GetString(STR_METRO_UNDERGROUND_ROW_INCLINE, _metro_layer_specs[this->Layer() - 1].name, _metro_layer_specs[this->Layer()].name) : GetString(STR_METRO_UNDERGROUND_ROW_INCLINE_NONE);
 			case MUR_CORNER: return GetString(STR_METRO_UNDERGROUND_ROW_CORNER, _metro_corner_names[this->corner]);
+			case MUR_STATION: return GetString(STR_METRO_UNDERGROUND_ROW_STATION);
+			case MUR_DEPOT: return GetString(STR_METRO_UNDERGROUND_ROW_DEPOT, _metro_corner_names[this->depot_dir]);
 			case MUR_REMOVE: return GetString(STR_METRO_UNDERGROUND_ROW_REMOVE);
 			case MUR_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR);
 			default: NOT_REACHED();
@@ -525,6 +780,11 @@ struct MetroUndergroundToolbarWindow : Window {
 			return;
 		}
 		if (row == MUR_INCLINE && this->Layer() >= METRO_LAYER_COUNT) return;
+		if (row == MUR_DEPOT && this->selected == MUR_DEPOT) {
+			this->depot_dir = (this->depot_dir + 1) % 4;
+			this->SetDirty();
+			return;
+		}
 		if (row == MUR_CORNER && this->selected == MUR_CORNER) {
 			this->corner = (this->corner + 1) % std::size(_metro_corner_tracks);
 			this->SetDirty();
@@ -546,8 +806,12 @@ struct MetroUndergroundToolbarWindow : Window {
 			case MUR_LINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_LINE); break;
 			case MUR_REMOVE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_REMOVE); break;
 			case MUR_INCLINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_INCLINE); break;
+			case MUR_STATION: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_STATION); break;
 			case MUR_CORNER:
 				Command<Commands::MetroBuildUndergroundTrack>::Post(STR_METRO_UNDERGROUND_ERR_CANT_BUILD, tile, tile, this->Layer(), _metro_corner_tracks[this->corner], false);
+				break;
+			case MUR_DEPOT:
+				Command<Commands::MetroBuildUndergroundDepot>::Post(STR_METRO_UNDERGROUND_ERR_CANT_DEPOT, tile, this->Layer(), static_cast<DiagDirection>(this->depot_dir), _ctrl_pressed);
 				break;
 			case MUR_ENTRANCE:
 				Command<Commands::MetroBuildEntrance>::Post(STR_METRO_UNDERGROUND_ERR_CANT_ENTRANCE, tile, this->Layer());
@@ -564,6 +828,10 @@ struct MetroUndergroundToolbarWindow : Window {
 	void OnPlaceMouseUp([[maybe_unused]] ViewportPlaceMethod select_method, ViewportDragDropSelectionProcess select_proc, Point pt, TileIndex start_tile, TileIndex end_tile) override
 	{
 		if (pt.x == -1) return;
+		if (select_proc == DDSP_METRO_UNDERGROUND_STATION) {
+			Command<Commands::MetroBuildUndergroundStation>::Post(STR_METRO_UNDERGROUND_ERR_CANT_STATION, end_tile, start_tile, this->Layer());
+			return;
+		}
 		if (select_proc == DDSP_METRO_UNDERGROUND_INCLINE) {
 			Command<Commands::MetroBuildIncline>::Post(STR_METRO_UNDERGROUND_ERR_CANT_INCLINE, end_tile, start_tile, this->Layer());
 			return;
@@ -630,7 +898,7 @@ static void ConsoleCommand(TileIndex tile, Targs... args)
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | testtrain <x> <y> <layer> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -664,6 +932,142 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 			if (!_metro_underground_view) MetroToggleUndergroundView();
 			MarkWholeScreenDirty();
 		}
+		return true;
+	}
+	if (cmd == "depot" && argv.size() > 5) {
+		auto t = ParseConsoleTile(argv[2], argv[3]);
+		if (!t.has_value()) return false;
+		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[4]).value_or(0));
+		DiagDirection dir = static_cast<DiagDirection>(std::min<uint>(ParseInteger<uint>(argv[5]).value_or(0), 3));
+		ConsoleCommand<Commands::MetroBuildUndergroundDepot>(*t, layer, dir, argv.size() > 6 && argv[6] == "remove");
+		return true;
+	}
+	if (cmd == "testtrain" && argv.size() > 4) {
+		/* For tests: a straight line of 12 tiles along X on the layer from (x, y), a depot at x-1 and a running train. */
+		auto start = ParseConsoleTile(argv[2], argv[3]);
+		if (!start.has_value()) return false;
+		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[4]).value_or(1));
+		CompanyID company = GetConsoleCompany();
+		const Engine *engine = nullptr;
+		for (const Engine *e : Engine::IterateType(VehicleType::Train)) {
+			if (company == CompanyID::Invalid() || !IsEngineBuildable(e->index, VehicleType::Train, company) || e->VehInfo<RailVehicleInfo>().power == 0) continue;
+			if (e->VehInfo<RailVehicleInfo>().railtypes.Test(RAILTYPE_RAIL)) {
+				engine = e;
+				break;
+			}
+		}
+		if (engine == nullptr) {
+			IConsolePrint(CC_ERROR, "No company or no rail engine.");
+			return true;
+		}
+		TileIndex a = *start;
+		TileIndex b = TileAddWrap(a, 11, 0);
+		TileIndex depot = TileAddWrap(a, -1, 0);
+		if (b == INVALID_TILE || depot == INVALID_TILE) return false;
+		Backup<CompanyID> cur_company(_current_company, company, FILE_LINE);
+		DoCommandFlags exec{DoCommandFlag::Execute, DoCommandFlag::Bankrupt};
+		CommandCost ret = Command<Commands::MetroBuildUndergroundTrack>::Do(exec, b, a, layer, TRACK_X, false);
+		if (ret.Succeeded()) ret = Command<Commands::MetroBuildUndergroundDepot>::Do(exec, depot, layer, DiagDirection::SW, false);
+		std::optional<VehicleID> vehicle;
+		if (ret.Succeeded()) {
+			MetroUndergroundScope scope;
+			ret = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, depot, engine->index, true, INVALID_CARGO, ClientID::Invalid);
+			vehicle = ret.GetResultData<VehicleID>();
+		}
+		if (ret.Succeeded() && vehicle.has_value()) ret = Command<Commands::StartStopVehicle>::Do(DoCommandFlag::Execute, *vehicle, false);
+		cur_company.Restore();
+		if (ret.Failed()) {
+			IConsolePrint(CC_ERROR, "Failed: {}", GetString(ret.GetErrorMessage()));
+		} else {
+			IConsolePrint(CC_INFO, "Underground train {} on layer -{} from ({}, {}) to ({}, {}), depot ({}, {}).", vehicle.value_or(VehicleID::Invalid()), layer, TileX(a), TileY(a), TileX(b), TileY(b), TileX(depot), TileY(depot));
+		}
+		return true;
+	}
+	if (cmd == "testline" && argv.size() > 3) {
+		/* For tests: under a town, a row with a depot, track, a platform of 5 tiles, track, an entrance near the platform and a running train. */
+		auto id = ParseInteger<uint>(argv[2]);
+		const Town *town = id.has_value() ? Town::GetIfValid(*id) : nullptr;
+		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[3]).value_or(1));
+		CompanyID company = GetConsoleCompany();
+		if (town == nullptr || company == CompanyID::Invalid()) return false;
+		const Engine *engine = nullptr;
+		for (const Engine *e : Engine::IterateType(VehicleType::Train)) {
+			if (IsEngineBuildable(e->index, VehicleType::Train, company) && e->VehInfo<RailVehicleInfo>().power != 0 && e->VehInfo<RailVehicleInfo>().railtypes.Test(RAILTYPE_RAIL)) {
+				engine = e;
+				break;
+			}
+		}
+		if (engine == nullptr) return false;
+		Backup<CompanyID> cur_company(_current_company, company, FILE_LINE);
+		DoCommandFlags test{DoCommandFlag::Bankrupt};
+		DoCommandFlags exec{DoCommandFlag::Execute, DoCommandFlag::Bankrupt};
+		bool done = false;
+		for (int dy = -6; dy <= 6 && !done; dy++) {
+			for (int dx = -12; dx <= -4 && !done; dx++) {
+				TileIndex x0 = TileAddWrap(town->xy, dx, dy);
+				if (x0 == INVALID_TILE || TileAddWrap(x0, 16, 0) == INVALID_TILE) continue;
+				auto t = [&](int i) { return TileAddWrap(x0, i, 0); };
+				/* An entrance place within 3 tiles of the platform (x0+5..x0+9). */
+				TileIndex entrance = INVALID_TILE;
+				for (TileIndex e : SpiralTileSequence(t(7), 7)) {
+					if (Command<Commands::MetroBuildEntrance>::Do(test, e, layer).Succeeded()) {
+						entrance = e;
+						break;
+					}
+				}
+				if (entrance == INVALID_TILE) continue;
+				if (Command<Commands::MetroBuildUndergroundTrack>::Do(test, t(4), t(0), layer, TRACK_X, false).Failed()) continue;
+				if (Command<Commands::MetroBuildUndergroundTrack>::Do(test, t(15), t(10), layer, TRACK_X, false).Failed()) continue;
+				if (Command<Commands::MetroBuildUndergroundDepot>::Do(test, t(-1), layer, DiagDirection::SW, false).Failed()) continue;
+				bool ok = Command<Commands::MetroBuildEntrance>::Do(exec, entrance, layer).Succeeded();
+				CommandCost ret = Command<Commands::MetroBuildUndergroundStation>::Do(exec, t(9), t(5), layer);
+				if (ret.Failed()) {
+					IConsolePrint(CC_ERROR, "platform at ({}, {}): {}", TileX(t(5)), TileY(t(5)), GetString(ret.GetErrorMessage()));
+					continue;
+				}
+				ok &= Command<Commands::MetroBuildUndergroundTrack>::Do(exec, t(4), t(0), layer, TRACK_X, false).Succeeded();
+				ok &= Command<Commands::MetroBuildUndergroundTrack>::Do(exec, t(15), t(10), layer, TRACK_X, false).Succeeded();
+				ok &= Command<Commands::MetroBuildUndergroundDepot>::Do(exec, t(-1), layer, DiagDirection::SW, false).Succeeded();
+				std::optional<VehicleID> vehicle;
+				if (ok) {
+					MetroUndergroundScope scope;
+					CommandCost v = Command<Commands::BuildVehicle>::Do(DoCommandFlag::Execute, t(-1), engine->index, true, INVALID_CARGO, ClientID::Invalid);
+					vehicle = v.GetResultData<VehicleID>();
+					ok = v.Succeeded() && vehicle.has_value();
+				}
+				if (ok) ok = Command<Commands::StartStopVehicle>::Do(DoCommandFlag::Execute, *vehicle, false).Succeeded();
+				IConsolePrint(ok ? CC_INFO : CC_ERROR, "test line on layer -{} from ({}, {}), platform ({}, {})..({}, {}), entrance ({}, {}), train {}: {}", layer, TileX(t(0)), TileY(t(0)),
+						TileX(t(5)), TileY(t(5)), TileX(t(9)), TileY(t(9)), TileX(entrance), TileY(entrance), vehicle.value_or(VehicleID::Invalid()), ok ? "ok" : "failed");
+				done = true;
+			}
+		}
+		cur_company.Restore();
+		if (!done) IConsolePrint(CC_ERROR, "No place found.");
+		return true;
+	}
+	if (cmd == "station" && argv.size() > 6) {
+		auto a = ParseConsoleTile(argv[2], argv[3]);
+		auto b = ParseConsoleTile(argv[4], argv[5]);
+		if (!a.has_value() || !b.has_value()) return false;
+		ConsoleCommand<Commands::MetroBuildUndergroundStation>(*b, *a, static_cast<uint8_t>(ParseInteger<uint>(argv[6]).value_or(0)));
+		return true;
+	}
+	if (cmd == "stations") {
+		for (const Station *st : Station::Iterate()) {
+			if (!MetroStationIsUnderground(st)) continue;
+			uint waiting = 0;
+			for (const GoodsEntry &ge : st->goods) waiting += ge.CargoTotalCount();
+			IConsolePrint(CC_DEFAULT, "station {} '{}' platforms at ({}, {}) {}x{}, cargo waiting {}", st->index, GetString(STR_STATION_NAME, st->index), TileX(st->train_station.tile), TileY(st->train_station.tile),
+					st->train_station.w, st->train_station.h, waiting);
+		}
+		return true;
+	}
+	if (cmd == "trains") {
+		for (const Train *v : Train::IterateFrontOnly()) {
+			IConsolePrint(CC_DEFAULT, "train {} at ({}, {}) speed {} {}{}", v->index, TileX(v->tile), TileY(v->tile), v->cur_speed, IsMetroOverlayTile(v->tile) ? "underground" : "surface",
+					v->IsInDepot() ? ", in depot" : "");
+		}
+		IConsolePrint(CC_DEFAULT, "underground map tiles: {}", _metro_overlay.size());
 		return true;
 	}
 	if (cmd == "incline" && argv.size() > 6) {

@@ -8,6 +8,8 @@
 /** @file station.cpp Implementation of the station base class. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
+#include "metro_underground.h"
 #include "company_func.h"
 #include "company_base.h"
 #include "roadveh.h"
@@ -500,6 +502,7 @@ bool Station::CatchmentCoversTown(TownID t) const
  */
 void Station::RecomputeCatchment(bool no_clear_nearby_lists)
 {
+	MetroUndergroundScope metro_scope(MetroStationIsUnderground(this)); // Metro mod: platforms under the ground.
 	this->industries_near.clear();
 	if (!no_clear_nearby_lists) this->RemoveFromAllNearbyLists();
 

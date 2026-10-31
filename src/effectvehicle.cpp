@@ -8,6 +8,7 @@
 /** @file effectvehicle.cpp Implementation of everything generic to vehicles. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
 #include "landscape.h"
 #include "core/random_func.hpp"
 #include "industry_map.h"
@@ -669,7 +670,10 @@ EffectVehicle *CreateEffectVehicleAbove(int x, int y, int z, EffectVehicleType t
  */
 EffectVehicle *CreateEffectVehicleRel(const Vehicle *v, int x, int y, int z, EffectVehicleType type)
 {
-	return CreateEffectVehicle(v->x_pos + x, v->y_pos + y, v->z_pos + z, type);
+	EffectVehicle *e = CreateEffectVehicle(v->x_pos + x, v->y_pos + y, v->z_pos + z, type);
+	/* Metro mod: steam, smoke and sparks of a train under the ground stay under the ground. */
+	if (e != nullptr && v->type == VehicleType::Train && IsMetroOverlayTile(v->tile)) e->vehstatus.Set(VehState::Hidden);
+	return e;
 }
 
 bool EffectVehicle::Tick()
