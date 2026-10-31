@@ -20,6 +20,7 @@ add_files(
     metro_city_tables.h
     metro_power_tables.h
     metro_town_tables.h
+    metro_traffic_tables.h
     genland.h
     heightmap_colours.h
     industry_land.h

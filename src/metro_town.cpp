@@ -38,16 +38,26 @@
 #include "core/string_consumer.hpp"
 #include "timer/timer.h"
 #include "timer/timer_game_calendar.h"
+#include "timer/timer_game_tick.h"
 #include "table/metro_town_tables.h"
 #include "table/strings.h"
 
 #include <algorithm>
 #include <tuple>
+#include <unordered_map>
 
 #include "safeguards.h"
 
 std::vector<MetroDistrict> _metro_districts;
 std::map<uint16_t, MetroTownLifeState> _metro_town_life;
+
+/** Districts of each town (indices in #_metro_districts); rebuilt when the list changes. */
+static std::unordered_map<uint16_t, std::vector<size_t>> _district_index;
+static const MetroDistrict *_district_index_data = nullptr;
+static size_t _district_index_size = SIZE_MAX;
+
+/** Workers and jobs of the towns at their last commuting day; neighbours look here instead of counting again. */
+static std::unordered_map<uint16_t, std::pair<uint32_t, uint32_t>> _town_work;
 
 static MetroTownLifeState &GetLifeState(TownID town)
 {
@@ -59,11 +69,15 @@ static MetroTownLifeState &GetLifeState(TownID town)
 void MetroTownReset()
 {
 	_metro_districts.clear();
+	_district_index_size = SIZE_MAX;
+	_town_work.clear();
 	_metro_town_life.clear();
 }
 
 void MetroTownOnTownDeleted(TownID town)
 {
+	_town_work.erase(town.base());
+	_district_index_size = SIZE_MAX;
 	std::erase_if(_metro_districts, [town](const MetroDistrict &d) { return d.town == town.base(); });
 	_metro_town_life.erase(town.base());
 }
@@ -87,12 +101,23 @@ static void ForTownHouseTiles(const Town *t, Func func)
 	}
 }
 
+static const std::vector<size_t> &GetTownDistrictIndices(const Town *t)
+{
+	if (_district_index_data != _metro_districts.data() || _district_index_size != _metro_districts.size()) {
+		_district_index.clear();
+		for (size_t i = 0; i < _metro_districts.size(); i++) _district_index[_metro_districts[i].town].push_back(i);
+		_district_index_data = _metro_districts.data();
+		_district_index_size = _metro_districts.size();
+	}
+	static const std::vector<size_t> empty;
+	auto it = _district_index.find(t->index.base());
+	return it == _district_index.end() ? empty : it->second;
+}
+
 static std::vector<const MetroDistrict *> GetTownDistricts(const Town *t)
 {
 	std::vector<const MetroDistrict *> districts;
-	for (const MetroDistrict &d : _metro_districts) {
-		if (d.town == t->index.base()) districts.push_back(&d);
-	}
+	for (size_t i : GetTownDistrictIndices(t)) districts.push_back(&_metro_districts[i]);
 	return districts;
 }
 
@@ -101,8 +126,8 @@ int GetMetroDistrictTypeAt(const Town *t, TileIndex tile)
 	if (_metro_districts.empty()) return -1;
 	int type = -1;
 	uint best = UINT_MAX;
-	for (const MetroDistrict &d : _metro_districts) {
-		if (d.town != t->index.base()) continue;
+	for (size_t i : GetTownDistrictIndices(t)) {
+		const MetroDistrict &d = _metro_districts[i];
 		uint dist = DistanceManhattan(TileIndex{d.tile}, tile);
 		if (dist < best) {
 			best = dist;
@@ -138,6 +163,7 @@ static TileIndex PickDistrictCentre(const Town *t)
 static void AddDistrict(const Town *t, TileIndex centre, MetroDistrictType type)
 {
 	_metro_districts.push_back({t->index.base(), centre.base(), to_underlying(type)});
+	_district_index_size = SIZE_MAX;
 	InvalidateWindowData(WindowClass::TownView, t->index);
 	InvalidateWindowData(WindowClass::MetroTownDistricts, t->index);
 }
@@ -214,16 +240,11 @@ uint MetroTownAdjustHouseProbability(const Town *t, TileIndex tile, const HouseS
 /* Commuting                                                                                      */
 /* ---------------------------------------------------------------------------------------------- */
 
-/** Send @p amount passengers from random houses of the district type to the stations around them; returns those that left. */
-static uint SendFromDistrict(const Town *t, MetroDistrictType type, uint amount)
+/** Send @p amount passengers from random houses of the list to the stations around them; returns those that left. */
+static uint SendFromHouses(const Town *t, const std::vector<TileIndex> &houses, uint amount)
 {
 	CargoType pass = GetCargoTypeByLabel(CT_PASSENGERS);
-	if (amount == 0 || !IsValidCargoType(pass)) return 0;
-	std::vector<TileIndex> houses;
-	ForTownHouseTiles(t, [&](TileIndex tile) {
-		if (GetMetroDistrictTypeAt(t, tile) == to_underlying(type)) houses.push_back(tile);
-	});
-	if (houses.empty()) return 0;
+	if (amount == 0 || houses.empty() || !IsValidCargoType(pass)) return 0;
 	uint moved = 0;
 	uint parts = std::min<uint>(METRO_COMMUTE_SPREAD_HOUSES, amount);
 	for (uint i = 0; i < parts; i++) {
@@ -235,44 +256,83 @@ static uint SendFromDistrict(const Town *t, MetroDistrictType type, uint amount)
 	return moved;
 }
 
-/** Daily: workers go from the residential districts to the jobs and back; the rest work in a neighbour town. */
-static void UpdateCommuting()
+/** One day of commuting of a town: workers go to the jobs and back; the rest work in a neighbour town. */
+static void CommuteTown(const Town *t)
 {
-	/* Workers and jobs of every active town with districts, computed once. */
-	std::vector<std::tuple<const Town *, uint32_t, uint32_t>> towns;
-	for (const Town *t : Town::Iterate()) {
-		if (!MetroCityIsTownActive(t) || GetTownDistricts(t).empty()) continue;
-		std::vector<MetroDistrictStats> stats = MetroTownGetDistrictStats(t);
-		towns.emplace_back(t, stats[to_underlying(MetroDistrictType::Residential)].population * METRO_COMMUTE_WORKER_PERCENT / 100,
-				stats[to_underlying(MetroDistrictType::Business)].population * METRO_COMMUTE_JOB_PERCENT / 100);
-	}
-	for (const auto &[t, workers, jobs] : towns) {
-		uint32_t local = std::min(workers, jobs);
-		bool neighbour_jobs = false;
-		if (workers > jobs) {
-			for (const auto &[other, other_workers, other_jobs] : towns) {
-				if (other != t && other_jobs > other_workers && DistanceManhattan(t->xy, other->xy) <= METRO_MIGRATION_REGION_TILES) neighbour_jobs = true;
+	std::vector<TileIndex> houses[to_underlying(MetroDistrictType::End)];
+	uint32_t population[to_underlying(MetroDistrictType::End)] = {};
+	ForTownHouseTiles(t, [&](TileIndex tile) {
+		int type = GetMetroDistrictTypeAt(t, tile);
+		if (type < 0) return;
+		houses[type].push_back(tile);
+		population[type] += GetHousePopulation(tile);
+	});
+	uint32_t workers = population[to_underlying(MetroDistrictType::Residential)] * METRO_COMMUTE_WORKER_PERCENT / 100;
+	uint32_t jobs = population[to_underlying(MetroDistrictType::Business)] * METRO_COMMUTE_JOB_PERCENT / 100;
+	_town_work[t->index.base()] = {workers, jobs};
+
+	uint32_t local = std::min(workers, jobs);
+	bool neighbour_jobs = false;
+	if (workers > jobs) {
+		for (const auto &[other, work] : _town_work) {
+			const Town *o = Town::GetIfValid(other);
+			if (o != nullptr && o != t && work.second > work.first && DistanceManhattan(t->xy, o->xy) <= METRO_MIGRATION_REGION_TILES) {
+				neighbour_jobs = true;
+				break;
 			}
 		}
-		uint32_t out = neighbour_jobs ? workers - jobs : 0;
-
-		uint daily_local = local * METRO_COMMUTE_DAILY_PERMILLE / 1000;
-		uint daily_out = out * METRO_COMMUTE_DAILY_PERMILLE / 1000;
-		MetroTownLifeState &state = GetLifeState(t->index);
-		/* To work from the residential districts, back home from the business districts. */
-		state.commuters_month += SendFromDistrict(t, MetroDistrictType::Residential, daily_local);
-		state.commuters_month += SendFromDistrict(t, MetroDistrictType::Business, daily_local);
-		uint moved_out = SendFromDistrict(t, MetroDistrictType::Residential, daily_out);
-		state.commuters_month += moved_out;
-		state.commuters_out_month += moved_out;
 	}
+	uint32_t out = neighbour_jobs ? workers - jobs : 0;
+
+	uint daily_local = local * METRO_COMMUTE_DAILY_PERMILLE / 1000;
+	uint daily_out = out * METRO_COMMUTE_DAILY_PERMILLE / 1000;
+	const std::vector<TileIndex> &residential = houses[to_underlying(MetroDistrictType::Residential)];
+	const std::vector<TileIndex> &business = houses[to_underlying(MetroDistrictType::Business)];
+	MetroTownLifeState &state = GetLifeState(t->index);
+	/* To work from the residential districts, back home from the business districts. */
+	state.commuters_month += SendFromHouses(t, residential, daily_local);
+	state.commuters_month += SendFromHouses(t, business, daily_local);
+	uint moved_out = SendFromHouses(t, residential, daily_out);
+	state.commuters_month += moved_out;
+	state.commuters_out_month += moved_out;
+}
+
+/** Each tick a slice of the towns has its commuting day, so the work is spread over the day. */
+static void UpdateCommutingSlice(uint slice, uint slices)
+{
+	for (const Town *t : Town::Iterate()) {
+		if (t->index.base() % slices != slice || !MetroCityIsTownActive(t) || GetTownDistrictIndices(t).empty()) continue;
+		CommuteTown(t);
+	}
+}
+
+static void UpdateCommuting()
+{
+	for (uint slice = 0; slice < DAY_TICKS; slice++) UpdateCommutingSlice(slice, DAY_TICKS);
 }
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Migration                                                                                      */
 /* ---------------------------------------------------------------------------------------------- */
 
-/** Attractiveness of the town, 0..100: transport, service of the stations, services and rating. */
+/** Passenger rating of the human players' stations per town (sum, count), filled by #CollectStationRatings. */
+static std::unordered_map<uint16_t, std::pair<uint, uint>> _town_station_ratings;
+
+static void CollectStationRatings()
+{
+	_town_station_ratings.clear();
+	for (const Station *st : Station::Iterate()) {
+		if (!Company::IsValidHumanID(st->owner)) continue;
+		for (CargoType cargo : CargoSpec::town_production_cargo_mask[TownProductionEffect::Passengers]) {
+			if (!st->goods[cargo].HasRating()) continue;
+			auto &[sum, count] = _town_station_ratings[st->town->index.base()];
+			sum += st->goods[cargo].rating * 100 / 255;
+			count++;
+		}
+	}
+}
+
+/** Attractiveness of the town, 0..100: transport, service of the stations, services and rating. Needs #CollectStationRatings. */
 static uint ComputeAttractiveness(const Town *t)
 {
 	uint32_t transported = 0;
@@ -285,17 +345,8 @@ static uint ComputeAttractiveness(const Town *t)
 	}
 	uint transport = produced == 0 ? 0 : std::min<uint>(100, transported * 100 / produced);
 
-	uint rating_sum = 0;
-	uint rating_count = 0;
-	for (const Station *st : Station::Iterate()) {
-		if (st->town != t || !Company::IsValidHumanID(st->owner)) continue;
-		for (CargoType cargo : CargoSpec::town_production_cargo_mask[TownProductionEffect::Passengers]) {
-			if (!st->goods[cargo].HasRating()) continue;
-			rating_sum += st->goods[cargo].rating * 100 / 255;
-			rating_count++;
-		}
-	}
-	uint service = rating_count == 0 ? 0 : rating_sum / rating_count;
+	auto ratings = _town_station_ratings.find(t->index.base());
+	uint service = (ratings == _town_station_ratings.end() || ratings->second.second == 0) ? 0 : ratings->second.first / ratings->second.second;
 
 	uint allowed = 0;
 	uint built = 0;
@@ -319,6 +370,7 @@ static uint ComputeAttractiveness(const Town *t)
 /** Every 5 months: compute the attractiveness and move people to better neighbour active towns. */
 static void UpdateMigration()
 {
+	CollectStationRatings();
 	std::vector<Town *> towns;
 	for (Town *t : Town::Iterate()) {
 		if (!MetroCityIsTownActive(t)) continue;
@@ -374,8 +426,8 @@ uint MetroTownAdjustGrowthRate(const Town *t, uint rate)
 	return std::max(rate, 1u);
 }
 
-static const IntervalTimer<TimerGameCalendar> _metro_town_daily({TimerGameCalendar::Trigger::Day, TimerGameCalendar::Priority::None}, [](auto) {
-	UpdateCommuting();
+static const IntervalTimer<TimerGameTick> _metro_town_ticks({TimerGameTick::Priority::None, 1}, [](auto) {
+	UpdateCommutingSlice(_tick_counter % DAY_TICKS, DAY_TICKS);
 });
 
 static const IntervalTimer<TimerGameCalendar> _metro_town_monthly({TimerGameCalendar::Trigger::Month, TimerGameCalendar::Priority::None}, [](auto) {
@@ -451,6 +503,7 @@ bool ConMetroTown(std::span<std::string_view> argv)
 		for (uint i = 0; i < stats.size(); i++) {
 			IConsolePrint(CC_DEFAULT, "{}: districts {}, houses {}, residents {}", GetString(_metro_district_specs[i].name), stats[i].districts, stats[i].houses, stats[i].population);
 		}
+		CollectStationRatings();
 		IConsolePrint(CC_DEFAULT, "workers {}, jobs {}, attractiveness now {}", MetroTownGetWorkers(t), MetroTownGetJobs(t), ComputeAttractiveness(t));
 		for (const std::string &line : MetroTownGetViewLines(t)) IConsolePrint(CC_DEFAULT, "{}", line);
 		return true;

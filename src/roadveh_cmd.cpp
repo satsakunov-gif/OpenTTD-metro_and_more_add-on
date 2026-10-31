@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "roadveh.h"
+#include "metro_traffic.h"
 #include "command_func.h"
 #include "error_func.h"
 #include "news_func.h"
@@ -546,6 +547,7 @@ inline int RoadVehicle::GetCurrentMaxSpeed() const
 		}
 	}
 
+	max_speed = MetroTrafficAdjustRoadVehicleSpeed(this, max_speed); // Metro mod: traffic jams in active towns.
 	return std::min(max_speed, this->current_order.GetMaxSpeed() * 2);
 }
 

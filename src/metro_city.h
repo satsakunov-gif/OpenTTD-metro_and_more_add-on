@@ -94,6 +94,7 @@ PaletteID MetroCityAdjustHousePalette(TileIndex tile, PaletteID pal);
 
 /* Tourists and matches. */
 Money MetroCityDeliveryBonus(const Station *st, CargoType cargo, uint amount, Money profit);
+TileIndex MetroCityGetMatchDayStadium(TownID town, uint8_t *level = nullptr);
 
 /* Town window. */
 std::vector<std::string> MetroCityGetTownViewLines(const Town *t);

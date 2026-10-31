@@ -1128,6 +1128,8 @@ SettingsContainer &GetSettingsTree()
 			{
 				authorities->Add(new SettingEntry("difficulty.town_council_tolerance"));
 				authorities->Add(new SettingEntry("economy.metro_mayor_loyalty"));
+				authorities->Add(new SettingEntry("economy.metro_town_cars"));
+				authorities->Add(new SettingEntry("economy.metro_pedestrians"));
 				authorities->Add(new SettingEntry("economy.bribe"));
 				authorities->Add(new SettingEntry("economy.exclusive_rights"));
 				authorities->Add(new SettingEntry("economy.fund_roads"));

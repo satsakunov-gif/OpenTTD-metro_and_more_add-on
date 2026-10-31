@@ -12,6 +12,7 @@
 #include "metro_city.h"
 #include "metro_power.h"
 #include "metro_town.h"
+#include "metro_traffic.h"
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
 #include "crashlog.h"
@@ -4466,6 +4467,7 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("metro_city",              ConMetroCity);
 	IConsole::CmdRegister("metro_power",             ConMetroPower);
 	IConsole::CmdRegister("metro_town",              ConMetroTown);
+	IConsole::CmdRegister("metro_traffic",           ConMetroTraffic);
 	IConsole::CmdRegister("exit",                    ConExit);
 	IConsole::CmdRegister("part",                    ConPart);
 	IConsole::CmdRegister("help",                    ConHelp);

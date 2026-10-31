@@ -2455,3 +2455,7 @@ STR_METRO_TOWN_DISTRICTS_LINE                                   :{BLACK}Райо
 STR_METRO_TOWN_JOBS_LINE                                        :{BLACK}Работников: {NUM}, рабочих мест: {NUM}
 STR_METRO_TOWN_COMMUTERS_LINE                                   :{BLACK}Поездок на работу за прошлый месяц: {NUM} (в соседний город: {NUM})
 STR_METRO_TOWN_ATTRACT_LINE                                     :{BLACK}Привлекательность: {NUM}/100; приехало / уехало за год: {NUM} / {NUM} (в прошлом году {NUM} / {NUM})
+STR_CONFIG_SETTING_METRO_TOWN_CARS                              :Машинки в городах: {STRING}
+STR_CONFIG_SETTING_METRO_TOWN_CARS_HELPTEXT                     :Мод «Метро». По дорогам активных городов ездят частные машины (больше при большем населении, меньше, если город хорошо обслужен вашим транспортом). Их пробки замедляют ваши автобусы, грузовики и трамваи на городских дорогах. Выключено — нет ни машинок, ни пробок.
+STR_CONFIG_SETTING_METRO_PEDESTRIANS                            :Пешеходы: {STRING}
+STR_CONFIG_SETTING_METRO_PEDESTRIANS_HELPTEXT                   :Мод «Метро». Пешеходы идут к остановкам и станциям активных городов. Видны только при сильном приближении; на игру не влияют.

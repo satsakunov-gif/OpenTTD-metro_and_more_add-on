@@ -306,6 +306,8 @@ add_files(
     metro_town.cpp
     metro_town.h
     metro_town_gui.cpp
+    metro_traffic.cpp
+    metro_traffic.h
     misc.cpp
     misc_cmd.cpp
     misc_cmd.h

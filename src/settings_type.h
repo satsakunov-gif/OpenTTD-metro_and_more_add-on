@@ -943,6 +943,8 @@ struct EconomySettings {
 	CargoPaymentAlgorithm payment_algorithm; ///< Cargo payment algorithm
 	uint8_t industry_event_rate;             ///< Rate of industry events
 	uint8_t metro_mayor_loyalty;             ///< Metro mod: how loyal the AI mayors are (#MetroMayorLoyalty)
+	bool    metro_town_cars;                 ///< Metro mod: private cars in active towns (and traffic jams)
+	bool    metro_pedestrians;               ///< Metro mod: pedestrians in active towns
 };
 
 struct OldEconomySettings {

@@ -633,6 +633,11 @@ static TileIndex GetMatchDayStadium(TownID town, uint8_t *level = nullptr)
 	return st->second;
 }
 
+TileIndex MetroCityGetMatchDayStadium(TownID town, uint8_t *level)
+{
+	return GetMatchDayStadium(town, level);
+}
+
 /** Current step of the floodlight flicker. */
 static int GetStadiumLightBrightness()
 {
@@ -752,7 +757,7 @@ static TileIndex FindServiceTile(const Town *t, MetroServiceType type, CompanyID
 bool ConMetroCity(std::span<std::string_view> argv)
 {
 	if (argv.empty()) {
-		IConsolePrint(CC_HELP, "Metro mod towns. Usage: metro_city towns | activate <town id> | deactivate <town id> | all | build <0-2> <town id> | services <town id> | view <town id> | match <town id> [0-2] | landmarks'.");
+		IConsolePrint(CC_HELP, "Metro mod towns. Usage: metro_city towns | activate <town id> | deactivate <town id> | all | build <0-2> <town id> | services <town id> | view <town id> | match <town id> [0-2 [now]] | landmarks'.");
 		IConsolePrint(CC_HELP, "  build: 0 school, 1 hospital, 2 university; built by your company near the town centre.");
 		return true;
 	}
@@ -824,6 +829,14 @@ bool ConMetroCity(std::span<std::string_view> argv)
 		state.next_match = CalTime::CurDate().base() + METRO_MATCH_ANNOUNCE_DAYS;
 		if (argv.size() > 3) state.match_level = static_cast<uint8_t>(std::min<uint>(ParseInteger<uint>(argv[3]).value_or(0), to_underlying(MetroMatchLevel::Final)));
 		state.match_announced = false;
+		if (argv.size() > 4 && argv[4] == "now") {
+			/* For tests: the match is played today. */
+			state.next_match = CalTime::CurDate().base();
+			state.match_announced = true;
+			UpdateMatches();
+			IConsolePrint(CC_INFO, "The match is played today.");
+			return true;
+		}
 		IConsolePrint(CC_INFO, "Match in {} days; the news comes tomorrow.", METRO_MATCH_ANNOUNCE_DAYS);
 		return true;
 	}

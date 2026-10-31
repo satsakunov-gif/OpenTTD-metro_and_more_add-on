@@ -2774,3 +2774,7 @@ STR_METRO_TOWN_DISTRICTS_LINE                                   :{BLACK}District
 STR_METRO_TOWN_JOBS_LINE                                        :{BLACK}Workers: {NUM}, jobs: {NUM}
 STR_METRO_TOWN_COMMUTERS_LINE                                   :{BLACK}Commuters last month: {NUM} (to work in a neighbour town: {NUM})
 STR_METRO_TOWN_ATTRACT_LINE                                     :{BLACK}Attractiveness: {NUM}/100; moved in / out this year: {NUM} / {NUM} (last year {NUM} / {NUM})
+STR_CONFIG_SETTING_METRO_TOWN_CARS                              :Private cars in towns: {STRING2}
+STR_CONFIG_SETTING_METRO_TOWN_CARS_HELPTEXT                     :Metro mod. Private cars drive on the roads of active towns (more with more residents, fewer when your transport serves the town well). Their jams slow your buses, trucks and trams on town roads. Switched off: no cars and no jams.
+STR_CONFIG_SETTING_METRO_PEDESTRIANS                            :Pedestrians in towns: {STRING2}
+STR_CONFIG_SETTING_METRO_PEDESTRIANS_HELPTEXT                   :Metro mod. Pedestrians walk to the stops and stations of active towns. Only seen when zoomed in close; they do not affect the game.
