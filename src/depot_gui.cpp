@@ -8,6 +8,7 @@
 /** @file depot_gui.cpp The GUI for depots. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
 #include "train.h"
 #include "roadveh.h"
 #include "ship.h"
@@ -295,6 +296,7 @@ struct DepotWindow : Window {
 
 	DepotWindow(WindowDesc &desc, TileIndex tile, VehicleType type) : Window(desc)
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(tile)); // Metro mod: underground depot.
 		assert(IsCompanyBuildableVehicleType(type)); // ensure that we make the call with a valid type
 
 		this->type = type;
@@ -415,6 +417,7 @@ struct DepotWindow : Window {
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (widget != WID_D_MATRIX) return;
 
 		bool rtl = _current_text_dir == TD_RTL;
@@ -473,6 +476,7 @@ struct DepotWindow : Window {
 
 	std::string GetWidgetString(WidgetID widget, StringID stringid) const override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (widget == WID_D_CAPTION) return GetString(STR_DEPOT_CAPTION, this->type, this->GetDestinationIndex());
 
 		return this->Window::GetWidgetString(widget, stringid);
@@ -697,12 +701,14 @@ struct DepotWindow : Window {
 
 	void OnInit() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		this->cell_size = GetVehicleImageCellSize(this->type, EngineImageType::InDepot);
 		this->flag_size = maxdim(GetScaledSpriteSize(SPR_FLAG_VEH_STOPPED), GetScaledSpriteSize(SPR_FLAG_VEH_RUNNING));
 	}
 
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		switch (widget) {
 			case WID_D_MATRIX: {
 				uint min_height = 0;
@@ -748,6 +754,7 @@ struct DepotWindow : Window {
 	 */
 	void OnInvalidateData([[maybe_unused]] int data = 0, [[maybe_unused]] bool gui_scope = true) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		this->generate_list = true;
 	}
 
@@ -766,6 +773,7 @@ struct DepotWindow : Window {
 
 	void OnPaint() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		this->RefreshVehicleList();
 
 		if (this->check_unitnumber_digits) {
@@ -814,6 +822,7 @@ struct DepotWindow : Window {
 
 	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		switch (widget) {
 			case WID_D_MATRIX: // List
 				this->DepotClick(pt.x, pt.y);
@@ -889,6 +898,7 @@ struct DepotWindow : Window {
 
 	void OnQueryTextFinished(std::optional<std::string> str) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (!str.has_value()) return;
 
 		/* Do depot renaming */
@@ -897,6 +907,7 @@ struct DepotWindow : Window {
 
 	bool OnRightClick([[maybe_unused]] Point pt, WidgetID widget) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (widget != WID_D_MATRIX) return false;
 
 		DepotActionResult result = this->GetVehicleFromDepotWndPt(pt.x, pt.y);
@@ -954,6 +965,7 @@ struct DepotWindow : Window {
 	 */
 	bool OnVehicleSelect(const Vehicle *v) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (_ctrl_pressed) {
 			/* Share-clone, do not open new viewport, and keep tool active */
 			Command<Commands::CloneVehicle>::Post(STR_ERROR_CAN_T_BUY_TRAIN + to_underlying(v->type), _settings_client.gui.open_vehicle_gui_clone_share ? CommandCallback::CloneVehicle : CommandCallback::None, TileIndex(this->window_number), v->index, true);
@@ -974,6 +986,7 @@ struct DepotWindow : Window {
 	 */
 	bool OnTemplateVehicleSelect(const TemplateVehicle *tv) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		/* Copy-clone, open viewport for new vehicle, and deselect the tool (assume player wants to change things on new vehicle) */
 		if (Command<Commands::CloneVehicleFromTemplate>::Post(STR_ERROR_CAN_T_BUY_TRAIN, CommandCallback::CloneVehicle, TileIndex(this->window_number), tv->index)) {
 			ResetObjectToPlace();
@@ -992,6 +1005,7 @@ struct DepotWindow : Window {
 	 */
 	bool OnVehicleSelect(VehicleList::const_iterator begin, VehicleList::const_iterator end) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (!_ctrl_pressed) {
 			/* If CTRL is not pressed: If all the vehicles in this list have the same orders, then copy orders */
 			if (AllEqual(begin, end, [](const Vehicle *v1, const Vehicle *v2) {
@@ -1033,6 +1047,7 @@ struct DepotWindow : Window {
 
 	void OnPlaceObjectAbort() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		/* abort clone */
 		this->RaiseWidget(WID_D_CLONE);
 		this->SetWidgetDirty(WID_D_CLONE);
@@ -1051,6 +1066,7 @@ struct DepotWindow : Window {
 
 	void OnMouseLoop() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (last_overlay_state != ShowCargoIconOverlay()) {
 			last_overlay_state = ShowCargoIconOverlay();
 			this->SetWidgetDirty(WID_D_MATRIX);
@@ -1059,6 +1075,7 @@ struct DepotWindow : Window {
 
 	void OnMouseDrag(Point pt, WidgetID widget) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (this->sel == VehicleID::Invalid()) return;
 		if (widget != this->hovered_widget) {
 			if (this->hovered_widget == WID_D_SELL || this->hovered_widget == WID_D_SELL_CHAIN) {
@@ -1108,6 +1125,7 @@ struct DepotWindow : Window {
 
 	void OnDragDrop(Point pt, WidgetID widget) override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		switch (widget) {
 			case WID_D_MATRIX: {
 				DepotActionResult result = this->GetVehicleFromDepotWndPt(pt.x, pt.y);
@@ -1160,6 +1178,7 @@ struct DepotWindow : Window {
 
 	void OnTimeout() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (!this->IsWidgetDisabled(WID_D_SELL)) {
 			this->RaiseWidget(WID_D_SELL);
 			this->SetWidgetDirty(WID_D_SELL);
@@ -1172,6 +1191,7 @@ struct DepotWindow : Window {
 
 	void OnResize() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		this->vscroll->SetCapacityFromWidget(this, WID_D_MATRIX);
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_D_MATRIX);
 		if (this->type == VehicleType::Train) {
@@ -1183,6 +1203,7 @@ struct DepotWindow : Window {
 
 	EventState OnCTRLStateChange() override
 	{
+		MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex{static_cast<uint32_t>(this->window_number)})); // Metro mod: underground depot.
 		if (this->sel != VehicleID::Invalid()) {
 			_cursor.vehchain = _ctrl_pressed;
 			this->SetWidgetDirty(WID_D_MATRIX);

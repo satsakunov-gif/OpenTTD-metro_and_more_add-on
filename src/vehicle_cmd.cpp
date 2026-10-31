@@ -8,6 +8,7 @@
 /** @file vehicle_cmd.cpp Commands for vehicles. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
 #include "roadveh.h"
 #include "news_func.h"
 #include "airport.h"
@@ -1645,6 +1646,7 @@ CommandCost CmdSendVehicleToDepot(DoCommandFlags flags, VehicleID veh_id, DepotC
 	if (v == nullptr || !IsCompanyBuildableVehicleType(v)) return CMD_ERROR;
 	if (!v->IsPrimaryVehicle()) return CMD_ERROR;
 
+	MetroUndergroundScope metro_scope(v->type == VehicleType::Train && IsMetroOverlayTile(v->tile)); // Metro mod: trains under the ground.
 	return v->SendToDepot(flags, depot_cmd, specific_depot);
 }
 

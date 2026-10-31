@@ -2556,3 +2556,6 @@ STR_METRO_UNDERGROUND_ROW_STATION                               :Подземн�
 STR_METRO_UNDERGROUND_ERR_CANT_STATION                          :{WHITE}Здесь нельзя построить подземную платформу...
 STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE                           :{WHITE}... сначала постройте вход в пределах 3 тайлов
 STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... платформе нужны свободные тайлы под землёй
+STR_METRO_UNDERGROUND_ROW_TRANSFORMER                           :Трансформер, выход к путям поверхности: {STRING} ({CURRENCY_LONG}; щёлкните ещё раз — повернуть)
+STR_METRO_UNDERGROUND_ERR_CANT_TRANSFORMER                      :{WHITE}Здесь нельзя построить трансформер...
+STR_METRO_UNDERGROUND_ERR_TRANSFORMER_SIDE                      :{WHITE}... сторона трансформера к поверхности должна быть вне метро

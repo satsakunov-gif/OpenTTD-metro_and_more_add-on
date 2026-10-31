@@ -8,6 +8,7 @@
 /** @file train_cmd.cpp Handling of trains. */
 
 #include "stdafx.h"
+#include "metro_underground.h"
 #include "error.h"
 #include "metro_power.h"
 #include "articulated_vehicles.h"
@@ -1128,6 +1129,7 @@ Train::MaxSpeedInfo Train::GetCurrentMaxSpeedInfoInternal(bool update_state) con
 			std::min<int>(this->tcache.cached_max_curve_speed, this->gcache.cached_max_track_speed);
 
 	if (this->current_order.IsType(OT_LOADING_ADVANCE)) max_speed = std::min<int>(max_speed, _settings_game.vehicle.through_load_speed_limit);
+	max_speed = MetroAdjustTrainSpeed(this, max_speed); // Metro mod: slow on transformers and inclines.
 
 	/* If the train is going backwards, without a leading cab, restrict its speed. */
 	if (this->tcache.cached_tflags & TCF_NO_DRIVING_CAB) {

@@ -8,6 +8,7 @@
 /** @file build_vehicle_gui.cpp GUI for building vehicles. */
 
 #include "stdafx.h"
+#include "metro_overlay.h"
 #include "engine_base.h"
 #include "engine_cmd.h"
 #include "engine_func.h"
@@ -2036,6 +2037,7 @@ struct BuildVehicleWindow : BuildVehicleWindowBase {
 		} else {
 			CommandCallback callback = (this->vehicle_type == VehicleType::Train && RailVehInfo(sel_eng)->railveh_type == RailVehicleType::Wagon)
 					? CommandCallback::BuildWagon : CommandCallback::BuildPrimaryVehicle;
+			MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex(this->window_number))); // Metro mod: underground depot.
 			Command<Commands::BuildVehicle>::Post(GetCmdBuildVehMsg(this->vehicle_type), callback, TileIndex(this->window_number), sel_eng, true, cargo, ClientID::Invalid);
 		}
 
@@ -2866,6 +2868,7 @@ struct BuildVehicleWindowTrainAdvanced final : BuildVehicleWindowBase {
 			} else {
 				CommandCallback callback = (this->vehicle_type == VehicleType::Train && RailVehInfo(selected)->railveh_type == RailVehicleType::Wagon)
 						? CommandCallback::BuildWagon : CommandCallback::BuildPrimaryVehicle;
+				MetroUndergroundScope metro_scope(IsMetroOverlayTile(TileIndex(this->window_number))); // Metro mod: underground depot.
 				Command<Commands::BuildVehicle>::Post(GetCmdBuildVehMsg(this->vehicle_type), callback, TileIndex(this->window_number), selected, true, cargo, ClientID::Invalid);
 			}
 

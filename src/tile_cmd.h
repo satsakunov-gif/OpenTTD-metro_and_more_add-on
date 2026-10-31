@@ -273,6 +273,8 @@ inline bool MayAnimateTile(TileIndex tile)
 
 inline bool ClickTile(TileIndex tile)
 {
+	extern bool MetroClickUndergroundTile(TileIndex tile);
+	if (MetroClickUndergroundTile(tile)) return true; // Metro mod: the underground view.
 	ClickTileProc *proc = _tile_type_procs[GetTileType(tile)]->click_tile_proc;
 	if (proc == nullptr) return false;
 	return proc(tile);

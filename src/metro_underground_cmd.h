@@ -18,6 +18,7 @@ DEF_CMD_TUPLE(Commands::MetroBuildUndergroundTrack, CmdMetroBuildUndergroundTrac
 DEF_CMD_TUPLE(Commands::MetroBuildIncline,          CmdMetroBuildIncline,          CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t>)
 DEF_CMD_TUPLE(Commands::MetroBuildUndergroundDepot, CmdMetroBuildUndergroundDepot, CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<uint8_t, DiagDirection, bool>)
 DEF_CMD_TUPLE(Commands::MetroBuildUndergroundStation, CmdMetroBuildUndergroundStation, CMD_AUTO,              CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t>)
+DEF_CMD_TUPLE(Commands::MetroBuildTransformer,  CmdMetroBuildTransformer,  CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<DiagDirection>)
 DEF_CMD_TUPLE(Commands::MetroBuildEntrance,         CmdMetroBuildEntrance,         CMD_NO_WATER | CMD_AUTO, CommandType::LandscapeConstruction, CmdDataT<uint8_t>)
 
 #endif /* METRO_UNDERGROUND_CMD_H */

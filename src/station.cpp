@@ -502,7 +502,7 @@ bool Station::CatchmentCoversTown(TownID t) const
  */
 void Station::RecomputeCatchment(bool no_clear_nearby_lists)
 {
-	MetroUndergroundScope metro_scope(MetroStationIsUnderground(this)); // Metro mod: platforms under the ground.
+	const bool metro = MetroStationIsUnderground(this); // Metro mod: platforms under the ground.
 	this->industries_near.clear();
 	if (!no_clear_nearby_lists) this->RemoveFromAllNearbyLists();
 
@@ -537,23 +537,28 @@ void Station::RecomputeCatchment(bool no_clear_nearby_lists)
 		return;
 	}
 
-	this->catchment_tiles.Initialize(GetCatchmentRect());
+	/* Metro mod: the entrances of an underground station widen its catchment. */
+	this->catchment_tiles.Initialize(metro ? this->GetCatchmentRectUsingRadius(this->GetCatchmentRadius() + MetroEntranceCatchmentMargin()) : GetCatchmentRect());
 
 	/* Loop finding all station tiles */
-	TileArea ta(TileXY(this->rect.left, this->rect.top), TileXY(this->rect.right, this->rect.bottom));
-	this->station_tiles = 0;
-	for (TileIndex tile : ta) {
-		if (!IsTileType(tile, TileType::Station) || GetStationIndex(tile) != this->index) continue;
+	{
+		MetroUndergroundScope metro_scope(metro); // Metro mod: platforms under the ground.
+		TileArea ta(TileXY(this->rect.left, this->rect.top), TileXY(this->rect.right, this->rect.bottom));
+		this->station_tiles = 0;
+		for (TileIndex tile : ta) {
+			if (!IsTileType(tile, TileType::Station) || GetStationIndex(tile) != this->index) continue;
 
-		this->station_tiles++;
+			this->station_tiles++;
 
-		uint r = GetTileCatchmentRadius(tile, this);
-		if (r == CA_NONE) continue;
+			uint r = GetTileCatchmentRadius(tile, this);
+			if (r == CA_NONE) continue;
 
-		/* This tile sub-loop doesn't need to test any tiles, they are simply added to the catchment set. */
-		TileArea ta2 = TileArea(tile, 1, 1).Expand(r);
-		this->catchment_tiles.SetTiles(ta2);
+			/* This tile sub-loop doesn't need to test any tiles, they are simply added to the catchment set. */
+			TileArea ta2 = TileArea(tile, 1, 1).Expand(r);
+			this->catchment_tiles.SetTiles(ta2);
+		}
 	}
+	if (metro) MetroAddEntranceCatchment(this);
 
 	/* Search catchment tiles for towns and industries */
 	BitmapTileIterator it(this->catchment_tiles);

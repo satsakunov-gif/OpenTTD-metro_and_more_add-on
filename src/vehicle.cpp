@@ -2151,7 +2151,7 @@ Vehicle *CheckClickOnVehicle(const Viewport *vp, int x, int y)
 			Vehicle *v = _vehicle_viewport_hash[hx + hy]; // already masked & 0xFFF
 
 			while (v != nullptr) {
-				if (!v->vehstatus.Test(VehState::Unclickable) && v->IsDrawn() &&
+				if (!v->vehstatus.Test(VehState::Unclickable) && v->IsDrawn() && (_metro_underground_view || !MetroIsUndergroundVehicleTile(v->tile)) &&
 					x >= v->coord.left && x <= v->coord.right &&
 					y >= v->coord.top && y <= v->coord.bottom) {
 

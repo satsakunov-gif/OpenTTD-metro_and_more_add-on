@@ -633,6 +633,11 @@ static void DrawTile_Object(TileInfo *ti, DrawTileProcParams params)
 		Owner to = GetTileOwner(ti->tile);
 		PaletteID palette = to == OWNER_NONE ? PAL_NONE : GetCompanyPalette(to);
 
+		if (type == OBJECT_METRO_ENTRANCE && Object::GetByTile(ti->tile)->view != 0) {
+			/* Metro mod: portal of a transformer. */
+			MetroDrawPortal(ti, static_cast<DiagDirection>(Object::GetByTile(ti->tile)->view - 1));
+			return;
+		}
 		if (type == OBJECT_HQ) {
 			TileIndexDiffCUnsigned diff = TileIndexToTileIndexDiffCUnsigned(ti->tile, Object::GetByTile(ti->tile)->location.tile);
 			dts = &_object_hq[GetCompanyHQSize(ti->tile) << 2 | diff.y << 1 | diff.x];

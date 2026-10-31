@@ -32,6 +32,7 @@ struct TileInfo;
 struct BaseStation;
 
 static constexpr uint8_t METRO_UNDERGROUND_PLATFORM = 0xFF; ///< #MetroUndergroundTile::depot of a station platform.
+static constexpr uint8_t METRO_UNDERGROUND_TRANSFORMER = 0xF0; ///< #MetroUndergroundTile::depot of a transformer: plus the direction to the surface track.
 
 /** One underground tile: track on a layer under a surface tile. */
 struct MetroUndergroundTile {
@@ -65,6 +66,12 @@ CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer);
 bool IsMetroEntranceObject(ObjectType type);
 CommandCost MetroCheckSurfaceRail(TileIndex tile, uint8_t bits);
 bool MetroStationIsUnderground(const BaseStation *st);
+uint MetroEntranceCatchmentMargin();
+void MetroAddEntranceCatchment(struct Station *st);
+bool GetMetroTransformerDir(TileIndex tile, DiagDirection &dir);
+bool IsMetroSlowTile(TileIndex tile);
+int MetroAdjustTrainSpeed(const struct Train *t, int max_speed);
+void MetroDrawPortal(struct TileInfo *ti, DiagDirection dir);
 
 void MetroUndergroundDrawTile(const TileInfo *ti);
 void MetroToggleUndergroundView();

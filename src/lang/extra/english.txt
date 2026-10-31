@@ -2875,3 +2875,6 @@ STR_METRO_UNDERGROUND_ROW_STATION                               :Underground pla
 STR_METRO_UNDERGROUND_ERR_CANT_STATION                          :{WHITE}Can't build the underground platform here...
 STR_METRO_UNDERGROUND_ERR_NO_ENTRANCE                           :{WHITE}... build an entrance within 3 tiles first
 STR_METRO_UNDERGROUND_ERR_PLATFORM_FREE                         :{WHITE}... the platform needs free tiles under the ground
+STR_METRO_UNDERGROUND_ROW_TRANSFORMER                           :Transformer to the surface track {STRING} ({CURRENCY_LONG}; click again to turn)
+STR_METRO_UNDERGROUND_ERR_CANT_TRANSFORMER                      :{WHITE}Can't build the transformer here...
+STR_METRO_UNDERGROUND_ERR_TRANSFORMER_SIDE                      :{WHITE}... the surface side of the transformer must be outside the metro
