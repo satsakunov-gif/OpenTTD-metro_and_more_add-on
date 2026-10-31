@@ -22,5 +22,6 @@ static constexpr uint METRO_ELEVATED_SPAN_COST_PERCENT = 200;      ///< A span c
 /** Pillar sprites under the elevated track (vanilla steel girder bridge pillars), by axis X and Y. */
 static constexpr SpriteID METRO_ELEVATED_PILLAR_X = SPR_BTSGA_X_PILLAR;
 static constexpr SpriteID METRO_ELEVATED_PILLAR_Y = SPR_BTSGA_Y_PILLAR;
+static constexpr int METRO_ELEVATED_PILLAR_OFFSET = 7;  ///< The single pillar stands this far into the tile across the beam (middle).
 
 #endif /* METRO_ELEVATED_TABLES_H */

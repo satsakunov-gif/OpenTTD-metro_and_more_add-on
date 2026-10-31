@@ -2435,9 +2435,8 @@ static void DrawTile_TunnelBridge(TileInfo *ti, DrawTileProcParams params)
 		}
 		if (transport_type == TransportType::Rail && GetMetroElevation(ti->tile) != 0) {
 			/* Metro mod: head of the elevated monorail, a pillar with the track on top. */
-			extern void DrawTrackBits(TileInfo *ti, TrackBits track, RailType rt, RailGroundType rgt, bool is_bridge, Corner halftile_corner, Corner draw_half_tile);
 			MetroDrawElevatedBase(ti, GetMetroElevation(ti->tile), DiagDirToAxis(tunnelbridge_direction));
-			DrawTrackBits(ti, GetCustomBridgeHeadTrackBits(ti->tile), GetRailType(ti->tile), GetTunnelBridgeGroundType(ti->tile), true, Corner::Invalid, Corner::Invalid);
+			MetroDrawElevatedPieces(ti, GetRailType(ti->tile), GetCustomBridgeHeadTrackBits(ti->tile));
 			DrawBridgeMiddle(ti);
 			return;
 		}
@@ -2752,6 +2751,14 @@ void DrawBridgeMiddle(const TileInfo *ti)
 		special_flags = VSSSF_SORT_SPECIAL | VSSSF_SORT_SORT_BRIDGE_BB;
 	}
 	AddSortableSpriteToDraw(SPR_EMPTY_BOUNDING_BOX, PAL_NONE, x, y, bridge_z - TILE_HEIGHT + BB_Z_SEPARATOR, {{}, {TILE_SIZE, TILE_SIZE, 1}, {}}, false, nullptr, special_flags);
+
+	/* Metro mod: a span of the elevated monorail is just the beam (vanilla monorail sprite for now). */
+	if (transport_type == TransportType::Rail && GetMetroElevation(rampsouth) != 0) {
+		if (IsInvisibilitySet(TransparencyOption::Bridges)) return;
+		const RailTypeInfo *rti = GetRailTypeInfo(GetRailType(rampsouth));
+		AddSortableSpriteToDraw(axis == Axis::X ? rti->base_sprites.single_x : rti->base_sprites.single_y, PAL_NONE, x, y, bridge_z, {{}, {TILE_SIZE, TILE_SIZE, 0}, {}}, IsTransparencySet(TransparencyOption::Bridges));
+		return;
+	}
 
 	/* Draw Trambits as SpriteCombine */
 	if (transport_type == TransportType::Road || transport_type == TransportType::Rail) StartSpriteCombine();

@@ -93,6 +93,8 @@ extern uint _metro_elevated_bridge_level;
 
 /* Drawing. */
 void MetroDrawElevatedBase(TileInfo *ti, uint level, Axis axis);
+void MetroDrawElevatedPieces(const TileInfo *ti, RailType rt, TrackBits bits);
+void MetroDrawElevatedTrack(TileInfo *ti, TrackBits rails);
 
 /* Saves. */
 void MetroElevatedAfterLoad();

@@ -4161,12 +4161,12 @@ static void DrawTile_Rail(TileInfo *ti, DrawTileProcParams params)
 		if (!IsBridgeAbove(ti->tile) && params.min_visible_height > std::max<int>(SIGNAL_DIRTY_TOP, (TILE_HEIGHT + BB_HEIGHT_UNDER_BRIDGE) * ZOOM_BASE) + metro_extra && !_signal_sprite_oversized) return;
 
 		TrackBits rails = GetTrackBits(ti->tile);
-		if (metro_level != 0) MetroDrawElevatedBase(ti, metro_level, (rails & TRACK_BIT_Y) != TRACK_BIT_NONE && (rails & TRACK_BIT_X) == TRACK_BIT_NONE ? Axis::Y : Axis::X);
-		if (metro_ramp) ti->tileh = InclinedSlope(GetMetroRampUpDir(ti->tile));
-
-		DrawTrackBits(ti, rails);
-
-		if (_display_opt.Test(DisplayOption::FullDetail)) DrawTrackDetails(ti, rti, GetRailGroundType(ti->tile), pal);
+		if (metro_level != 0 || metro_ramp) {
+			MetroDrawElevatedTrack(ti, rails); // One beam on one pillar.
+		} else {
+			DrawTrackBits(ti, rails);
+			if (_display_opt.Test(DisplayOption::FullDetail)) DrawTrackDetails(ti, rti, GetRailGroundType(ti->tile), pal);
+		}
 
 		const RailType secondary_railtype = GetTileSecondaryRailTypeIfValid(ti->tile);
 

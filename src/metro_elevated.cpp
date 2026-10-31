@@ -38,6 +38,7 @@
 #include "town.h"
 #include "town_map.h"
 #include "transparency.h"
+#include "track_func.h"
 #include "tunnelbridge_cmd.h"
 #include "vehicle_func.h"
 #include "viewport_func.h"
@@ -177,17 +178,15 @@ void MetroDrawElevatedBase(TileInfo *ti, uint level, Axis axis)
 
 	int deck = ti->z + static_cast<int>(level * TILE_HEIGHT);
 	if (!IsInvisibilitySet(TransparencyOption::Bridges)) {
-		/* Front and back pillars, as under a bridge along the axis. */
+		/* One pillar in the middle of the tile, under the beam. */
 		SpriteID pillar = axis == Axis::X ? METRO_ELEVATED_PILLAR_X : METRO_ELEVATED_PILLAR_Y;
 		uint8_t w = axis == Axis::X ? TILE_SIZE : 2;
 		uint8_t h = axis == Axis::X ? 2 : TILE_SIZE;
 		bool transparent = IsTransparencySet(TransparencyOption::Bridges);
-		for (int back = 0; back < 2; back++) {
-			int x = ti->x + (axis == Axis::X ? 0 : (back ? 3 : 12));
-			int y = ti->y + (axis == Axis::X ? (back ? 3 : 12) : 0);
-			for (int z = deck - BRIDGE_Z_START - static_cast<int>(TILE_HEIGHT); z >= ti->z - BRIDGE_Z_START; z -= TILE_HEIGHT) {
-				AddSortableSpriteToDraw(pillar, PAL_NONE, x, y, z, {{0, 0, -PILLAR_Z_OFFSET}, {w, h, BB_HEIGHT_UNDER_BRIDGE}, {0, 0, PILLAR_Z_OFFSET}}, transparent);
-			}
+		int x = ti->x + (axis == Axis::X ? 0 : METRO_ELEVATED_PILLAR_OFFSET);
+		int y = ti->y + (axis == Axis::X ? METRO_ELEVATED_PILLAR_OFFSET : 0);
+		for (int z = deck - BRIDGE_Z_START - static_cast<int>(TILE_HEIGHT); z >= ti->z - BRIDGE_Z_START; z -= TILE_HEIGHT) {
+			AddSortableSpriteToDraw(pillar, PAL_NONE, x, y, z, {{0, 0, -PILLAR_Z_OFFSET}, {w, h, BB_HEIGHT_UNDER_BRIDGE}, {0, 0, PILLAR_Z_OFFSET}}, transparent);
 		}
 	}
 
@@ -195,6 +194,44 @@ void MetroDrawElevatedBase(TileInfo *ti, uint level, Axis axis)
 	AddSortableSpriteToDraw(SPR_EMPTY_BOUNDING_BOX, PAL_NONE, ti->x, ti->y, deck - static_cast<int>(TILE_HEIGHT), {{}, {TILE_SIZE, TILE_SIZE, TILE_HEIGHT - 1}, {}});
 	OffsetGroundSprite(0, -static_cast<int>(TILE_HEIGHT));
 	ti->z = deck;
+}
+
+/** Draw the beam of the elevated monorail: single rail pieces without ground (vanilla sprites for now). */
+void MetroDrawElevatedPieces(const TileInfo *ti, RailType rt, TrackBits bits)
+{
+	const RailTypeInfo *rti = GetRailTypeInfo(rt);
+	if (ti->tileh != SLOPE_FLAT) {
+		/* A ramp: the sloped piece rising towards the slope. */
+		DiagDirection up = DiagDirection::NE;
+		switch (ti->tileh) {
+			case SLOPE_NE: up = DiagDirection::NE; break;
+			case SLOPE_SE: up = DiagDirection::SE; break;
+			case SLOPE_SW: up = DiagDirection::SW; break;
+			case SLOPE_NW: up = DiagDirection::NW; break;
+			default: break;
+		}
+		DrawGroundSprite(rti->base_sprites.single_sloped + to_underlying(up), PAL_NONE);
+		return;
+	}
+	const SpriteID pieces[] = {
+		rti->base_sprites.single_x, rti->base_sprites.single_y, rti->base_sprites.single_n,
+		rti->base_sprites.single_s, rti->base_sprites.single_w, rti->base_sprites.single_e,
+	};
+	for (Track t : SetTrackBitIterator(bits)) DrawGroundSprite(pieces[t], PAL_NONE);
+}
+
+/** Draw an elevated plain rail tile or ramp: ground, pillar and beam. */
+void MetroDrawElevatedTrack(TileInfo *ti, TrackBits rails)
+{
+	uint level = GetMetroElevation(ti->tile);
+	Axis axis = (rails & TRACK_BIT_Y) != TRACK_BIT_NONE && (rails & TRACK_BIT_X) == TRACK_BIT_NONE ? Axis::Y : Axis::X;
+	if (level != 0) {
+		MetroDrawElevatedBase(ti, level, axis);
+	} else {
+		DrawGroundSprite(SPR_FLAT_GRASS_TILE, PAL_NONE); // Foot of a ramp.
+	}
+	if (IsMetroRamp(ti->tile)) ti->tileh = InclinedSlope(GetMetroRampUpDir(ti->tile));
+	MetroDrawElevatedPieces(ti, GetRailType(ti->tile), rails);
 }
 
 /* ---------------------------------------------------------------------------------------------- */
