@@ -36,9 +36,34 @@
 
 /** Widgets of the #MetroPowerToolbarWindow. */
 enum MetroPowerToolbarWidgets : WidgetID {
-	WID_MPT_LIST, ///< Tools: power line, its removal and the buildings.
-	WID_MPT_INFO, ///< Hint.
+	WID_MPT_LINE,           ///< Build a power line.
+	WID_MPT_LINE_REMOVE,    ///< Remove a power line.
+	WID_MPT_BUILDING_FIRST, ///< First building (substation); the others follow.
+	WID_MPT_BUILDING_LAST = WID_MPT_BUILDING_FIRST + METRO_POWER_BUILDING_COUNT - 1,
+	WID_MPT_INFO,           ///< The chosen tool: price, power, year; and the hint.
 };
+
+/** Icon of a tool button (vanilla sprites for now; see DESIGN.md "Спрайты"). */
+static std::unique_ptr<NWidgetBase> MakeMetroPowerButtons()
+{
+	auto hor = std::make_unique<NWidgetHorizontal>();
+	auto add = [&](WidgetID widget, SpriteID sprite, StringID tip) {
+		auto leaf = std::make_unique<NWidgetLeaf>(WWT_IMGBTN, Colours::DarkGreen, widget, WidgetData{.sprite = sprite}, tip);
+		leaf->SetMinimalSize(22, 22);
+		leaf->SetFill(0, 1);
+		hor->Add(std::move(leaf));
+	};
+	add(WID_MPT_LINE, METRO_POWER_ICON_LINE, STR_METRO_POWER_TOOLTIP_LINE);
+	add(WID_MPT_LINE_REMOVE, METRO_POWER_ICON_LINE_REMOVE, STR_METRO_POWER_TOOLTIP_LINE_REMOVE);
+	for (uint i = 0; i < METRO_POWER_BUILDING_COUNT; i++) {
+		add(WID_MPT_BUILDING_FIRST + i, _metro_power_building_icons[i], STR_METRO_POWER_TOOLTIP_BUILDING);
+	}
+	auto filler = std::make_unique<NWidgetBackground>(WWT_PANEL, Colours::DarkGreen, -1);
+	filler->SetFill(1, 1);
+	filler->SetResize(1, 0);
+	hor->Add(std::move(filler));
+	return hor;
+}
 
 static constexpr std::initializer_list<NWidgetPart> _nested_metro_power_toolbar_widgets = {
 	NWidget(NWID_HORIZONTAL),
@@ -47,32 +72,27 @@ static constexpr std::initializer_list<NWidgetPart> _nested_metro_power_toolbar_
 		NWidget(WWT_SHADEBOX, Colours::DarkGreen),
 		NWidget(WWT_STICKYBOX, Colours::DarkGreen),
 	EndContainer(),
-	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MPT_LIST), SetMinimalSize(340, 0), SetFill(1, 0), SetResize(1, 0), SetToolTip(STR_METRO_POWER_TOOLBAR_LIST_TOOLTIP), EndContainer(),
+	NWidgetFunction(MakeMetroPowerButtons),
 	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MPT_INFO), SetMinimalSize(340, 0), SetFill(1, 1), SetResize(1, 0), EndContainer(),
 };
 
-/** Rows of the construction window: the two line tools, then the buildings. */
-static constexpr int METRO_POWER_ROW_LINE = 0;
-static constexpr int METRO_POWER_ROW_LINE_REMOVE = 1;
-static constexpr int METRO_POWER_ROW_FIRST_BUILDING = 2;
-static constexpr int METRO_POWER_ROW_COUNT = METRO_POWER_ROW_FIRST_BUILDING + METRO_POWER_BUILDING_COUNT;
-
-/** Construction of the grid: click a row, then the map. */
+/** Construction of the grid: click a tool button, then the map. */
 struct MetroPowerToolbarWindow : Window {
-	int selected = -1; ///< Row being placed.
+	int selected = -1; ///< Tool being placed: widget of the button.
 
 	MetroPowerToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
 	{
 		this->InitNested(window_number);
+		this->UpdateDisabled();
 	}
 
-	/** Text of a row; @p available tells whether it can be used now. */
-	std::string GetRowText(int row, bool &available) const
+	/** Text of a tool; @p available tells whether it can be used now. */
+	std::string GetToolText(int widget, bool &available) const
 	{
 		available = true;
-		if (row == METRO_POWER_ROW_LINE) return GetString(STR_METRO_POWER_ROW_LINE, GetMetroPowerLineCost());
-		if (row == METRO_POWER_ROW_LINE_REMOVE) return GetString(STR_METRO_POWER_ROW_LINE_REMOVE);
-		MetroPowerBuilding building = static_cast<MetroPowerBuilding>(row - METRO_POWER_ROW_FIRST_BUILDING);
+		if (widget == WID_MPT_LINE) return GetString(STR_METRO_POWER_ROW_LINE, GetMetroPowerLineCost());
+		if (widget == WID_MPT_LINE_REMOVE) return GetString(STR_METRO_POWER_ROW_LINE_REMOVE);
+		MetroPowerBuilding building = static_cast<MetroPowerBuilding>(widget - WID_MPT_BUILDING_FIRST);
 		available = IsMetroPowerBuildingAvailable(building);
 		if (!available) return GetString(STR_METRO_POWER_ROW_LOCKED, GetMetroPowerBuildingName(building), GetMetroPowerBuildingIntroYear(building));
 		uint32_t kw = GetMetroPowerBuildingPowerKw(building);
@@ -81,58 +101,62 @@ struct MetroPowerToolbarWindow : Window {
 		return GetString(STR_METRO_POWER_ROW_PLANT, GetMetroPowerBuildingName(building), GetMetroPowerBuildingCost(building), kw);
 	}
 
+	void UpdateDisabled()
+	{
+		for (uint i = 0; i < METRO_POWER_BUILDING_COUNT; i++) {
+			this->SetWidgetDisabledState(WID_MPT_BUILDING_FIRST + i, !IsMetroPowerBuildingAvailable(static_cast<MetroPowerBuilding>(i)));
+		}
+	}
+
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
 	{
-		switch (widget) {
-			case WID_MPT_LIST:
-				size.height = METRO_POWER_ROW_COUNT * GetCharacterHeight(FontSize::Normal) + padding.height;
-				break;
-
-			case WID_MPT_INFO:
-				size.height = std::max<uint>(size.height, GetStringHeight(STR_METRO_POWER_TOOLBAR_HINT, size.width - padding.width) + padding.height);
-				break;
-		}
+		if (widget != WID_MPT_INFO) return;
+		/* All tools listed, then the hint. */
+		uint lines = 2 + METRO_POWER_BUILDING_COUNT;
+		size.height = std::max<uint>(size.height, lines * GetCharacterHeight(FontSize::Normal) + GetStringHeight(STR_METRO_POWER_TOOLBAR_HINT, size.width - padding.width) + padding.height + WidgetDimensions::scaled.vsep_wide);
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
 	{
+		if (widget != WID_MPT_INFO) return;
 		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
-		switch (widget) {
-			case WID_MPT_LIST:
-				for (int row = 0; row < METRO_POWER_ROW_COUNT; row++) {
-					bool available;
-					std::string text = this->GetRowText(row, available);
-					if (row == this->selected) {
-						GfxFillRect(r.left + 1, ir.top, r.right - 1, ir.top + GetCharacterHeight(FontSize::Normal) - 1, PixelColour{GetColourGradient(Colours::DarkGreen, Shade::Lighter)});
-					}
-					DrawString(ir, text, available ? TextColour::Black : TextColour::Grey);
-					ir.top += GetCharacterHeight(FontSize::Normal);
-				}
-				break;
-
-			case WID_MPT_INFO:
-				DrawStringMultiLine(ir, STR_METRO_POWER_TOOLBAR_HINT);
-				break;
+		for (int w = WID_MPT_LINE; w <= WID_MPT_BUILDING_LAST; w++) {
+			bool available;
+			std::string text = this->GetToolText(w, available);
+			if (w == this->selected) {
+				GfxFillRect(r.left + 1, ir.top, r.right - 1, ir.top + GetCharacterHeight(FontSize::Normal) - 1, PixelColour{GetColourGradient(Colours::DarkGreen, Shade::Lighter)});
+			}
+			DrawString(ir, text, available ? TextColour::Black : TextColour::Grey);
+			ir.top += GetCharacterHeight(FontSize::Normal);
 		}
+		ir.top += WidgetDimensions::scaled.vsep_wide;
+		DrawStringMultiLine(ir, STR_METRO_POWER_TOOLBAR_HINT);
+	}
+
+	bool OnTooltip([[maybe_unused]] Point pt, WidgetID widget, TooltipCloseCondition close_cond) override
+	{
+		if (widget < WID_MPT_LINE || widget > WID_MPT_BUILDING_LAST) return false;
+		bool available;
+		GuiShowTooltips(this, GetEncodedRawString(this->GetToolText(widget, available)), close_cond);
+		return true;
 	}
 
 	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
 	{
-		if (widget != WID_MPT_LIST) return;
-		int row = this->GetRowFromWidget(pt.y, WID_MPT_LIST, WidgetDimensions::scaled.framerect.top, GetCharacterHeight(FontSize::Normal));
-		if (row < 0 || row >= METRO_POWER_ROW_COUNT) return;
+		if (widget < WID_MPT_LINE || widget > WID_MPT_BUILDING_LAST) return;
 		bool available;
-		this->GetRowText(row, available);
+		this->GetToolText(widget, available);
 		if (!available) return;
 
-		if (this->selected == row) {
+		if (this->selected == widget) {
 			ResetObjectToPlace();
 			return;
 		}
 		/* Switching from another tool aborts its placement first, which clears the selection; select afterwards. */
-		CursorID cursor = row == METRO_POWER_ROW_LINE_REMOVE ? SPR_CURSOR_DEMOLISH_FIRST : (row == METRO_POWER_ROW_LINE ? SPR_CURSOR_NS_TRACK : SPR_CURSOR_TRANSMITTER);
+		CursorID cursor = widget == WID_MPT_LINE_REMOVE ? SPR_CURSOR_DEMOLISH_FIRST : (widget == WID_MPT_LINE ? SPR_CURSOR_NS_TRACK : SPR_CURSOR_TRANSMITTER);
 		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, this);
-		this->selected = row;
+		this->selected = widget;
+		this->LowerWidget(widget);
 		this->UpdateSelectSize();
 		this->SetDirty();
 	}
@@ -140,11 +164,11 @@ struct MetroPowerToolbarWindow : Window {
 	/** Size of the building under the cursor and the feeding radius of a substation or vent shaft. */
 	void UpdateSelectSize()
 	{
-		if (this->selected < METRO_POWER_ROW_FIRST_BUILDING) {
+		if (this->selected < WID_MPT_BUILDING_FIRST) {
 			SetTileSelectSize(1, 1);
 			return;
 		}
-		MetroPowerBuilding building = static_cast<MetroPowerBuilding>(this->selected - METRO_POWER_ROW_FIRST_BUILDING);
+		MetroPowerBuilding building = static_cast<MetroPowerBuilding>(this->selected - WID_MPT_BUILDING_FIRST);
 		const ObjectSpec *spec = ObjectSpec::Get(_metro_power_building_specs[to_underlying(building)].object);
 		SetTileSelectSize(GB(spec->size, 0, 4), GB(spec->size, 4, 4));
 		if (building == MetroPowerBuilding::Substation) {
@@ -155,21 +179,21 @@ struct MetroPowerToolbarWindow : Window {
 
 	void OnMouseLoop() override
 	{
-		if (this->selected >= METRO_POWER_ROW_FIRST_BUILDING) this->UpdateSelectSize();
+		if (this->selected >= WID_MPT_BUILDING_FIRST) this->UpdateSelectSize();
 	}
 
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
 	{
-		if (this->selected == METRO_POWER_ROW_LINE) {
+		if (this->selected == WID_MPT_LINE) {
 			VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_POWER_LINE);
 			return;
 		}
-		if (this->selected == METRO_POWER_ROW_LINE_REMOVE) {
+		if (this->selected == WID_MPT_LINE_REMOVE) {
 			VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_POWER_LINE_REMOVE);
 			return;
 		}
-		if (this->selected < 0) return;
-		uint8_t building = static_cast<uint8_t>(this->selected - METRO_POWER_ROW_FIRST_BUILDING);
+		if (this->selected < WID_MPT_BUILDING_FIRST) return;
+		uint8_t building = static_cast<uint8_t>(this->selected - WID_MPT_BUILDING_FIRST);
 		if (Command<Commands::MetroBuildPowerObject>::Post(STR_METRO_POWER_ERR_CANT_BUILD, tile, building) && !_shift_pressed) {
 			ResetObjectToPlace();
 		}
@@ -190,12 +214,14 @@ struct MetroPowerToolbarWindow : Window {
 
 	void OnPlaceObjectAbort() override
 	{
+		if (this->selected >= 0) this->RaiseWidget(this->selected);
 		this->selected = -1;
 		this->SetDirty();
 	}
 
 	void OnHundredthTick() override
 	{
+		this->UpdateDisabled();
 		this->SetDirty();
 	}
 };

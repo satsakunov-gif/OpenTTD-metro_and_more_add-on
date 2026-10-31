@@ -2537,3 +2537,11 @@ STR_METRO_UNDERGROUND_ERR_CANT_INCLINE                          :{WHITE}Здес
 STR_METRO_UNDERGROUND_ERR_INCLINE_LENGTH                        :{WHITE}... наклон — 2 или 3 тайла по прямой
 STR_METRO_UNDERGROUND_ERR_INCLINE_FREE                          :{WHITE}... наклону нужны свободные тайлы на его слое
 STR_METRO_UNDERGROUND_ERR_INCLINE_HERE                          :{WHITE}... здесь наклон
+STR_METRO_POWER_TOOLBAR_BUTTON_TOOLTIP                          :{BLACK}Мод «Метро»: электросеть — ЛЭП, подстанции, электростанции, вентшахты
+STR_METRO_POWER_TOOLTIP_LINE                                    :{BLACK}ЛЭП: протянуть по прямой
+STR_METRO_POWER_TOOLTIP_LINE_REMOVE                             :{BLACK}Убрать ЛЭП: протянуть по ней
+STR_METRO_POWER_TOOLTIP_BUILDING                                :{BLACK}Построить эту постройку сети
+STR_METRO_ELEVATED_ROW_BUILD                                    :Построить эстакаду сразу на уровне {NUM}: протянуть по прямой
+STR_METRO_ELEVATED_ERR_CANT_BUILD                               :{WHITE}Здесь нельзя построить эстакаду...
+STR_METRO_ELEVATED_ERR_LINE_ENDS                                :{WHITE}... эстакада должна начинаться и кончаться на свободной ровной земле (рампы)
+STR_METRO_ELEVATED_ERR_LINE_BLOCKED                             :{WHITE}... на пути то, над чем нельзя пройти

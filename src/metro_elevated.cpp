@@ -48,6 +48,7 @@
 #include "engine_base.h"
 #include "engine_func.h"
 #include "rail_cmd.h"
+#include "water_map.h"
 #include "station_cmd.h"
 #include "newgrf_station.h"
 #include "tilearea_type.h"
@@ -185,7 +186,7 @@ void MetroDrawElevatedBase(TileInfo *ti, uint level, Axis axis)
 		bool transparent = IsTransparencySet(TransparencyOption::Bridges);
 		int x = ti->x + (axis == Axis::X ? 0 : METRO_ELEVATED_PILLAR_OFFSET);
 		int y = ti->y + (axis == Axis::X ? METRO_ELEVATED_PILLAR_OFFSET : 0);
-		for (int z = deck - BRIDGE_Z_START - static_cast<int>(TILE_HEIGHT); z >= ti->z - BRIDGE_Z_START; z -= TILE_HEIGHT) {
+		for (int z = deck - BRIDGE_Z_START; z >= ti->z - BRIDGE_Z_START; z -= TILE_HEIGHT) {
 			AddSortableSpriteToDraw(pillar, PAL_NONE, x, y, z, {{0, 0, -PILLAR_Z_OFFSET}, {w, h, BB_HEIGHT_UNDER_BRIDGE}, {0, 0, PILLAR_Z_OFFSET}}, transparent);
 		}
 	}
@@ -217,7 +218,10 @@ void MetroDrawElevatedPieces(const TileInfo *ti, RailType rt, TrackBits bits)
 		rti->base_sprites.single_x, rti->base_sprites.single_y, rti->base_sprites.single_n,
 		rti->base_sprites.single_s, rti->base_sprites.single_w, rti->base_sprites.single_e,
 	};
-	for (Track t : SetTrackBitIterator(bits)) DrawGroundSprite(pieces[t], PAL_NONE);
+	/* The single rail drawn in three layers makes a solid beam (no gaps between the sleepers). */
+	for (Track t : SetTrackBitIterator(bits)) {
+		for (int dz = -METRO_ELEVATED_BEAM_THICKNESS + 1; dz <= 0; dz++) DrawGroundSpriteAt(pieces[t], PAL_NONE, 0, 0, dz);
+	}
 }
 
 /** Draw an elevated plain rail tile or ramp: ground, pillar and beam. */
@@ -351,16 +355,22 @@ static bool HasGroundTrackBeyond(TileIndex tile, DiagDirection dir)
  * @param start other end
  * @param level #METRO_ELEVATED_MIN_LEVEL .. #METRO_ELEVATED_MAX_LEVEL
  */
-CommandCost CmdMetroElevateLine(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level)
-{
-	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
-	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_ELEVATED_ERR_LINE);
 
-	DiagDirection dir = DiagdirBetweenTiles(start, tile);
+/** Ramp choice at an end of a stretch. */
+enum class RampChoice : uint8_t {
+	Auto, ///< Where track on the ground joins.
+	No,
+	Yes,
+};
+
+/** Raise the stretch from @p start towards @p dir, @p length tiles; see #CmdMetroElevateLine. */
+static CommandCost ElevateStretch(DoCommandFlags flags, TileIndex start, DiagDirection dir, uint length, uint8_t level, RampChoice start_choice, RampChoice end_choice)
+{
 	Axis axis = DiagDirToAxis(dir);
-	uint length = DistanceManhattan(start, tile) + 1;
-	bool ramp_start = HasGroundTrackBeyond(start, ReverseDiagDir(dir));
-	bool ramp_end = HasGroundTrackBeyond(tile, dir);
+	TileIndex tile = start;
+	for (uint i = 1; i < length; i++) tile = TileAddByDiagDir(tile, dir);
+	bool ramp_start = start_choice == RampChoice::Yes || (start_choice == RampChoice::Auto && HasGroundTrackBeyond(start, ReverseDiagDir(dir)));
+	bool ramp_end = end_choice == RampChoice::Yes || (end_choice == RampChoice::Auto && HasGroundTrackBeyond(tile, dir));
 	if (length < (ramp_start ? level : 0u) + (ramp_end ? level : 0u)) return CommandCost(STR_METRO_ELEVATED_ERR_LINE_SHORT);
 
 	CommandCost cost(ExpensesType::Construction);
@@ -394,6 +404,149 @@ CommandCost CmdMetroElevateLine(DoCommandFlags flags, TileIndex tile, TileIndex 
 		if (rail) SetMetroRamp(t, ramp, ramp_up ? dir : ReverseDiagDir(dir));
 	}
 	return FinishElevationChange(flags, backup, cost);
+}
+
+CommandCost CmdMetroElevateLine(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level)
+{
+	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
+	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_ELEVATED_ERR_LINE);
+	return ElevateStretch(flags, start, DiagdirBetweenTiles(start, tile), DistanceManhattan(start, tile) + 1, level, RampChoice::Auto, RampChoice::Auto);
+}
+
+/** Role of a tile in an elevated line built at once. */
+enum class LineTileRole : uint8_t {
+	Track,     ///< Monorail track, raised.
+	Head,      ///< Head (pillar) of a span.
+	UnderSpan, ///< Passed over by a span.
+};
+
+/** Whether elevated track can stand on the tile: free flat land or straight monorail ground track along @p axis. */
+static bool IsLineTrackTile(TileIndex tile, Axis axis, RailType rt)
+{
+	if (GetTileSlope(tile) != SLOPE_FLAT || IsBridgeAbove(tile)) return false;
+	if (IsTileType(tile, TileType::Clear) || IsTileType(tile, TileType::Trees)) return true;
+	return IsPlainRailTile(tile) && GetTrackBits(tile) == AxisToTrackBits(axis) && GetRailType(tile) == rt && !HasSignals(tile) && IsTileOwner(tile, _current_company);
+}
+
+/** Whether a span can pass over the tile at @p bridge_height (levels). */
+static bool IsLineSpanTile(TileIndex tile, int bridge_height)
+{
+	if (IsBridgeAbove(tile) || IsMetroElevatedTile(tile)) return false;
+	if (GetTileMaxZ(tile) >= bridge_height) return false;
+	switch (GetTileType(tile)) {
+		case TileType::Clear: case TileType::Trees: case TileType::Road: return true;
+		case TileType::Railway: return IsPlainRail(tile);
+		case TileType::Water: return IsWater(tile) || IsCoast(tile);
+		case TileType::House: return MetroCheckBridgeAboveHouse(tile, bridge_height).Succeeded();
+		default: return false;
+	}
+}
+
+/**
+ * Build an elevated line at once along a straight drag: monorail track on free land, raised to @p level, spans over
+ * roads, rails, water and low houses (at most #METRO_ELEVATED_MAX_SPAN tiles), ramps at the ends unless they meet
+ * elevated track.
+ * @param flags type of operation
+ * @param tile end of the line
+ * @param start start of the line
+ * @param level height
+ * @param railtype monorail type
+ */
+CommandCost CmdMetroBuildElevatedLine(DoCommandFlags flags, TileIndex tile, TileIndex start, uint8_t level, RailType railtype)
+{
+	if (start >= Map::Size() || level < METRO_ELEVATED_MIN_LEVEL || level > METRO_ELEVATED_MAX_LEVEL) return CMD_ERROR;
+	if (!IsMetroElevatedRailType(railtype) || !ValParamRailType(railtype)) return CommandCost(STR_METRO_ELEVATED_ERR_NOT_MONORAIL);
+	if (start == tile || (TileX(start) != TileX(tile) && TileY(start) != TileY(tile))) return CommandCost(STR_METRO_ELEVATED_ERR_LINE);
+
+	DiagDirection dir = DiagdirBetweenTiles(start, tile);
+	Axis axis = DiagDirToAxis(dir);
+	uint length = DistanceManhattan(start, tile) + 1;
+	std::vector<TileIndex> tiles;
+	for (TileIndex t = start;; t = TileAddByDiagDir(t, dir)) {
+		tiles.push_back(t);
+		if (t == tile) break;
+	}
+
+	/* Roles: track where possible, spans over the rest; spans need a free head on each side and two heads in a row
+	 * can't belong to different spans, so obstacles closer than two free tiles are spanned together. */
+	int ground_z = GetTileZ(start);
+	std::vector<LineTileRole> roles(length, LineTileRole::Track);
+	std::vector<bool> free(length);
+	for (uint i = 0; i < length; i++) free[i] = IsLineTrackTile(tiles[i], axis, railtype) && GetTileZ(tiles[i]) == ground_z;
+	for (uint i = 0; i < length;) {
+		if (free[i]) {
+			i++;
+			continue;
+		}
+		uint first = i;
+		uint last = i;
+		while (last + 1 < length && (!free[last + 1] || (last + 2 < length && !free[last + 2]))) last++;
+		if (first == 0 || last + 1 >= length) return CommandCost(STR_METRO_ELEVATED_ERR_LINE_ENDS);
+		if (last - first + 1 > METRO_ELEVATED_MAX_SPAN) return CommandCost(STR_METRO_ELEVATED_ERR_SPAN_LENGTH);
+		for (uint j = first; j <= last; j++) {
+			if (!IsLineSpanTile(tiles[j], ground_z + level)) return CommandCost(STR_METRO_ELEVATED_ERR_LINE_BLOCKED);
+			roles[j] = LineTileRole::UnderSpan;
+		}
+		roles[first - 1] = LineTileRole::Head;
+		roles[last + 1] = LineTileRole::Head;
+		i = last + 1;
+	}
+
+	/* Ramps at the ends unless the line meets elevated track. */
+	auto meets_elevated = [&](TileIndex t, DiagDirection d) {
+		TileIndex n = TileAddByDiagDir(t, d);
+		return IsValidTile(n) && IsMetroElevatedTile(n) && GetRailTrackBitsAtEdge(n, ReverseDiagDir(d)) != TRACK_BIT_NONE;
+	};
+	bool ramp_start = !meets_elevated(start, ReverseDiagDir(dir));
+	bool ramp_end = !meets_elevated(tile, dir);
+	for (uint i = 0; i < length; i++) {
+		bool in_ramp = (ramp_start && i < level) || (ramp_end && length - 1 - i < level);
+		if (in_ramp && roles[i] != LineTileRole::Track) return CommandCost(STR_METRO_ELEVATED_ERR_LINE_ENDS);
+	}
+
+	/* Estimate in a test run; build in steps when executing. */
+	if (!flags.Test(DoCommandFlag::Execute)) {
+		CommandCost cost(ExpensesType::Construction);
+		for (uint i = 0; i < length; i++) {
+			if (roles[i] == LineTileRole::UnderSpan) continue;
+			cost.AddCost(RailBuildCost(railtype) * (100 + METRO_ELEVATED_COST_PERCENT_PER_LEVEL * level) / 100);
+		}
+		return cost;
+	}
+
+	CommandCost total(ExpensesType::Construction);
+	auto step = [&](CommandCost ret) {
+		if (ret.Succeeded()) total.AddCost(ret.GetCost());
+		return ret;
+	};
+	/* 1. Track on the track tiles. */
+	for (uint i = 0; i < length; i++) {
+		if (roles[i] != LineTileRole::Track || IsPlainRailTile(tiles[i])) continue;
+		CommandCost ret = step(Command<Commands::BuildRail>::Do(flags, tiles[i], railtype, AxisToTrack(axis), BuildRailTrackFlags{}));
+		if (ret.Failed()) return ret;
+	}
+	/* 2. Raise each run of track tiles. */
+	for (uint i = 0; i < length;) {
+		if (roles[i] != LineTileRole::Track) {
+			i++;
+			continue;
+		}
+		uint first = i;
+		while (i < length && roles[i] == LineTileRole::Track) i++;
+		RampChoice rs = (first == 0 && ramp_start) ? RampChoice::Yes : RampChoice::No;
+		RampChoice re = (i == length && ramp_end) ? RampChoice::Yes : RampChoice::No;
+		CommandCost ret = step(ElevateStretch(flags, tiles[first], dir, i - first, level, rs, re));
+		if (ret.Failed()) return ret;
+	}
+	/* 3. Spans between the heads. */
+	for (uint i = 0; i < length; i++) {
+		if (roles[i] != LineTileRole::Head || i + 1 >= length || roles[i + 1] != LineTileRole::UnderSpan) continue;
+		uint j = i + 1;
+		while (roles[j] == LineTileRole::UnderSpan) j++;
+		CommandCost ret = step(CmdMetroBuildElevatedSpan(flags, tiles[j], tiles[i], level, railtype));
+		if (ret.Failed()) return ret;
+	}
+	return total;
 }
 
 /** The fastest bridge type available for a span of @p length tiles, or MAX_BRIDGES. */
@@ -492,6 +645,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_metro_elevated_toolb
 /** Rows of the window. */
 enum MetroElevatedRow : int {
 	MER_LEVEL, ///< Level of the next construction (click to switch).
+	MER_BUILD, ///< Build an elevated line at once.
 	MER_LINE,  ///< Raise a straight stretch, ramps at its ends.
 	MER_RAISE, ///< Raise track and stations.
 	MER_LOWER, ///< Lower them to the ground.
@@ -514,6 +668,7 @@ struct MetroElevatedToolbarWindow : Window {
 	{
 		switch (row) {
 			case MER_LEVEL: return GetString(STR_METRO_ELEVATED_ROW_LEVEL, this->level);
+			case MER_BUILD: return GetString(STR_METRO_ELEVATED_ROW_BUILD, this->level);
 			case MER_LINE: return GetString(STR_METRO_ELEVATED_ROW_LINE, this->level, this->level);
 			case MER_RAISE: return GetString(STR_METRO_ELEVATED_ROW_RAISE, this->level, RailBuildCost(this->railtype) * METRO_ELEVATED_COST_PERCENT_PER_LEVEL / 100);
 			case MER_LOWER: return GetString(STR_METRO_ELEVATED_ROW_LOWER);
@@ -576,6 +731,7 @@ struct MetroElevatedToolbarWindow : Window {
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
 	{
 		switch (this->selected) {
+			case MER_BUILD: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_ELEVATED_BUILD); break;
 			case MER_LINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_ELEVATED_LINE); break;
 			case MER_RAISE: VpStartPlaceSizing(tile, VPM_X_AND_Y, DDSP_METRO_ELEVATED_RAISE); break;
 			case MER_LOWER: VpStartPlaceSizing(tile, VPM_X_AND_Y, DDSP_METRO_ELEVATED_LOWER); break;
@@ -593,6 +749,9 @@ struct MetroElevatedToolbarWindow : Window {
 	{
 		if (pt.x == -1) return;
 		switch (select_proc) {
+			case DDSP_METRO_ELEVATED_BUILD:
+				Command<Commands::MetroBuildElevatedLine>::Post(STR_METRO_ELEVATED_ERR_CANT_BUILD, end_tile, start_tile, this->level, this->railtype);
+				break;
 			case DDSP_METRO_ELEVATED_LINE:
 				Command<Commands::MetroElevateLine>::Post(STR_METRO_ELEVATED_ERR_CANT_RAISE, end_tile, start_tile, this->level);
 				break;
@@ -667,7 +826,7 @@ static void ConsoleCommand(Targs... args)
 bool ConMetroElevated(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod elevated monorail. Usage: metro_elevated info <x> <y> | raise <x1> <y1> <x2> <y2> <level 0/2/3> | line <x1> <y1> <x2> <y2> <level> | span <x1> <y1> <x2> <y2> <level> | window");
+		IConsolePrint(CC_HELP, "Metro mod elevated monorail. Usage: metro_elevated info <x> <y> | raise <x1> <y1> <x2> <y2> <level 0/2/3> | build <x1> <y1> <x2> <y2> <level> | line <x1> <y1> <x2> <y2> <level> | span <x1> <y1> <x2> <y2> <level> | window");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -789,6 +948,36 @@ bool ConMetroElevated(std::span<std::string_view> argv)
 		if (!done) IConsolePrint(CC_ERROR, "No span built.");
 		return true;
 	}
+	if (cmd == "testbuild" && argv.size() > 2) {
+		/* For tests: find a straight line near the town that the build-at-once tool accepts and that passes over a road or house; build it. */
+		auto id = ParseInteger<uint>(argv[2]);
+		const Town *town = id.has_value() ? Town::GetIfValid(*id) : nullptr;
+		if (town == nullptr) return false;
+		RailType rt = GetRailTypeByLabel(RAILTYPE_LABEL_MONO);
+		Backup<CompanyID> cur_company(_current_company, GetConsoleCompany(), FILE_LINE);
+		DoCommandFlags test{DoCommandFlag::Bankrupt};
+		bool done = false;
+		for (int dy = -12; dy <= 12 && !done; dy++) {
+			for (int dx = -24; dx <= 0 && !done; dx++) {
+				for (uint len = 14; len <= 24 && !done; len += 2) {
+					TileIndex a = TileAddWrap(town->xy, dx, dy);
+					TileIndex b = a == INVALID_TILE ? INVALID_TILE : TileAddWrap(a, len - 1, 0);
+					if (a == INVALID_TILE || b == INVALID_TILE) continue;
+					bool crosses = false;
+					for (TileIndex t : TileArea(a, b)) crosses |= IsTileType(t, TileType::Road) || IsTileType(t, TileType::House);
+					if (!crosses) continue;
+					if (Command<Commands::MetroBuildElevatedLine>::Do(test, b, a, static_cast<uint8_t>(METRO_ELEVATED_MIN_LEVEL), rt).Failed()) continue;
+					CommandCost ret = Command<Commands::MetroBuildElevatedLine>::Do(DoCommandFlags{DoCommandFlag::Execute, DoCommandFlag::Bankrupt}, b, a, static_cast<uint8_t>(METRO_ELEVATED_MIN_LEVEL), rt);
+					IConsolePrint(ret.Succeeded() ? CC_INFO : CC_ERROR, "line ({}, {})..({}, {}): {}", TileX(a), TileY(a), TileX(b), TileY(b), ret.Succeeded() ? "built" : GetString(ret.GetErrorMessage()));
+					if (ret.Succeeded()) ScrollMainWindowToTile(TileAddWrap(a, len / 2, 0), true);
+					done = true;
+				}
+			}
+		}
+		cur_company.Restore();
+		if (!done) IConsolePrint(CC_ERROR, "No line found.");
+		return true;
+	}
 	if (cmd == "trains") {
 		for (const Train *v : Train::Iterate()) {
 			if (!v->IsFrontEngine()) continue;
@@ -817,6 +1006,10 @@ bool ConMetroElevated(std::span<std::string_view> argv)
 	if (!a.has_value() || !b.has_value()) return false;
 	if (cmd == "raise" && argv.size() > 6) {
 		ConsoleCommand<Commands::MetroElevateRail>(*b, *a, static_cast<uint8_t>(ParseInteger<uint>(argv[6]).value_or(0)));
+		return true;
+	}
+	if (cmd == "build" && argv.size() > 6) {
+		ConsoleCommand<Commands::MetroBuildElevatedLine>(*b, *a, static_cast<uint8_t>(ParseInteger<uint>(argv[6]).value_or(0)), GetRailTypeByLabel(RAILTYPE_LABEL_MONO));
 		return true;
 	}
 	if (cmd == "line" && argv.size() > 6) {

@@ -15,6 +15,7 @@
 
 DEF_CMD_TUPLE(Commands::MetroElevateRail,       CmdMetroElevateRail,       CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t>)
 DEF_CMD_TUPLE(Commands::MetroElevateLine,       CmdMetroElevateLine,       CMD_AUTO,                CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t>)
+DEF_CMD_TUPLE(Commands::MetroBuildElevatedLine, CmdMetroBuildElevatedLine, CMD_AUTO | CMD_NO_WATER, CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t, RailType>)
 DEF_CMD_TUPLE(Commands::MetroBuildElevatedSpan, CmdMetroBuildElevatedSpan, CMD_AUTO | CMD_NO_WATER, CommandType::LandscapeConstruction, CmdDataT<TileIndex, uint8_t, RailType>)
 
 #endif /* METRO_ELEVATED_CMD_H */

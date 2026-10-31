@@ -2856,3 +2856,11 @@ STR_METRO_UNDERGROUND_ERR_CANT_INCLINE                          :{WHITE}Can't bu
 STR_METRO_UNDERGROUND_ERR_INCLINE_LENGTH                        :{WHITE}... an incline is 2 or 3 tiles in a straight line
 STR_METRO_UNDERGROUND_ERR_INCLINE_FREE                          :{WHITE}... the incline needs free tiles on its layer
 STR_METRO_UNDERGROUND_ERR_INCLINE_HERE                          :{WHITE}... an incline is here
+STR_METRO_POWER_TOOLBAR_BUTTON_TOOLTIP                          :{BLACK}Metro mod: power grid - power lines, substations, power plants, vent shafts
+STR_METRO_POWER_TOOLTIP_LINE                                    :{BLACK}Power line: drag in a straight line
+STR_METRO_POWER_TOOLTIP_LINE_REMOVE                             :{BLACK}Remove a power line: drag along it
+STR_METRO_POWER_TOOLTIP_BUILDING                                :{BLACK}Build this grid building
+STR_METRO_ELEVATED_ROW_BUILD                                    :Build an elevated line at once at level {NUM}: drag in a straight line
+STR_METRO_ELEVATED_ERR_CANT_BUILD                               :{WHITE}Can't build the elevated line here...
+STR_METRO_ELEVATED_ERR_LINE_ENDS                                :{WHITE}... the line must start and end on free flat land (ramps)
+STR_METRO_ELEVATED_ERR_LINE_BLOCKED                             :{WHITE}... something on the way can't be passed over

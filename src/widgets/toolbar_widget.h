@@ -45,6 +45,7 @@ enum ToolbarNormalWidgets : WidgetID {
 	WID_TN_MESSAGES,      ///< Messages menu.
 	WID_TN_HELP,          ///< Help menu.
 	WID_TN_SWITCH_BAR,    ///< Only available when toolbar has been split to switch between different subsets.
+	WID_TN_METRO_GRID,    ///< Metro mod: power grid construction (after the switch bar, so the numbers of the vanilla buttons stay).
 	WID_TN_END,           ///< Helper for knowing the amount of widgets.
 };
 

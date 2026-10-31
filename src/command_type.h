@@ -781,6 +781,7 @@ enum class Commands : uint8_t {
 	MetroBuildUndergroundTrack,             ///< Metro mod: build or remove underground track
 	MetroBuildEntrance,                     ///< Metro mod: build a metro entrance
 	MetroBuildIncline,                      ///< Metro mod: build an incline between metro layers
+	MetroBuildElevatedLine,                 ///< Metro mod: build an elevated monorail line at once
 	MetroBuildElevatedSpan,                 ///< Metro mod: build a span (bridge) of the elevated monorail
 
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)

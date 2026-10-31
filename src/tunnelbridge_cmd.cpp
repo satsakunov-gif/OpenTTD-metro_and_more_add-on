@@ -2756,7 +2756,10 @@ void DrawBridgeMiddle(const TileInfo *ti)
 	if (transport_type == TransportType::Rail && GetMetroElevation(rampsouth) != 0) {
 		if (IsInvisibilitySet(TransparencyOption::Bridges)) return;
 		const RailTypeInfo *rti = GetRailTypeInfo(GetRailType(rampsouth));
-		AddSortableSpriteToDraw(axis == Axis::X ? rti->base_sprites.single_x : rti->base_sprites.single_y, PAL_NONE, x, y, bridge_z, {{}, {TILE_SIZE, TILE_SIZE, 0}, {}}, IsTransparencySet(TransparencyOption::Bridges));
+		SpriteID beam = axis == Axis::X ? rti->base_sprites.single_x : rti->base_sprites.single_y;
+		StartSpriteCombine();
+		for (int dz = -2; dz <= 0; dz++) AddSortableSpriteToDraw(beam, PAL_NONE, x, y, bridge_z + dz, {{}, {TILE_SIZE, TILE_SIZE, 0}, {}}, IsTransparencySet(TransparencyOption::Bridges));
+		EndSpriteCombine();
 		return;
 	}
 

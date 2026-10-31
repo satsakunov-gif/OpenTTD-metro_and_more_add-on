@@ -8,6 +8,7 @@
 /** @file toolbar_gui.cpp Code related to the (main) toolbar. */
 
 #include "stdafx.h"
+#include "metro_power.h"
 #include "core/geometry_func.hpp"
 #include "gui.h"
 #include "spritecache.h"
@@ -2028,6 +2029,7 @@ class NWidgetMainToolbarContainer : public NWidgetToolbarContainer {
 			WID_TN_WATER,
 			WID_TN_AIR,
 			WID_TN_LANDSCAPE,
+			WID_TN_METRO_GRID,
 			WID_TN_MUSIC_SOUND,
 			WID_TN_MESSAGES,
 			WID_TN_HELP
@@ -2178,6 +2180,20 @@ class NWidgetScenarioToolbarContainer : public NWidgetToolbarContainer {
  */
 using ToolbarButtonProc = CallBackFunction(Window *w);
 
+/**
+ * Metro mod: open the power grid construction window.
+ * @param w The clicked window.
+ * @return #CallBackFunction::None
+ */
+static CallBackFunction ToolbarMetroGridClick(Window *w)
+{
+	if (_game_mode == GameMode::Editor || !Company::IsValidID(_local_company)) return CallBackFunction::None;
+	ShowMetroPowerToolbar();
+	if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
+	w->HandleButtonClick(WID_TN_METRO_GRID);
+	return CallBackFunction::None;
+}
+
 static ToolbarButtonProc * const _toolbar_button_procs[] = {
 	ToolbarPauseClick,
 	ToolbarFastForwardClick,
@@ -2210,6 +2226,7 @@ static ToolbarButtonProc * const _toolbar_button_procs[] = {
 	ToolbarNewspaperClick,
 	ToolbarHelpClick,
 	ToolbarSwitchClick,
+	ToolbarMetroGridClick,
 };
 
 /** Main toolbar. */
@@ -2246,7 +2263,7 @@ struct MainToolbarWindow : Window {
 		/* If spectator, disable all construction buttons
 		 * ie : Build road, rail, ships, airports and landscaping
 		 * Since enabled state is the default, just disable when needed */
-		this->SetWidgetsDisabledState(_local_company == COMPANY_SPECTATOR, WID_TN_RAILS, WID_TN_ROADS, WID_TN_TRAMS, WID_TN_WATER, WID_TN_AIR, WID_TN_LANDSCAPE);
+		this->SetWidgetsDisabledState(_local_company == COMPANY_SPECTATOR, WID_TN_RAILS, WID_TN_ROADS, WID_TN_TRAMS, WID_TN_WATER, WID_TN_AIR, WID_TN_LANDSCAPE, WID_TN_METRO_GRID);
 		/* disable company list drop downs, if there are no companies */
 		this->SetWidgetsDisabledState(Company::GetNumItems() == 0, WID_TN_STATIONS, WID_TN_FINANCES, WID_TN_TRAINS, WID_TN_ROADVEHS, WID_TN_SHIPS, WID_TN_AIRCRAFT);
 
@@ -2468,6 +2485,7 @@ static constexpr std::tuple<WidgetID, WidgetType, SpriteID> _toolbar_button_spri
 	{WID_TN_MESSAGES,     WWT_IMGBTN,     SPR_IMG_MESSAGES},
 	{WID_TN_HELP,         WWT_IMGBTN,     SPR_IMG_QUERY},
 	{WID_TN_SWITCH_BAR,   WWT_IMGBTN,     SPR_IMG_SWITCH_TOOLBAR},
+	{WID_TN_METRO_GRID,   WWT_IMGBTN,     SPR_IMG_AUTOELRAIL}, // Metro mod: power grid.
 };
 
 /**
@@ -2502,7 +2520,8 @@ static std::unique_ptr<NWidgetBase> MakeMainToolbar()
 				hor->Add(std::make_unique<NWidgetSpacer>(0, 0));
 				break;
 		}
-		auto leaf = std::make_unique<NWidgetLeaf>(tp, Colours::Grey, widget, WidgetData{.sprite = sprite}, STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
+		StringID tip = widget == WID_TN_METRO_GRID ? STR_METRO_POWER_TOOLBAR_BUTTON_TOOLTIP : static_cast<StringID>(STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
+		auto leaf = std::make_unique<NWidgetLeaf>(tp, Colours::Grey, widget, WidgetData{.sprite = sprite}, tip);
 		leaf->SetToolbarMinimalSize(1);
 		hor->Add(std::move(leaf));
 	}
@@ -2576,6 +2595,7 @@ static ToolbarButtonProc * const _scen_toolbar_button_procs[] = {
 	ToolbarMusicClick,
 	ToolbarHelpClick,
 	ToolbarSwitchClick,
+	ToolbarMetroGridClick,
 };
 
 /**

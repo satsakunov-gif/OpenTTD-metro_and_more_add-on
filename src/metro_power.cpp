@@ -1200,6 +1200,10 @@ bool ConMetroPower(std::span<std::string_view> argv)
 		IConsolePrint(CC_ERROR, "No company.");
 		return true;
 	}
+	if (cmd == "window") {
+		ShowMetroPowerToolbar();
+		return true;
+	}
 	if (cmd == "build" && argv.size() > 4) {
 		auto type = arg(2), x = arg(3), y = arg(4);
 		if (!type.has_value() || *type >= METRO_POWER_BUILDING_COUNT || !x.has_value() || !y.has_value() || *x >= Map::SizeX() || *y >= Map::SizeY()) {

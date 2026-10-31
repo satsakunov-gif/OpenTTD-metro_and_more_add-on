@@ -65,4 +65,16 @@ static constexpr SpriteID METRO_POWER_SPR_CHIMNEY = 0x802;     ///< Power statio
 static constexpr SpriteID METRO_POWER_SPR_LOW = 0x805;         ///< Low power station building.
 static constexpr SpriteID METRO_POWER_SPR_GROUND = 0xf54;      ///< Industry ground.
 
+/** Toolbar icons (vanilla sprites for now; own sprites listed in DESIGN.md "Спрайты"). */
+static constexpr SpriteID METRO_POWER_ICON_LINE = SPR_IMG_AUTOELRAIL;
+static constexpr SpriteID METRO_POWER_ICON_LINE_REMOVE = SPR_IMG_REMOVE;
+static const SpriteID _metro_power_building_icons[] = {
+	SPR_IMG_DEPOT_ELRAIL, // Substation.
+	SPR_IMG_INDUSTRY,     // Gas power plant.
+	SPR_IMG_INDUSTRY,     // Nuclear power plant.
+	SPR_IMG_PLANTTREES,   // Solar power plant.
+	SPR_IMG_TRANSMITTER,  // Wind farm.
+	SPR_IMG_TUNNEL_RAIL,  // Vent shaft.
+};
+
 #endif /* METRO_POWER_TABLES_H */

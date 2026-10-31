@@ -64,7 +64,7 @@
 std::map<uint64_t, MetroUndergroundTile> _metro_underground;
 bool _metro_underground_view = false;
 uint8_t _metro_underground_view_layer = 1;
-static TransparencyOptions _metro_saved_transparency; ///< Transparency of the player before the underground view.
+TransparencyOptions _metro_view_transparency; ///< Extra transparency while the underground view is on (the player's settings stay untouched).
 
 
 void MetroUndergroundReset()
@@ -341,11 +341,10 @@ void MetroToggleUndergroundView()
 {
 	_metro_underground_view = !_metro_underground_view;
 	if (_metro_underground_view) {
-		_metro_saved_transparency = _transparency_opt;
-		_transparency_opt.Set(METRO_VIEW_TRANSPARENT);
+		_metro_view_transparency = METRO_VIEW_TRANSPARENT;
 		if (_metro_underground_view_layer < 1 || _metro_underground_view_layer > METRO_LAYER_COUNT) _metro_underground_view_layer = 1;
 	} else {
-		_transparency_opt = _metro_saved_transparency;
+		_metro_view_transparency = {};
 	}
 	MarkWholeScreenDirty();
 	SetWindowClassesDirty(WindowClass::MetroUndergroundToolbar);
@@ -385,8 +384,17 @@ static void DrawUndergroundTrack(const TileInfo *ti, const MetroUndergroundTile 
 void MetroUndergroundDrawTile(const TileInfo *ti)
 {
 	if (!_metro_underground_view) return;
-	/* The surface is dimmed (its buildings are translucent). */
-	DrawGroundSpriteAt((SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh)) | (1 << PALETTE_MODIFIER_TRANSPARENT), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+	/* Earth everywhere, as freshly cleared land (the buildings above are translucent); deeper layers darker. */
+	uint offset = SlopeToSpriteOffset(ti->tileh);
+	DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + offset, PAL_NONE, 0, 0, 0);
+	for (uint i = 1; i < _metro_underground_view_layer; i++) {
+		DrawGroundSpriteAt((SPR_FLAT_BARE_LAND + offset) | (1 << PALETTE_MODIFIER_TRANSPARENT), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+	}
+	/* Decorations in the earth where no metro is: placeholders (rocks) for fossils, dinosaur skeletons, worms... */
+	if (GetMetroUndergroundTile(ti->tile, _metro_underground_view_layer) == nullptr) {
+		uint32_t hash = (ti->tile.base() * 2654435761U) ^ (_metro_underground_view_layer * 40503U);
+		if ((hash >> 8) % METRO_UNDERGROUND_DECOR_RARITY == 0) DrawGroundSpriteAt(((hash >> 20) & 1 ? SPR_FLAT_ROCKY_LAND_1 : SPR_FLAT_ROCKY_LAND_2) + offset, PAL_NONE, 0, 0, 0);
+	}
 	if (_metro_underground.empty()) return;
 	/* Other layers faded first, the chosen one bright on top. */
 	for (uint layer = 1; layer <= METRO_LAYER_COUNT; layer++) {

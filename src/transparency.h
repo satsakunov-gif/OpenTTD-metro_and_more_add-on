@@ -61,7 +61,8 @@ void PostTransparencyOptionLoad();
  */
 inline bool IsTransparencySet(TransparencyOption to)
 {
-	return _transparency_opt.Test(to) && _game_mode != GameMode::Menu;
+	extern TransparencyOptions _metro_view_transparency; // Metro mod: underground view, not saved in the settings.
+	return (_transparency_opt.Test(to) || _metro_view_transparency.Test(to)) && _game_mode != GameMode::Menu;
 }
 
 /**

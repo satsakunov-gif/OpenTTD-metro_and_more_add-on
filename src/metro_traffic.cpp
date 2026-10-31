@@ -33,6 +33,8 @@
 #include "settings_type.h"
 #include "sprite.h"
 #include "station_base.h"
+#include "cargotype.h"
+#include "engine_base.h"
 #include "tile_cmd.h"
 #include "town.h"
 #include "town_map.h"
@@ -58,6 +60,7 @@ struct MetroCar {
 	uint8_t sprite;   ///< Index in #_metro_car_sprites.
 	uint8_t colour;
 	uint16_t tiles;   ///< Tiles driven.
+	uint16_t sub_progress = 0; ///< Speed accumulated towards the next pixel.
 };
 
 /** A pedestrian walking on the sidewalk towards @p target; disappears there ("dives into the entrance"). */
@@ -336,6 +339,24 @@ static bool MoveCar(MetroCar &car)
 	return true;
 }
 
+/** Speed of the cars in road vehicle speed units (0.5 km/h): the fastest bus available this year, refreshed monthly. */
+static uint GetCarSpeed()
+{
+	static int32_t cached_month = -1;
+	static uint cached_speed = METRO_CARS_FALLBACK_SPEED;
+	int32_t month = CalTime::CurYear().base() * 12 + CalTime::CurMonth();
+	if (month == cached_month) return cached_speed;
+	cached_month = month;
+	uint best = 0;
+	for (const Engine *e : Engine::IterateType(VehicleType::Road)) {
+		if (!e->IsEnabled() || !e->flags.Test(EngineFlag::Available)) continue;
+		if (e->info.misc_flags.Test(EngineMiscFlag::RoadIsTram) || !IsCargoInClass(e->GetDefaultCargoType(), CargoClass::Passengers)) continue;
+		best = std::max<uint>(best, e->VehInfo<RoadVehicleInfo>().max_speed);
+	}
+	cached_speed = best != 0 ? best : METRO_CARS_FALLBACK_SPEED;
+	return cached_speed;
+}
+
 static void TickCars()
 {
 	if (!CarsEnabled()) {
@@ -353,14 +374,24 @@ static void TickCars()
 		return gone;
 	});
 
-	if ((_tick_counter % METRO_CARS_STEP_TICKS) == 0) {
+	{
+		/* Cars drive at the speed of the fastest bus of these years: like a road vehicle, a pixel per
+		 * METRO_CARS_ADVANCE_PER_PIXEL of speed units accumulated. */
+		uint speed = GetCarSpeed();
 		std::vector<MetroCar> moved;
 		moved.reserve(_cars.size());
 		RebuildCarIndex();
 		for (MetroCar &car : _cars) {
 			TileIndex old_tile = car.tile;
-			bool keep = MoveCar(car);
-			MarkTileDirtyByTile(old_tile);
+			bool keep = true;
+			bool stepped = false;
+			car.sub_progress += speed * 3 / 4; // As Vehicle::GetAdvanceSpeed.
+			while (keep && car.sub_progress >= METRO_CARS_ADVANCE_PER_PIXEL) {
+				car.sub_progress -= METRO_CARS_ADVANCE_PER_PIXEL;
+				keep = MoveCar(car);
+				stepped = true;
+			}
+			if (stepped) MarkTileDirtyByTile(old_tile);
 			if (keep) {
 				if (car.tile != old_tile) MarkTileDirtyByTile(car.tile);
 				moved.push_back(car);
@@ -640,7 +671,7 @@ bool ConMetroTraffic(std::span<std::string_view> argv)
 	}
 	UpdateTownsInView();
 	for (uint slice = 0; slice < METRO_JAM_ESTIMATE_TICKS; slice++) UpdateJamEstimates(slice, METRO_JAM_ESTIMATE_TICKS);
-	IConsolePrint(CC_INFO, "cars {} (setting {}), pedestrians {} (setting {}), towns on screen {}", _cars.size(), CarsEnabled() ? "on" : "off",
+	IConsolePrint(CC_INFO, "cars {} (setting {}, speed {} km/h), pedestrians {} (setting {}), towns on screen {}", _cars.size(), CarsEnabled() ? "on" : "off", GetCarSpeed() / 2,
 			_pedestrians.size(), PedestriansEnabled() ? "on" : "off", _towns_in_view.size());
 	for (const auto &[town, slowdown] : _town_jam_estimate) {
 		const Town *t = Town::Get(town);
