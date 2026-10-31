@@ -2496,3 +2496,8 @@ STR_METRO_STNAME_SIDE_NE                                        :Север
 STR_METRO_STNAME_SIDE_SE                                        :Восток
 STR_METRO_STNAME_SIDE_SW                                        :Юг
 STR_METRO_STNAME_SIDE_NW                                        :Запад
+STR_METRO_ROAD_NAME_DEDICATED_TRAM                              :Обособленный трамвайный путь
+STR_METRO_TRAM_T50                                              :Трамвай Т-50
+STR_METRO_TRAM_T70                                              :Трамвай Т-70
+STR_METRO_TRAM_LOWFLOOR                                         :Низкопольный трамвай
+STR_METRO_TRAM_AERO                                             :Аэротрам

@@ -2815,3 +2815,8 @@ STR_METRO_STNAME_SIDE_NE                                        :North
 STR_METRO_STNAME_SIDE_SE                                        :East
 STR_METRO_STNAME_SIDE_SW                                        :South
 STR_METRO_STNAME_SIDE_NW                                        :West
+STR_METRO_ROAD_NAME_DEDICATED_TRAM                              :Dedicated tramway
+STR_METRO_TRAM_T50                                              :T-50 Tram
+STR_METRO_TRAM_T70                                              :T-70 Tram
+STR_METRO_TRAM_LOWFLOOR                                         :Low-Floor Tram
+STR_METRO_TRAM_AERO                                             :Aerotram

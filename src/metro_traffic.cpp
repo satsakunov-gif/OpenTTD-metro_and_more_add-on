@@ -572,6 +572,7 @@ int MetroTrafficAdjustRoadVehicleSpeed(const RoadVehicle *v, int max_speed)
 	if (_town_jam_estimate.empty() && _cars_on_tile.empty()) return max_speed;
 	if (!Company::IsValidHumanID(v->owner)) return max_speed;
 	TileIndex tile = v->tile;
+	if (RoadTypeIsTram(v->roadtype) && IsTileType(tile, TileType::Road) && GetRoadTypeTram(tile) == ROADTYPE_METRO_TRAM) return max_speed; // Dedicated tram track.
 	if (GetCarRoadBits(tile) == ROAD_NONE) return max_speed; // Tram-only tiles, stations, depots, bridges: no jams.
 	uint16_t town = GetTownIndex(tile).base();
 	uint slowdown = 0;

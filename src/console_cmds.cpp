@@ -15,6 +15,7 @@
 #include "metro_traffic.h"
 #include "metro_elevated.h"
 #include "metro_station_names.h"
+#include "metro_trams.h"
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
 #include "crashlog.h"
@@ -4472,6 +4473,7 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("metro_traffic",           ConMetroTraffic);
 	IConsole::CmdRegister("metro_elevated",          ConMetroElevated);
 	IConsole::CmdRegister("metro_station",           ConMetroStation);
+	IConsole::CmdRegister("metro_trams",             ConMetroTrams);
 	IConsole::CmdRegister("exit",                    ConExit);
 	IConsole::CmdRegister("part",                    ConPart);
 	IConsole::CmdRegister("help",                    ConHelp);

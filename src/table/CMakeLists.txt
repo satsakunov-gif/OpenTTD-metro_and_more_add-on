@@ -23,6 +23,7 @@ add_files(
     metro_traffic_tables.h
     metro_elevated_tables.h
     metro_station_names_tables.h
+    metro_tram_tables.h
     genland.h
     heightmap_colours.h
     industry_land.h

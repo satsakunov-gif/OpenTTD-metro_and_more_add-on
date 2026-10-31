@@ -15,6 +15,7 @@
 #include "company_type.h"
 
 void SetupEngines();
+void StartupEngineAddedAfterLoad(Engine *e);
 void StartupEngines();
 void CheckEngines();
 void AnalyseEngineCallbacks();

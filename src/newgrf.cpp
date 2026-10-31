@@ -8,6 +8,7 @@
 /** @file newgrf.cpp Base of all NewGRF support. */
 
 #include "stdafx.h"
+#include "metro_trams.h"
 #include "core/backup_type.hpp"
 #include "core/bit_cast.hpp"
 #include "core/container_func.hpp"
@@ -1025,7 +1026,7 @@ static void FinaliseEngineArray()
 	for (Engine *e : Engine::Iterate()) {
 		if (e->GetGRF() == nullptr) {
 			const EngineIDMapping &eid = _engine_mngr.mappings[e->index];
-			if (eid.grfid != INVALID_GRFID || eid.internal_id != eid.substitute_id) {
+			if ((eid.grfid != INVALID_GRFID || eid.internal_id != eid.substitute_id) && !IsMetroTramEngineScope(eid.grfid)) { // Metro mod: built-in trams.
 				e->info.string_id = STR_NEWGRF_INVALID_ENGINE;
 			}
 		}
@@ -1823,6 +1824,9 @@ static void AfterLoadGRFs()
 
 	/* Polish cargoes */
 	FinaliseCargoArray();
+
+	/* Metro mod: the built-in trams, before the refit masks are computed. */
+	MetroSetupTramEngines();
 
 	/* Pre-calculate all refit masks after loading GRF files. */
 	CalculateRefitMasks();

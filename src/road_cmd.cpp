@@ -83,7 +83,7 @@ void ResetRoadTypes()
 
 	_roadtypes_hidden_mask = {};
 	_roadtypes_road = {ROADTYPE_ROAD};
-	_roadtypes_tram = {ROADTYPE_TRAM};
+	_roadtypes_tram = {ROADTYPE_TRAM, ROADTYPE_METRO_TRAM};
 }
 
 void ResolveRoadTypeGUISprites(RoadTypeInfo *rti)

@@ -864,6 +864,30 @@ void StartupOneEngine(Engine *e, const CalTime::YearMonthDay &aging_ymd, const C
 }
 
 /**
+ * Metro mod: start an engine that the loaded game did not have yet (the built-in trams in an older save),
+ * as #StartupEngines does for all engines of a new game.
+ * @param e The engine.
+ */
+void StartupEngineAddedAfterLoad(Engine *e)
+{
+	CalTime::Year aging_stop_year = _year_engine_aging_stops;
+	const CalTime::Date aging_date = std::min(CalTime::CurDate(), CalTime::ConvertYMDToDate(aging_stop_year, 0, 1));
+	if (_settings_game.vehicle.no_expire_vehicles_after > 0) {
+		aging_stop_year = std::min<CalTime::Year>(aging_stop_year, _settings_game.vehicle.no_expire_vehicles_after);
+	}
+	const CalTime::Date expire_stop_date = std::min(CalTime::CurDate(), CalTime::ConvertYMDToDate(aging_stop_year, 0, 1));
+	CalTime::Date no_introduce_after_date{INT_MAX};
+	if (_settings_game.vehicle.no_introduce_vehicles_after > 0) {
+		no_introduce_after_date = CalTime::ConvertYMDToDate(_settings_game.vehicle.no_introduce_vehicles_after, 0, 1) - 1;
+	}
+	StartupOneEngine(e, CalTime::ConvertDateToYMD(aging_date), CalTime::ConvertDateToYMD(expire_stop_date), _engine_seed, no_introduce_after_date);
+	CalcEngineReliability(e, false);
+	for (Company *c : Company::Iterate()) {
+		c->avail_roadtypes = GetCompanyRoadTypes(c->index);
+	}
+}
+
+/**
  * Start/initialise all our engines. Must be called whenever there are changes
  * to the NewGRF config.
  */

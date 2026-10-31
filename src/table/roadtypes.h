@@ -179,11 +179,98 @@ static const RoadTypeInfo _original_roadtypes[] = {
 		/* roadtypes required for this to be introduced */
 		{},
 
-		/* introduction road types */
-		{ROADTYPE_TRAM},
+		/* introduction road types (Metro mod: trams bring the dedicated track too) */
+		{ROADTYPE_TRAM, ROADTYPE_METRO_TRAM},
 
 		/* sort order */
 		0x17,
+
+		{ nullptr },
+		{ nullptr },
+		{},
+	},
+
+	/* Metro mod: dedicated tram track, more expensive; trams on it are not slowed by jams */
+	{
+		/* GUI sprites */
+		{
+			SPR_IMG_TRAMWAY_X_DIR,
+			SPR_IMG_TRAMWAY_Y_DIR,
+			SPR_IMG_AUTOTRAM,
+			SPR_IMG_ROAD_DEPOT,
+			SPR_IMG_ROAD_TUNNEL,
+			SPR_IMG_CONVERT_TRAM,
+		},
+
+		{
+			SPR_CURSOR_TRAMWAY_NESW,
+			SPR_CURSOR_TRAMWAY_NWSE,
+			SPR_CURSOR_AUTOTRAM,
+			SPR_CURSOR_ROAD_DEPOT,
+			SPR_CURSOR_ROAD_TUNNEL,
+			SPR_CURSOR_CONVERT_TRAM,
+		},
+
+		/* strings */
+		{
+			STR_METRO_ROAD_NAME_DEDICATED_TRAM,
+			STR_ROAD_TOOLBAR_TRAM_CONSTRUCTION_CAPTION,
+			STR_ROAD_MENU_TRAM_CONSTRUCTION,
+			STR_BUY_VEHICLE_TRAM_VEHICLE_CAPTION,
+			STR_REPLACE_TRAM_VEHICLES,
+			STR_ENGINE_PREVIEW_TRAM_VEHICLE,
+
+			STR_ERROR_CAN_T_BUILD_TRAMWAY_HERE,
+			STR_ERROR_CAN_T_REMOVE_TRAMWAY_FROM,
+			STR_ERROR_CAN_T_BUILD_TRAM_DEPOT,
+			{ STR_ERROR_CAN_T_BUILD_PASSENGER_TRAM_STATION,         STR_ERROR_CAN_T_BUILD_CARGO_TRAM_STATION },
+			{ STR_ERROR_CAN_T_REMOVE_PASSENGER_TRAM_STATION,        STR_ERROR_CAN_T_REMOVE_CARGO_TRAM_STATION },
+			STR_ERROR_CAN_T_CONVERT_TRAMWAY,
+			{ STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION,         STR_STATION_BUILD_CARGO_TRAM_ORIENTATION },
+			{ STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION_TOOLTIP, STR_STATION_BUILD_CARGO_TRAM_ORIENTATION_TOOLTIP },
+		},
+
+		/* Powered roadtypes */
+		{ROADTYPE_TRAM, ROADTYPE_METRO_TRAM},
+
+		/* flags */
+		{RoadTypeFlag::Catenary, RoadTypeFlag::NoHouses},
+
+		/* extra flags */
+		{},
+
+		/* collision mode */
+		RTCM_NORMAL,
+
+		/* cost multiplier */
+		32,
+
+		/* maintenance cost multiplier */
+		36,
+
+		/* max speed */
+		0,
+
+		/* road type label */
+		ROADTYPE_LABEL_METRO_TRAM,
+
+		/* alternate labels */
+		{},
+
+		/* map colour */
+		PC_BLACK,
+
+		/* introduction date */
+		CalTime::INVALID_DATE,
+
+		/* roadtypes required for this to be introduced */
+		{},
+
+		/* introduction road types */
+		{ROADTYPE_METRO_TRAM},
+
+		/* sort order */
+		0x18,
 
 		{ nullptr },
 		{ nullptr },

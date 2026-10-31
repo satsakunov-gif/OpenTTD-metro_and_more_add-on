@@ -19,6 +19,7 @@ using RoadTypeLabel = Label<struct RoadTypeLabelTag>;
 
 static const RoadTypeLabel ROADTYPE_LABEL_ROAD{"ROAD"};
 static const RoadTypeLabel ROADTYPE_LABEL_TRAM{"ELRL"};
+static const RoadTypeLabel ROADTYPE_LABEL_METRO_TRAM{"MDTR"}; ///< Metro mod: dedicated tram track.
 
 /**
  * The different roadtypes we support
@@ -27,6 +28,7 @@ enum RoadType : uint8_t {
 	ROADTYPE_BEGIN   = 0,    ///< Used for iterations
 	ROADTYPE_ROAD    = 0,    ///< Basic road type
 	ROADTYPE_TRAM    = 1,    ///< Trams
+	ROADTYPE_METRO_TRAM = 2, ///< Metro mod: dedicated tram track (trams on it are not slowed by jams)
 	ROADTYPE_END     = 63,   ///< Used for iterations
 	INVALID_ROADTYPE = 63,   ///< flag for invalid roadtype
 };

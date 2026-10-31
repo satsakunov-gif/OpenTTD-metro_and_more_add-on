@@ -41,6 +41,7 @@
 #include "../object_base.h"
 #include "../metro_power.h"
 #include "../metro_elevated.h"
+#include "../metro_trams.h"
 #include "../tree_map.h"
 #include "../company_func.h"
 #include "../road_cmd.h"
@@ -4730,6 +4731,7 @@ bool AfterLoadGame()
 	/* Metro mod: networks, supply and the power of the trains are not saved. */
 	MetroPowerAfterLoad();
 	if (!SlXvIsFeaturePresent(XSLFI_METRO_ELEVATED)) MetroElevatedAfterLoad();
+	MetroTramsAfterLoad();
 
 	return true;
 }
