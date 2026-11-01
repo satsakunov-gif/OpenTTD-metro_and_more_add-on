@@ -8,6 +8,7 @@
 /** @file economy.cpp Handling of the economy. */
 
 #include "stdafx.h"
+#include "metro_malls.h"
 #include "company_cmd.h"
 #include "company_func.h"
 #include "command_func.h"
@@ -1353,6 +1354,7 @@ static Money DeliverGoods(int num_pieces, CargoType cargo_type, StationID dest, 
 	if (accepted_total - accepted_ind > 0) {
 		/* Metro mod: oil for the gas power plants near the station. */
 		MetroPowerOnCargoDelivered(st, cargo_type, accepted_total - accepted_ind);
+		MetroMallCountPassengers(st, cargo_type, accepted_total - accepted_ind); // Metro mod: passengers arriving at a mall.
 		/* Cargo not delivered to an industry must go to the town. */
 		st->town->GetOrCreateCargoAccepted(cargo_type).history[THIS_MONTH].accepted += accepted_total - accepted_ind;
 	}

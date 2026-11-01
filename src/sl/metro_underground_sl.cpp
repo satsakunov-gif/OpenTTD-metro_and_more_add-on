@@ -11,6 +11,7 @@
 #include "../metro_underground.h"
 #include "../metro_overlay.h"
 #include "../metro_stations.h"
+#include "../metro_malls.h"
 
 #include "saveload.h"
 
@@ -183,12 +184,51 @@ static void Load_MTEE()
 	}
 }
 
+/** An underground mall in the save. */
+struct MetroMallRecord {
+	uint16_t station = 0;
+	MetroMall mall;
+};
+
+static const NamedSaveLoad _metro_mall_desc[] = {
+	NSL("station",     SLE_VAR(MetroMallRecord, station,          SLE_UINT16)),
+	NSL("size",        SLE_VAR(MetroMallRecord, mall.size,        SLE_UINT8)),
+	NSL("flow",        SLE_VAR(MetroMallRecord, mall.flow,        SLE_UINT32)),
+	NSL("last_flow",   SLE_VAR(MetroMallRecord, mall.last_flow,   SLE_UINT32)),
+	NSL("price",       SLE_VAR(MetroMallRecord, mall.price,       SLE_INT64)),
+	NSL("last_income", SLE_VAR(MetroMallRecord, mall.last_income, SLE_INT64)),
+	NSL("last_upkeep", SLE_VAR(MetroMallRecord, mall.last_upkeep, SLE_INT64)),
+};
+
+static void Save_MTML()
+{
+	SaveLoadTableData slt = SlTableHeader(_metro_mall_desc);
+	int index = 0;
+	for (const auto &[station, mall] : _metro_malls) {
+		MetroMallRecord r{station, mall};
+		SlSetArrayIndex(index++);
+		SlObjectSaveFiltered(&r, slt);
+	}
+}
+
+static void Load_MTML()
+{
+	SaveLoadTableData slt = SlTableHeaderOrRiff(_metro_mall_desc);
+	_metro_malls.clear();
+	while (SlIterateArray() != -1) {
+		MetroMallRecord r;
+		SlObjectLoadFiltered(&r, slt);
+		if (r.mall.size >= 1 && r.mall.size <= 3) _metro_malls[r.station] = r.mall;
+	}
+}
+
 /** Chunk handlers of the metro mod underground. */
 static const ChunkHandler metro_underground_chunk_handlers[] = {
 	{ 'MTUG', Save_MTUG, Load_MTUG, nullptr, nullptr, ChunkType::Table },
 	{ 'MTUO', Save_MTUO, Load_MTUO, nullptr, nullptr, ChunkType::Table },
 	{ 'MTSL', Save_MTSL, Load_MTSL, nullptr, nullptr, ChunkType::Table },
 	{ 'MTEE', Save_MTEE, Load_MTEE, nullptr, nullptr, ChunkType::Table },
+	{ 'MTML', Save_MTML, Load_MTML, nullptr, nullptr, ChunkType::Table },
 };
 
 extern const ChunkHandlerTable _metro_underground_chunk_handlers(metro_underground_chunk_handlers);

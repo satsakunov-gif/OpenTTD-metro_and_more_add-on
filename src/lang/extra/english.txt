@@ -2921,3 +2921,22 @@ STR_METRO_STNAME_METRO_TOWN_HALL                                :Town Hall Squar
 STR_METRO_STNAME_METRO_BUSINESS                                 :Business Centre
 STR_METRO_STNAME_METRO_RESIDENTIAL                              :Residential Quarter
 STR_METRO_UNDERGROUND_ERR_PORTAL                                :{WHITE}... the portal goes with its transformer: remove it with "Remove track" on layer -1 in the Metro window
+STR_METRO_MALL_SIZE_S                                           :Small mall
+STR_METRO_MALL_SIZE_M                                           :Medium mall
+STR_METRO_MALL_SIZE_L                                           :Large mall
+STR_METRO_MALL_CAPTION                                          :{WHITE}Underground malls
+STR_METRO_MALL_LIST_TOOLTIP                                     :{BLACK}Malls of your company with last month's passengers, income and upkeep; megahub stations without a mall. Click a line to select it
+STR_METRO_MALL_SIZE_TOOLTIP                                     :{BLACK}Size of the mall to build: small, medium (2x price, 2x income) or large (4x)
+STR_METRO_MALL_BUILD                                            :{BLACK}Build
+STR_METRO_MALL_BUILD_TOOLTIP                                    :{BLACK}Build a mall of the chosen size at the selected megahub station
+STR_METRO_MALL_CLOSE                                            :{BLACK}Close
+STR_METRO_MALL_CLOSE_TOOLTIP                                    :{BLACK}Close the selected mall: it is demolished, 25% of its price is refunded
+STR_METRO_MALL_NONE                                             :{BLACK}No malls yet. A mall can be built at a megahub station (from 2030): "Upgrade a station" in the Metro window
+STR_METRO_MALL_ROW                                              :{STATION}: {STRING}, passengers {COMMA}, income {CURRENCY_SHORT}, upkeep {CURRENCY_SHORT} (this month {COMMA} passengers)
+STR_METRO_MALL_ROW_EMPTY                                        :{STATION}: megahub without a mall, a mall costs {CURRENCY_SHORT}
+STR_METRO_UNDERGROUND_ROW_MALLS                                 :Underground malls...
+STR_METRO_MALL_ERR_CANT_BUILD                                   :{WHITE}Can't build the mall...
+STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}Can't close the mall...
+STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... the station has no mall
+STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... the station has a mall already; close it first
+STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... a mall needs a megahub station

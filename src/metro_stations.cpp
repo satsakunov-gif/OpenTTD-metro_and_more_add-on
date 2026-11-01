@@ -19,6 +19,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_malls.h"
 #include "metro_stations.h"
 #include "metro_underground.h"
 #include "metro_underground_cmd.h"
@@ -57,6 +58,7 @@ void MetroStationsReset()
 {
 	_metro_station_levels.clear();
 	_metro_extra_entrances.clear();
+	MetroMallsReset();
 }
 
 uint8_t GetMetroStationLevel(StationID station)
@@ -68,6 +70,7 @@ uint8_t GetMetroStationLevel(StationID station)
 void MetroStationsOnStationDeleted(StationID station)
 {
 	_metro_station_levels.erase(station.base());
+	MetroMallsOnStationDeleted(station);
 }
 
 /** Chebyshev distance between two tile areas (0 if they touch or overlap). */
@@ -296,6 +299,23 @@ void MetroStationsDrawTile(const TileInfo *ti)
 	if (it == _metro_extra_entrances.end() || !IsExtraEntranceValid(ti->tile, it->second)) return;
 	int8_t x = it->second.kind == MetroEntranceKind::Sidewalk ? 1 : 12;
 	AddSortableSpriteToDraw(SPR_TRANSMITTER, GetCompanyPalette(static_cast<Owner>(it->second.owner)), ti->x, ti->y, ti->z, {{x, 1, 0}, {2, 2, 70}, {}});
+}
+
+/** Whether the station has platforms under the ground. */
+bool MetroStationIsUnderground(const Station *st)
+{
+	return GetPlatformInfo(st).tiles != 0;
+}
+
+/** Price of the upgrade of the station to a level. */
+Money MetroStationLevelPrice(const Station *st, uint8_t level)
+{
+	return GetPlatformInfo(st).price * _metro_station_levels_spec[level].cost_factor;
+}
+
+bool MetroStationCanBeInterchange(const Station *st)
+{
+	return CanBeInterchange(st, GetPlatformInfo(st));
 }
 
 /** Console: the underground stations with level, platforms, entrances and the rating change. */

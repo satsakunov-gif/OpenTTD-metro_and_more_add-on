@@ -892,6 +892,12 @@ enum class WindowClass : uint16_t {
 	MetroUndergroundToolbar,
 
 	/**
+	 * Metro mod underground malls of the company; %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroMalls,
+
+	/**
 	 * Metro mod district map of a town; %Window numbers:
 	 *   - #TownID = #MetroDistrictsWidgets
 	 */

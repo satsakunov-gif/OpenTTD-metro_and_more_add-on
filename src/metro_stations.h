@@ -15,6 +15,7 @@
 
 #include "command_type.h"
 #include "company_type.h"
+#include "economy_type.h"
 #include "station_type.h"
 #include "tile_type.h"
 
@@ -50,5 +51,8 @@ void MetroStationsOnStationDeleted(StationID station);
 void MetroStationsDrawTile(const TileInfo *ti);
 void MetroStationsRecomputeNear(TileIndex tile);
 void MetroStationsConsoleList();
+bool MetroStationIsUnderground(const Station *st);
+Money MetroStationLevelPrice(const Station *st, uint8_t level);
+bool MetroStationCanBeInterchange(const Station *st);
 
 #endif /* METRO_STATIONS_H */

@@ -20,6 +20,8 @@
  */
 
 #include "stdafx.h"
+#include "metro_malls_cmd.h"
+#include "metro_malls.h"
 #include "metro_stations.h"
 #include "train_cmd.h"
 #include "metro_trains.h"
@@ -869,6 +871,7 @@ enum MetroUndergroundRow : int {
 	MUR_ENTRANCE, ///< Entrance pavilion.
 	MUR_EXTRA_ENTRANCE, ///< Entrance on a sidewalk (road tile) or in a basement (house); Ctrl removes.
 	MUR_UPGRADE, ///< Upgrade an underground station (click a platform).
+	MUR_MALLS,   ///< Window of the underground malls.
 	MUR_COUNT,
 };
 
@@ -908,6 +911,7 @@ struct MetroUndergroundToolbarWindow : Window {
 			case MUR_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR);
 			case MUR_EXTRA_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_EXTRA_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR * 5);
 			case MUR_UPGRADE: return GetString(STR_METRO_UNDERGROUND_ROW_UPGRADE);
+			case MUR_MALLS: return GetString(STR_METRO_UNDERGROUND_ROW_MALLS);
 			default: NOT_REACHED();
 		}
 	}
@@ -956,6 +960,10 @@ struct MetroUndergroundToolbarWindow : Window {
 		}
 		if (row == MUR_LAYER) {
 			MetroCycleUndergroundLayer();
+			return;
+		}
+		if (row == MUR_MALLS) {
+			ShowMetroMallsWindow();
 			return;
 		}
 		if (row == MUR_INCLINE && this->Layer() >= METRO_LAYER_COUNT) return;
@@ -1099,7 +1107,7 @@ static void MetroTestAddCar(CompanyID company, uint layer, TileIndex depot, Vehi
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | malls | mall <station> <size 1-3, 0 close> | mallwindow | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -1179,6 +1187,26 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		auto t = ParseConsoleTile(argv[2], argv[3]);
 		if (!t.has_value()) return false;
 		ConsoleCommand<Commands::LandscapeClear>(*t);
+		return true;
+	}
+	if (cmd == "malls") {
+		MetroMallsConsoleList();
+		return true;
+	}
+	if (cmd == "mall" && argv.size() > 3) {
+		/* mall <station> <size 1-3, 0 = close> */
+		auto id = ParseInteger<uint>(argv[2]);
+		auto size = ParseInteger<uint>(argv[3]);
+		CompanyID company = GetConsoleCompany();
+		if (!id.has_value() || !size.has_value() || company == CompanyID::Invalid()) return false;
+		Backup<CompanyID> cur_company(_current_company, company, FILE_LINE);
+		CommandCost ret = Command<Commands::MetroBuildMall>::Do(DoCommandFlag::Execute, StationID(*id), static_cast<uint8_t>(*size));
+		cur_company.Restore();
+		IConsolePrint(ret.Succeeded() ? CC_INFO : CC_ERROR, "{}", ret.Succeeded() ? fmt::format("Done, cost {}.", ret.GetCost()) : GetString(ret.GetErrorMessage()));
+		return true;
+	}
+	if (cmd == "mallwindow") {
+		ShowMetroMallsWindow();
 		return true;
 	}
 	if (cmd == "levels") {

@@ -2602,3 +2602,22 @@ STR_METRO_STNAME_METRO_TOWN_HALL                                :пл. Рату�
 STR_METRO_STNAME_METRO_BUSINESS                                 :Деловой центр
 STR_METRO_STNAME_METRO_RESIDENTIAL                              :Жилой массив
 STR_METRO_UNDERGROUND_ERR_PORTAL                                :{WHITE}... портал сносится вместе с трансформером: «Убрать путь» на слое −1 в окне «Метро»
+STR_METRO_MALL_SIZE_S                                           :Малый ТЦ
+STR_METRO_MALL_SIZE_M                                           :Средний ТЦ
+STR_METRO_MALL_SIZE_L                                           :Большой ТЦ
+STR_METRO_MALL_CAPTION                                          :{WHITE}Подземные ТЦ
+STR_METRO_MALL_LIST_TOOLTIP                                     :{BLACK}ТЦ вашей компании: пассажиры, доход и содержание за прошлый месяц; мегаузлы без ТЦ. Щелчок по строке — выбрать
+STR_METRO_MALL_SIZE_TOOLTIP                                     :{BLACK}Размер ТЦ: малый, средний (цена и доход ×2) или большой (×4)
+STR_METRO_MALL_BUILD                                            :{BLACK}Построить
+STR_METRO_MALL_BUILD_TOOLTIP                                    :{BLACK}Построить ТЦ выбранного размера у выбранного мегаузла
+STR_METRO_MALL_CLOSE                                            :{BLACK}Закрыть
+STR_METRO_MALL_CLOSE_TOOLTIP                                    :{BLACK}Закрыть выбранный ТЦ: он сносится, возвращается 25% цены
+STR_METRO_MALL_NONE                                             :{BLACK}ТЦ пока нет. ТЦ строится у станции-мегаузла (с 2030): «Улучшить станцию» в окне «Метро»
+STR_METRO_MALL_ROW                                              :{STATION}: {STRING}, пассажиров {COMMA}, доход {CURRENCY_SHORT}, содержание {CURRENCY_SHORT} (в этом месяце {COMMA})
+STR_METRO_MALL_ROW_EMPTY                                        :{STATION}: мегаузел без ТЦ, ТЦ стоит {CURRENCY_SHORT}
+STR_METRO_UNDERGROUND_ROW_MALLS                                 :Подземные ТЦ...
+STR_METRO_MALL_ERR_CANT_BUILD                                   :{WHITE}ТЦ построить нельзя...
+STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}ТЦ закрыть нельзя...
+STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... у станции нет ТЦ
+STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... у станции уже есть ТЦ; сначала закройте его
+STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... ТЦ строится только у мегаузла

@@ -8,6 +8,7 @@
 /** @file station_cmd.cpp Handling of station tiles. */
 
 #include "stdafx.h"
+#include "metro_malls.h"
 #include "metro_stations.h"
 #include "metro_underground.h"
 #include "metro_elevated.h"
@@ -4855,6 +4856,7 @@ static uint UpdateStationWaiting(Station *st, CargoType cargo, uint amount, Sour
 	/* No new "real" cargo item yet. */
 	if (amount == 0) return 0;
 
+	MetroMallCountPassengers(st, cargo, amount); // Metro mod: passengers of a station with a mall.
 	StationID next = ge.GetVia(st->index);
 	ge.CreateData().cargo.Append(CargoPacket::Create(st->index, amount, source), next);
 	LinkGraph *lg = nullptr;

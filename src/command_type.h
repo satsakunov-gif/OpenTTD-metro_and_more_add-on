@@ -786,6 +786,7 @@ enum class Commands : uint8_t {
 	MetroBuildTransformer,                  ///< Metro mod: build a transformer between the metro and the surface
 	MetroUpgradeStation,                    ///< Metro mod: upgrade an underground station (escalators, interchange, megahub)
 	MetroBuildExtraEntrance,                ///< Metro mod: build or remove a metro entrance on a sidewalk or in a basement
+	MetroBuildMall,                         ///< Metro mod: build or close an underground mall
 	MetroBuildElevatedLine,                 ///< Metro mod: build an elevated monorail line at once
 	MetroBuildElevatedSpan,                 ///< Metro mod: build a span (bridge) of the elevated monorail
 
