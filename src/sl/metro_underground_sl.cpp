@@ -12,6 +12,7 @@
 #include "../metro_overlay.h"
 #include "../metro_stations.h"
 #include "../metro_malls.h"
+#include "../metro_heatmap.h"
 
 #include "saveload.h"
 
@@ -222,6 +223,58 @@ static void Load_MTML()
 	}
 }
 
+/** Traffic of a station for the heat map in the save. */
+struct MetroTrafficRecord {
+	uint16_t station = 0;
+	uint32_t month[METRO_HEAT_CATEGORIES]{};
+	uint32_t history[METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES]{};
+	uint32_t transfers_month = 0;
+	uint32_t transfers[METRO_HEAT_MONTHS]{};
+};
+
+static const NamedSaveLoad _metro_traffic_desc[] = {
+	NSL("station",         SLE_VAR(MetroTrafficRecord, station,         SLE_UINT16)),
+	NSL("month",           SLE_ARR(MetroTrafficRecord, month,           SLE_UINT32, METRO_HEAT_CATEGORIES)),
+	NSL("history",         SLE_ARR(MetroTrafficRecord, history,         SLE_UINT32, METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES)),
+	NSL("transfers_month", SLE_VAR(MetroTrafficRecord, transfers_month, SLE_UINT32)),
+	NSL("transfers",       SLE_ARR(MetroTrafficRecord, transfers,       SLE_UINT32, METRO_HEAT_MONTHS)),
+};
+
+static void Save_MTHT()
+{
+	SaveLoadTableData slt = SlTableHeader(_metro_traffic_desc);
+	int index = 0;
+	for (const auto &[station, t] : _metro_station_traffic) {
+		MetroTrafficRecord r;
+		r.station = station;
+		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) r.month[c] = t.month[c];
+		for (uint m = 0; m < METRO_HEAT_MONTHS; m++) {
+			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) r.history[m * METRO_HEAT_CATEGORIES + c] = t.history[m][c];
+			r.transfers[m] = t.transfers[m];
+		}
+		r.transfers_month = t.transfers_month;
+		SlSetArrayIndex(index++);
+		SlObjectSaveFiltered(&r, slt);
+	}
+}
+
+static void Load_MTHT()
+{
+	SaveLoadTableData slt = SlTableHeaderOrRiff(_metro_traffic_desc);
+	_metro_station_traffic.clear();
+	while (SlIterateArray() != -1) {
+		MetroTrafficRecord r;
+		SlObjectLoadFiltered(&r, slt);
+		MetroStationTraffic &t = _metro_station_traffic[r.station];
+		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) t.month[c] = r.month[c];
+		for (uint m = 0; m < METRO_HEAT_MONTHS; m++) {
+			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) t.history[m][c] = r.history[m * METRO_HEAT_CATEGORIES + c];
+			t.transfers[m] = r.transfers[m];
+		}
+		t.transfers_month = r.transfers_month;
+	}
+}
+
 /** Chunk handlers of the metro mod underground. */
 static const ChunkHandler metro_underground_chunk_handlers[] = {
 	{ 'MTUG', Save_MTUG, Load_MTUG, nullptr, nullptr, ChunkType::Table },
@@ -229,6 +282,7 @@ static const ChunkHandler metro_underground_chunk_handlers[] = {
 	{ 'MTSL', Save_MTSL, Load_MTSL, nullptr, nullptr, ChunkType::Table },
 	{ 'MTEE', Save_MTEE, Load_MTEE, nullptr, nullptr, ChunkType::Table },
 	{ 'MTML', Save_MTML, Load_MTML, nullptr, nullptr, ChunkType::Table },
+	{ 'MTHT', Save_MTHT, Load_MTHT, nullptr, nullptr, ChunkType::Table },
 };
 
 extern const ChunkHandlerTable _metro_underground_chunk_handlers(metro_underground_chunk_handlers);

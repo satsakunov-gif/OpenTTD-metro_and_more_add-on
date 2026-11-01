@@ -19,6 +19,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_heatmap.h"
 #include "metro_malls.h"
 #include "metro_stations.h"
 #include "metro_underground.h"
@@ -59,6 +60,7 @@ void MetroStationsReset()
 	_metro_station_levels.clear();
 	_metro_extra_entrances.clear();
 	MetroMallsReset();
+	MetroHeatReset();
 }
 
 uint8_t GetMetroStationLevel(StationID station)
@@ -71,6 +73,7 @@ void MetroStationsOnStationDeleted(StationID station)
 {
 	_metro_station_levels.erase(station.base());
 	MetroMallsOnStationDeleted(station);
+	MetroHeatOnStationDeleted(station);
 }
 
 /** Chebyshev distance between two tile areas (0 if they touch or overlap). */

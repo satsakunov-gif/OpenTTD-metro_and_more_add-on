@@ -43,6 +43,7 @@
 #include "../metro_elevated.h"
 #include "../metro_trams.h"
 #include "../metro_trains.h"
+#include "../metro_overlay.h"
 #include "../metro_underground.h"
 #include "../tree_map.h"
 #include "../company_func.h"
@@ -1182,6 +1183,8 @@ bool AfterLoadGame()
 			}
 		}
 	}
+
+	MetroOverlayAfterLoadStationRects(); // Metro mod: platforms under the ground are not in the map.
 
 	for (TileIndex t(0); t < map_size; t++) {
 		switch (GetTileType(t)) {

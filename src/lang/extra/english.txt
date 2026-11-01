@@ -2940,3 +2940,19 @@ STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}Can't cl
 STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... the station has no mall
 STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... the station has a mall already; close it first
 STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... a mall needs a megahub station
+STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Heat map: traffic of the stations over their catchment, blue (little) to red (much); link lines of the chosen cargo coloured by volume; white squares = stations with transfers
+STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Transport: road vehicles (click)
+STR_METRO_HEAT_FILTER                                           :{TINY_FONT}{STRING} (click)
+STR_METRO_HEAT_ALL_TRANSPORT                                    :All transport
+STR_METRO_HEAT_TRAINS                                           :Trains
+STR_METRO_HEAT_ROAD                                             :Road vehicles
+STR_METRO_HEAT_SHIPS                                            :Ships
+STR_METRO_HEAT_AIRCRAFT                                         :Aircraft
+STR_METRO_HEAT_ALL_CARGO                                        :Passengers and cargo
+STR_METRO_HEAT_PASSENGERS                                       :Passengers
+STR_METRO_HEAT_FREIGHT                                          :Cargo
+STR_METRO_HEAT_MONTH                                            :Last month
+STR_METRO_HEAT_YEAR                                             :Last 12 months
+STR_METRO_HEAT_LEVEL                                            :{TINY_FONT}{BLACK}from {COMMA}
+STR_METRO_HEAT_NO_TRAFFIC                                       :{TINY_FONT}{BLACK}no traffic yet
+STR_METRO_HEAT_TYPE                                             :Heat map

@@ -98,6 +98,8 @@ public:
 
 	uint64_t GetRebuildCounter() const { return this->rebuild_counter; }
 
+	bool colour_by_volume = false; ///< Metro mod (heat map): colour links by the amount carried instead of the saturation.
+
 protected:
 	Window *window;                    ///< Window to be drawn into.
 	const WidgetID widget_id;          ///< ID of Widget in Window to be drawn to.

@@ -8,6 +8,7 @@
 /** @file smallmap_gui.cpp GUI that shows a small map of the world with metadata like owner or height. */
 
 #include "stdafx.h"
+#include "metro_heatmap.h"
 #include "core/backup_type.hpp"
 #include "clear_map.h"
 #include "industry.h"
@@ -264,6 +265,20 @@ void BuildLinkStatsLegend()
 	_legend_linkstats[i].end = true;
 }
 
+/** Metro mod: legend of the heat map: three filter rows (click to switch), then the levels in two columns. */
+static const LegendAndColour _legend_heat[] = {
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_DARK_BLUE, IT_INVALID, 0, CompanyID::Invalid(), true, false, true},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_LIGHT_BLUE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_GREEN, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_YELLOW, IT_INVALID, 0, CompanyID::Invalid(), true, false, true},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_ORANGE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_RED, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
+	{STR_NULL, {}, IT_INVALID, 0, CompanyID::Invalid(), true, true, false}
+};
+
 /** Legend to use for each \c SmallMapType. */
 static const EnumIndexArray<std::span<const LegendAndColour>, SmallMapType, SmallMapType::End> _legend_table{
 	_legend_land_contours,
@@ -273,6 +288,7 @@ static const EnumIndexArray<std::span<const LegendAndColour>, SmallMapType, Smal
 	_legend_routes,
 	_legend_vegetation,
 	_legend_land_owners,
+	_legend_heat,
 };
 
 /** Available colour schemes for height maps. */
@@ -634,6 +650,16 @@ static inline uint32_t GetSmallMapVegetationPixels(TileIndex tile, TileType t)
  * @param t    Effective tile type of the tile (see #SmallMapWindow::GetTileColours).
  * @return The colour of tile in the small map in mode "Owner"
  */
+/** Metro mod: heat map pixels — the level of the traffic, else plain ground. */
+static inline uint32_t GetSmallMapHeatPixels(TileIndex tile, TileType t)
+{
+	uint8_t level = MetroHeatLevel(tile);
+	if (level != 0) return MKCOLOUR_XXXX(MetroHeatLevelColour(level));
+	if (t == TileType::Water) return MKCOLOUR_XXXX(PC_WATER);
+	if (t == TileType::Station) return MKCOLOUR_XXXX(PC_WHITE);
+	return MKCOLOUR_XXXX(PC_DARK_GREY);
+}
+
 static inline uint32_t GetSmallMapOwnerPixels(TileIndex tile, TileType t)
 {
 	Owner o;
@@ -825,6 +851,9 @@ inline uint32_t SmallMapWindow::GetTileColours(const TileArea &ta) const
 
 		case SmallMapType::Owners:
 			return GetSmallMapOwnerPixels(tile, et);
+
+		case SmallMapType::Heat:
+			return GetSmallMapHeatPixels(tile, et);
 
 		default: NOT_REACHED();
 	}
@@ -1036,6 +1065,7 @@ void SmallMapWindow::DrawMapIndicators() const
  */
 void SmallMapWindow::DrawSmallMap(DrawPixelInfo *dpi, bool draw_indicators) const
 {
+	if (this->map_type == SmallMapType::Heat) MetroHeatPrepare(); // Metro mod.
 	Blitter *blitter = BlitterFactory::GetCurrentBlitter();
 	AutoRestoreBackup dpi_backup(_cur_dpi, dpi);
 
@@ -1088,8 +1118,25 @@ void SmallMapWindow::DrawSmallMap(DrawPixelInfo *dpi, bool draw_indicators) cons
 
 	/* Draw link stat overlay */
 	if (this->map_type == SmallMapType::LinkStats) {
+		this->overlay->colour_by_volume = false;
 		this->overlay->PrepareDraw();
 		this->overlay->Draw(BlitterFactory::GetCurrentBlitter(), dpi);
+	}
+
+	/* Metro mod: heat map — link lines of the chosen cargo coloured by volume, transfer icons. */
+	if (this->map_type == SmallMapType::Heat) {
+		CargoTypes mask = MetroHeatOverlayCargoMask();
+		if (this->overlay->GetCargoMask() != mask) this->overlay->SetCargoMask(mask);
+		this->overlay->colour_by_volume = true;
+		this->overlay->PrepareDraw();
+		this->overlay->Draw(BlitterFactory::GetCurrentBlitter(), dpi);
+		int half = ScaleGUITrad(2);
+		for (TileIndex t : MetroHeatTransferStations()) {
+			Point pt = this->TileToPixel(TileX(t) * TILE_SIZE, TileY(t) * TILE_SIZE);
+			if (pt.x + half < dpi->left || pt.x - half > dpi->left + dpi->width || pt.y + half < dpi->top || pt.y - half > dpi->top + dpi->height) continue;
+			GfxFillRect(pt.x - half - 1, pt.y - half - 1, pt.x + half + 1, pt.y + half + 1, PC_BLACK);
+			GfxFillRect(pt.x - half, pt.y - half, pt.x + half, pt.y + half, PC_WHITE);
+		}
 	}
 
 	const int map_labels_vertical_padding = ScaleGUITrad(2);
@@ -1213,6 +1260,7 @@ void SmallMapWindow::RebuildColourIndexIfNecessary()
 {
 	switch (widget) {
 		case WID_SM_CAPTION:
+			if (this->map_type == SmallMapType::Heat) return GetString(STR_SMALLMAP_CAPTION, STR_METRO_HEAT_TYPE); // Metro mod.
 			return GetString(STR_SMALLMAP_CAPTION, STR_SMALLMAP_TYPE_CONTOURS + to_underlying(this->map_type));
 
 		default:
@@ -1364,6 +1412,15 @@ void SmallMapWindow::DrawLegend(const Rect &text, const Rect &icon, bool highlig
 						this->DrawLegend(text, icon, tbl.show_on_map, GetString(STR_SMALLMAP_LINKSTATS, tbl.legend));
 						break;
 
+					case SmallMapType::Heat: {
+						/* Metro mod: filters and levels with their texts of now. */
+						uint row = static_cast<uint>(&tbl - _legend_heat);
+						legend_colour = MetroHeatLegendColour(row);
+						GfxFillRect(icon, PC_BLACK);
+						DrawString(text, MetroHeatLegendText(row), row < 3 ? TextColour::White : TextColour::Black);
+						break;
+					}
+
 					case SmallMapType::Owners:
 						if (tbl.company != CompanyID::Invalid()) {
 							this->DrawLegend(text, icon, tbl.show_on_map, GetString(STR_SMALLMAP_COMPANY, tbl.company));
@@ -1411,7 +1468,8 @@ void SmallMapWindow::SwitchMapType(SmallMapType map_type)
 
 	this->SetupWidgetData();
 
-	if (map_type == SmallMapType::LinkStats) this->overlay->SetDirty();
+	if (map_type == SmallMapType::LinkStats) this->SetOverlayCargoMask(); // Metro mod: the heat map changes the mask.
+	if (map_type == SmallMapType::LinkStats || map_type == SmallMapType::Heat) this->overlay->SetDirty();
 	if (map_type != SmallMapType::Industries) this->BreakIndustryChainLink();
 	this->ReInit();
 	this->refresh.SetInterval(this->GetRefreshPeriod());
@@ -1550,6 +1608,7 @@ int SmallMapWindow::GetPositionOnLegend(Point pt)
 		case WID_SM_ROUTES:     // Show transport routes
 		case WID_SM_VEGETATION: // Show vegetation
 		case WID_SM_OWNERS:     // Show land owners
+		case WID_SM_HEAT:       // Metro mod: heat map
 			this->SwitchMapType((SmallMapType)(widget - WID_SM_CONTOUR));
 			SndClickBeep();
 			break;
@@ -1600,6 +1659,15 @@ int SmallMapWindow::GetPositionOnLegend(Point pt)
 					}
 				}
 				this->SetDirty();
+			} else if (this->map_type == SmallMapType::Heat) {
+				/* Metro mod: the filter rows (first column) switch on a click. */
+				int click_pos = this->GetPositionOnLegend(pt);
+				if (click_pos >= 0 && click_pos < 3) {
+					MetroHeatLegendClick(click_pos);
+					this->overlay->SetDirty();
+					this->SetDirty();
+					SndClickBeep();
+				}
 			}
 			break;
 
@@ -1701,7 +1769,7 @@ int SmallMapWindow::GetPositionOnLegend(Point pt)
 	/* Update the window every now and then */
 	if (!this->refresh.Elapsed(delta_ms)) return;
 
-	if (this->map_type == SmallMapType::LinkStats) {
+	if (this->map_type == SmallMapType::LinkStats || this->map_type == SmallMapType::Heat) {
 		CompanyMask company_mask = this->GetOverlayCompanyMask();
 		if (this->overlay->GetCompanyMask() != company_mask) {
 			this->overlay->SetCompanyMask(company_mask);
@@ -1865,6 +1933,7 @@ class NWidgetSmallmapButtons : public NWidgetContainer {
 		{WID_SM_ROUTES, WWT_IMGBTN, SPR_IMG_SHOW_ROUTES, STR_SMALLMAP_TOOLTIP_SHOW_TRANSPORT_ROUTES_ON},
 		{WID_SM_VEGETATION, WWT_IMGBTN, SPR_IMG_PLANTTREES, STR_SMALLMAP_TOOLTIP_SHOW_VEGETATION_ON_MAP},
 		{WID_SM_OWNERS, WWT_IMGBTN, SPR_IMG_COMPANY_GENERAL, STR_SMALLMAP_TOOLTIP_SHOW_LAND_OWNERS_ON_MAP},
+		{WID_SM_HEAT, WWT_IMGBTN, SPR_IMG_GRAPHS, STR_METRO_HEAT_TOOLTIP},
 		{WID_SM_CONTOUR, WWT_IMGBTN, SPR_IMG_SHOW_COUNTOURS, STR_SMALLMAP_TOOLTIP_SHOW_LAND_CONTOURS_ON_MAP},
 		{WID_SM_VEHICLES, WWT_IMGBTN, SPR_IMG_SHOW_VEHICLES, STR_SMALLMAP_TOOLTIP_SHOW_VEHICLES_ON_MAP},
 		{WID_SM_INDUSTRIES, WWT_IMGBTN, SPR_IMG_INDUSTRY, STR_SMALLMAP_TOOLTIP_SHOW_INDUSTRIES_ON_MAP},
@@ -2118,4 +2187,20 @@ bool ScrollMainWindowTo(int x, int y, int z, bool instant)
 	if (w != nullptr) w->SmallMapCenterOnCurrentPos();
 
 	return res;
+}
+
+/** Metro mod: open the small map in the heat map mode (console, tests). */
+void MetroShowHeatSmallMap()
+{
+	ShowSmallMap();
+	SmallMapWindow *w = dynamic_cast<SmallMapWindow *>(FindWindowById(WindowClass::SmallMap, 0));
+	if (w != nullptr) {
+		w->SwitchMapType(SmallMapType::Heat);
+		TileIndex busiest = MetroHeatBusiestStation();
+		if (busiest != INVALID_TILE) ScrollMainWindowToTile(busiest, true);
+		const NWidgetBase *wid = w->GetWidget<NWidgetBase>(WID_SM_MAP);
+		Point zoom_pt = {static_cast<int>(wid->current_x) / 2, static_cast<int>(wid->current_y) / 2};
+		for (int i = 0; i < 1; i++) w->SetZoomLevel(SmallMapWindow::ZoomLevelChange::ZoomOut, &zoom_pt); // The whole map.
+		w->SmallMapCenterOnCurrentPos();
+	}
 }

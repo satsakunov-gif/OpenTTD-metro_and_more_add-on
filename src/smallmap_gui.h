@@ -60,6 +60,7 @@ enum class SmallMapType : uint8_t {
 	Routes, ///< Routes legend.
 	Vegetation, ///< Vegetation legend.
 	Owners, ///< Owners legend.
+	Heat, ///< Metro mod: heat map (traffic of the stations).
 	End, ///< End marker.
 };
 //DECLARE_ENUM_AS_ADDABLE(SmallMapType)
@@ -75,6 +76,7 @@ protected:
 	};
 
 	static SmallMapType map_type; ///< Currently displayed legends.
+	friend void MetroShowHeatSmallMap();
 	static bool show_towns;       ///< Display town names in the smallmap.
 	static bool show_ind_names;   ///< Display industry names in the smallmap.
 	static int map_height_limit;  ///< Currently used/cached map height limit.

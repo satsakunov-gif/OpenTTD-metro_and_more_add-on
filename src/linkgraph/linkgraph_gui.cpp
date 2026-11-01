@@ -498,7 +498,9 @@ void LinkGraphOverlay::DrawLinks(Blitter *blitter, const DrawPixelInfo *dpi) con
 void LinkGraphOverlay::DrawContent(Blitter *blitter, const DrawPixelInfo *dpi, Point pta, Point ptb, const LinkProperties &cargo) const
 {
 	uint usage_or_plan = std::min(cargo.capacity * 2 + 1, cargo.Usage());
-	PixelColour colour = LinkGraphOverlay::LINK_COLOURS[_settings_client.gui.linkgraph_colours][usage_or_plan * lengthof(LinkGraphOverlay::LINK_COLOURS[0]) / (cargo.capacity * 2 + 2)];
+	uint colour_index = usage_or_plan * lengthof(LinkGraphOverlay::LINK_COLOURS[0]) / (cargo.capacity * 2 + 2);
+	if (this->colour_by_volume) colour_index = std::min<uint>(FindLastBit(cargo.Usage() | 1u), lengthof(LinkGraphOverlay::LINK_COLOURS[0]) - 1); // 1, 2, 4... per step.
+	PixelColour colour = LinkGraphOverlay::LINK_COLOURS[_settings_client.gui.linkgraph_colours][colour_index];
 	int width = ScaleGUITrad(this->scale);
 	int dash = cargo.shared ? width * 4 : 0;
 

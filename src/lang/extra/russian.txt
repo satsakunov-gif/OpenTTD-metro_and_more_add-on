@@ -2621,3 +2621,19 @@ STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}ТЦ з�
 STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... у станции нет ТЦ
 STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... у станции уже есть ТЦ; сначала закройте его
 STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... ТЦ строится только у мегаузла
+STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Тепловая карта: оборот станций на их охвате, от синего (мало) до красного (много); линии связей выбранного груза — цвет по объёму; белые квадраты — станции с пересадками
+STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Транспорт: автомобили (щелчок)
+STR_METRO_HEAT_FILTER                                           :{TINY_FONT}{STRING} (щелчок)
+STR_METRO_HEAT_ALL_TRANSPORT                                    :Весь транспорт
+STR_METRO_HEAT_TRAINS                                           :Поезда
+STR_METRO_HEAT_ROAD                                             :Автомобили
+STR_METRO_HEAT_SHIPS                                            :Корабли
+STR_METRO_HEAT_AIRCRAFT                                         :Самолёты
+STR_METRO_HEAT_ALL_CARGO                                        :Пассажиры и грузы
+STR_METRO_HEAT_PASSENGERS                                       :Пассажиры
+STR_METRO_HEAT_FREIGHT                                          :Грузы
+STR_METRO_HEAT_MONTH                                            :Прошлый месяц
+STR_METRO_HEAT_YEAR                                             :12 месяцев
+STR_METRO_HEAT_LEVEL                                            :{TINY_FONT}{BLACK}от {COMMA}
+STR_METRO_HEAT_NO_TRAFFIC                                       :{TINY_FONT}{BLACK}оборота ещё нет
+STR_METRO_HEAT_TYPE                                             :Тепловая карта

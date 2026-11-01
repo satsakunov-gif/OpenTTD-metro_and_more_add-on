@@ -64,6 +64,7 @@ bool MetroOverlayIsDepot(TileIndex tile);
 bool MetroOverlayHasTrainOn(TileIndex tile);
 bool MetroIsUndergroundVehicleTile(TileIndex tile);
 StationID MetroOverlayStationIndex(TileIndex tile);
+void MetroOverlayAfterLoadStationRects();
 void MetroOverlayDrawTile(struct TileInfo *ti);
 
 #endif /* METRO_OVERLAY_H */

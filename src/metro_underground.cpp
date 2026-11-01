@@ -20,6 +20,7 @@
  */
 
 #include "stdafx.h"
+#include "metro_heatmap.h"
 #include "metro_malls_cmd.h"
 #include "metro_malls.h"
 #include "metro_stations.h"
@@ -1107,7 +1108,7 @@ static void MetroTestAddCar(CompanyID company, uint layer, TileIndex depot, Vehi
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | malls | mall <station> <size 1-3, 0 close> | mallwindow | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | heat [filter <0-4> <0-2> <0-1>] | malls | mall <station> <size 1-3, 0 close> | mallwindow | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -1187,6 +1188,17 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		auto t = ParseConsoleTile(argv[2], argv[3]);
 		if (!t.has_value()) return false;
 		ConsoleCommand<Commands::LandscapeClear>(*t);
+		return true;
+	}
+	if (cmd == "heat") {
+		/* heat [filter <transport 0-4> <cargo 0-2> <period 0-1>] */
+		std::vector<std::string_view> args(argv.begin() + 2, argv.end());
+		if (!args.empty() && args[0] == "show") {
+			extern void MetroShowHeatSmallMap();
+			MetroShowHeatSmallMap();
+			return true;
+		}
+		MetroHeatConsole(args);
 		return true;
 	}
 	if (cmd == "malls") {
@@ -1277,6 +1289,7 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		uint8_t layer = static_cast<uint8_t>(ParseInteger<uint>(argv[3]).value_or(1));
 		CompanyID company = GetConsoleCompany();
 		if (town == nullptr || company == CompanyID::Invalid()) return false;
+		bool two = argv.size() > 4 && argv[4] == "two"; // A second platform at the far end (x0+16..x0+20): real traffic between two stations.
 		EngineID engine = MetroFindTrainEngine(company, layer, false);
 		if (engine == EngineID::Invalid()) {
 			IConsolePrint(CC_ERROR, "No metro train for the layer.");
@@ -1300,6 +1313,21 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 					}
 				}
 				if (entrance == INVALID_TILE) continue;
+				TileIndex entrance2 = INVALID_TILE;
+				if (two) {
+					if (TileAddWrap(x0, 22, 0) == INVALID_TILE) continue;
+					for (TileIndex e : SpiralTileSequence(t(18), 7)) {
+						if (DistanceManhattan(e, entrance) > 1 && Command<Commands::MetroBuildEntrance>::Do(test, e, layer).Succeeded()) {
+							entrance2 = e;
+							break;
+						}
+					}
+					if (entrance2 == INVALID_TILE) continue;
+					/* The far platform needs flat ground over it, like the first (vanilla station rules at the surface height). */
+					bool flat = true;
+					for (int i = 5; i <= 20 && flat; i++) flat = GetTileSlope(t(i)) == SLOPE_FLAT && GetTileZ(t(i)) == GetTileZ(t(5));
+					if (!flat) continue;
+				}
 				if (Command<Commands::MetroBuildUndergroundTrack>::Do(test, t(4), t(0), layer, TRACK_X, false).Failed()) continue;
 				if (Command<Commands::MetroBuildUndergroundTrack>::Do(test, t(15), t(10), layer, TRACK_X, false).Failed()) continue;
 				if (Command<Commands::MetroBuildUndergroundDepot>::Do(test, t(-1), layer, DiagDirection::SW, false).Failed()) continue;
@@ -1312,6 +1340,12 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 				ok &= Command<Commands::MetroBuildUndergroundTrack>::Do(exec, t(4), t(0), layer, TRACK_X, false).Succeeded();
 				ok &= Command<Commands::MetroBuildUndergroundTrack>::Do(exec, t(15), t(10), layer, TRACK_X, false).Succeeded();
 				ok &= Command<Commands::MetroBuildUndergroundDepot>::Do(exec, t(-1), layer, DiagDirection::SW, false).Succeeded();
+				if (two && ok) {
+					ok &= Command<Commands::MetroBuildEntrance>::Do(exec, entrance2, layer).Succeeded();
+					CommandCost ret2 = Command<Commands::MetroBuildUndergroundStation>::Do(exec, t(20), t(16), layer);
+					if (ret2.Failed()) IConsolePrint(CC_ERROR, "second platform: {}", GetString(ret2.GetErrorMessage()));
+					ok &= ret2.Succeeded();
+				}
 				std::optional<VehicleID> vehicle;
 				if (ok) {
 					MetroUndergroundScope scope;
@@ -1412,14 +1446,16 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 	}
 	if (cmd == "trains") {
 		for (const Train *v : Train::IterateFrontOnly()) {
-			uint cars = 0, capacity = 0;
+			uint cars = 0, capacity = 0, load = 0;
 			for (const Train *u = v; u != nullptr; u = u->Next()) {
 				cars++;
 				capacity += u->cargo_cap;
+				load += u->cargo.StoredCount();
 			}
 			IConsolePrint(CC_DEFAULT, "train {} '{}' at ({}, {}) speed {} {}{}{}, {} cars, power {} hp, capacity {}", v->index, GetString(Engine::Get(v->engine_type)->info.string_id), TileX(v->tile), TileY(v->tile),
 					v->cur_speed, IsMetroOverlayTile(v->tile) ? "underground" : "surface", v->IsInDepot() ? ", in depot" : "", v->IsStoppedInDepot() ? " (stopped)" : "", cars,
 					v->gcache.cached_power, capacity);
+			IConsolePrint(CC_DEFAULT, "  load {}, orders {}, current order type {}, last station {}", load, v->GetNumOrders(), to_underlying(v->current_order.GetType()), v->last_station_visited);
 		}
 		IConsolePrint(CC_DEFAULT, "underground map tiles: {}", _metro_overlay.size());
 		return true;

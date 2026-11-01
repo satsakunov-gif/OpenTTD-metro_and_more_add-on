@@ -9,6 +9,8 @@
 
 #include "stdafx.h"
 #include "metro_overlay.h"
+#include "command_type.h"
+#include "base_station_base.h"
 #include "clear_map.h"
 #include "company_base.h"
 #include "company_gui.h"
@@ -197,6 +199,16 @@ bool MetroOverlayHasTrainOn(TileIndex tile)
 		if (v->tile == tile) return true;
 	}
 	return false;
+}
+
+/** After loading: the station spread (rect) of the stations with platforms under the ground. */
+void MetroOverlayAfterLoadStationRects()
+{
+	for (const auto &[tile, o] : _metro_overlay) {
+		if (GB(o.m.type, 4, 4) != to_underlying(TileType::Station)) continue;
+		BaseStation *bst = BaseStation::GetIfValid(StationID{o.m.m2});
+		if (bst != nullptr) bst->rect.BeforeAddTile(TileIndex{tile}, StationRect::ADD_FORCE);
+	}
 }
 
 /** Station of the underground tile, StationID::Invalid() if it is no station tile. */

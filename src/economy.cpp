@@ -8,6 +8,7 @@
 /** @file economy.cpp Handling of the economy. */
 
 #include "stdafx.h"
+#include "metro_heatmap.h"
 #include "metro_malls.h"
 #include "company_cmd.h"
 #include "company_func.h"
@@ -2160,7 +2161,9 @@ static void LoadUnloadVehicle(Vehicle *front)
 			}
 
 			assert(payment != nullptr);
+			uint metro_transfer_before = v->cargo.ActionCount(VehicleCargoList::MoveToAction::Transfer);
 			amount_unloaded = v->cargo.Unload(amount_unloaded, &ged->cargo, v->cargo_type, payment, v->GetCargoTile());
+			MetroHeatRecord(st, v->type, v->cargo_type, amount_unloaded, std::min(amount_unloaded, metro_transfer_before)); // Metro mod: heat map.
 			remaining = v->cargo.UnloadCount() > 0;
 			if (amount_unloaded > 0) {
 				dirty_vehicle = true;
@@ -2247,6 +2250,7 @@ static void LoadUnloadVehicle(Vehicle *front)
 				if (_settings_game.order.gradual_loading) cap_left = std::min(cap_left, GetLoadAmount(v));
 
 				uint loaded = ged->cargo.Load(cap_left, &v->cargo, next_station.Get(v->cargo_type), v->GetCargoTile());
+				MetroHeatRecord(st, v->type, v->cargo_type, loaded, 0); // Metro mod: heat map.
 				if (v->cargo.ActionCount(VehicleCargoList::MoveToAction::Load) > 0) {
 					/* Remember if there are reservations left so that we don't stop
 					 * loading before they're loaded. */
