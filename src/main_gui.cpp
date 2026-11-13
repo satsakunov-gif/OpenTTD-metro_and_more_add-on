@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "metro_underground.h"
+#include "metro_cinema.h"
 #include "currency_type.h"
 #include "spritecache.h"
 #include "window_gui.h"
@@ -239,6 +240,7 @@ enum GlobalHotKeys : int32_t {
 	GHK_SWITCH_VIEWPORT_MAP_HEIGHT_MODE,
 	GHK_METRO_UNDERGROUND_VIEW,  ///< Metro mod: view "surface / underground".
 	GHK_METRO_UNDERGROUND_LAYER, ///< Metro mod: next underground layer.
+	GHK_METRO_CINEMA,            ///< Metro mod: cinema camera with random targets.
 };
 
 struct MainWindow : Window
@@ -495,6 +497,14 @@ struct MainWindow : Window
 				MetroCycleUndergroundLayer();
 				break;
 
+			case GHK_METRO_CINEMA:
+				if (MetroCinemaIsActive()) {
+					MetroCinemaStop();
+				} else {
+					MetroCinemaStart(VehicleID::Invalid());
+				}
+				break;
+
 			case GHK_SWITCH_VIEWPORT_MAP_HEIGHT_MODE: {
 				_settings_client.gui.show_height_on_viewport_map = !_settings_client.gui.show_height_on_viewport_map;
 				extern void MarkAllViewportMapLandscapesDirty();
@@ -624,6 +634,7 @@ struct MainWindow : Window
 		Hotkey(0,  "switch_viewport_map_height_mode", GHK_SWITCH_VIEWPORT_MAP_HEIGHT_MODE),
 		Hotkey('U' | WKC_CTRL, "metro_underground_view", GHK_METRO_UNDERGROUND_VIEW),
 		Hotkey('U' | WKC_CTRL | WKC_SHIFT, "metro_underground_layer", GHK_METRO_UNDERGROUND_LAYER),
+		Hotkey('K' | WKC_CTRL, "metro_cinema", GHK_METRO_CINEMA),
 	}};
 };
 

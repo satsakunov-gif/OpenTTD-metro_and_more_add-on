@@ -2621,8 +2621,8 @@ STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}ТЦ з�
 STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... у станции нет ТЦ
 STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... у станции уже есть ТЦ; сначала закройте его
 STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... ТЦ строится только у мегаузла
-STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Тепловая карта: оборот станций на их охвате, от синего (мало) до красного (много); линии связей выбранного груза — цвет по объёму; белые квадраты — станции с пересадками
-STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Транспорт: автомобили (щелчок)
+STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Тепловая карта и режимы карты: первая строка легенды переключает режим (пассажиропоток, грузопоток, станции, пробки, прибыльность, покрытие, метро, электросеть, города...), следующие — фильтры; от синего (мало) до красного (много)
+STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Режим: рейтинг администрации (щелчок, Ctrl — назад)
 STR_METRO_HEAT_FILTER                                           :{TINY_FONT}{STRING} (щелчок)
 STR_METRO_HEAT_ALL_TRANSPORT                                    :Весь транспорт
 STR_METRO_HEAT_TRAINS                                           :Поезда
@@ -2637,3 +2637,201 @@ STR_METRO_HEAT_YEAR                                             :12 месяце
 STR_METRO_HEAT_LEVEL                                            :{TINY_FONT}{BLACK}от {COMMA}
 STR_METRO_HEAT_NO_TRAFFIC                                       :{TINY_FONT}{BLACK}оборота ещё нет
 STR_METRO_HEAT_TYPE                                             :Тепловая карта
+STR_METRO_MAP_MODE_ROW                                          :{TINY_FONT}Режим: {STRING} (щелчок, Ctrl — назад)
+STR_METRO_MAP_MODE_PASSENGERS                                   :пассажиропоток
+STR_METRO_MAP_MODE_FREIGHT                                      :грузопоток
+STR_METRO_MAP_MODE_STATION_LOAD                                 :загруженность станций
+STR_METRO_MAP_MODE_STATION_RATING                               :рейтинг станций
+STR_METRO_MAP_MODE_JAMS                                         :пробки
+STR_METRO_MAP_MODE_PROFIT                                       :прибыльность
+STR_METRO_MAP_MODE_COVERAGE                                     :покрытие транспортом
+STR_METRO_MAP_MODE_METRO_LAYERS                                 :слои метро
+STR_METRO_MAP_MODE_VENTILATION                                  :вентиляция
+STR_METRO_MAP_MODE_GRID                                         :электросеть
+STR_METRO_MAP_MODE_GRID_LOAD                                    :нагрузка сети
+STR_METRO_MAP_MODE_ELECTRIFICATION                              :электрификация путей
+STR_METRO_MAP_MODE_ACTIVE_TOWNS                                 :активные города
+STR_METRO_MAP_MODE_TOWN_RATING                                  :рейтинг администрации
+STR_METRO_MAP_MODE_DISTRICTS                                    :районы
+STR_METRO_MAP_MODE_TOURISTS                                     :туристы
+STR_METRO_MAP_MODE_MIGRATION                                    :миграция
+STR_METRO_HEAT_FILTER_OFF                                       :{TINY_FONT}{GRAY}{STRING} (здесь не действует)
+STR_METRO_HEAT_ROUTE_ALL                                        :{TINY_FONT}Все маршруты (выбор — в окне приказов)
+STR_METRO_HEAT_ROUTE_ALL_OFF                                    :{TINY_FONT}{GRAY}Все маршруты (здесь не действует)
+STR_METRO_HEAT_ROUTE_VEHICLE                                    :{TINY_FONT}Маршрут: {VEHICLE} (щелчок — сбросить)
+STR_METRO_HEAT_ROUTE_VEHICLE_OFF                                :{TINY_FONT}{GRAY}Маршрут: {VEHICLE} (здесь не действует)
+STR_METRO_HEAT_CATEGORY                                         :{TINY_FONT}{BLACK}{STRING}
+STR_METRO_HEAT_LEVEL_MONEY                                      :{TINY_FONT}{BLACK}от {CURRENCY_SHORT}
+STR_METRO_HEAT_LEVEL_PERCENT                                    :{TINY_FONT}{BLACK}от {NUM}%
+STR_METRO_HEAT_LEVEL_JAM                                        :{TINY_FONT}{BLACK}медленнее на {NUM}%+
+STR_METRO_HEAT_LEVEL_LOAD                                       :{TINY_FONT}{BLACK}нагрузка от {NUM}%
+STR_METRO_HEAT_LEVEL_RATING                                     :{TINY_FONT}{BLACK}от {NUM}
+STR_METRO_HEAT_LEVEL_STATIONS                                   :{TINY_FONT}{BLACK}{NUM} станци{P я и й}
+STR_METRO_HEAT_LEVEL_STATIONS_MORE                              :{TINY_FONT}{BLACK}{NUM} и больше станций
+STR_METRO_HEAT_NOTHING_WAITING                                  :никто не ждёт
+STR_METRO_HEAT_NO_TOURISTS                                      :туристов ещё нет
+STR_METRO_HEAT_LAYER_1                                          :пути −1
+STR_METRO_HEAT_LAYER_2                                          :пути −2
+STR_METRO_HEAT_LAYER_3                                          :пути −3
+STR_METRO_HEAT_INCLINE                                          :наклоны
+STR_METRO_HEAT_PLATFORM                                         :платформы
+STR_METRO_HEAT_ENTRANCE                                         :входы
+STR_METRO_HEAT_VENT_GRID                                        :шахта от сети
+STR_METRO_HEAT_VENT_DIESEL                                      :шахта на дизеле
+STR_METRO_HEAT_VENT_OFF                                         :шахта не работает
+STR_METRO_HEAT_DEEP_AIRED                                       :платформы −3 с вентиляцией
+STR_METRO_HEAT_DEEP_STUFFY                                      :платформы −3, душно
+STR_METRO_HEAT_GRID_OFF                                         :подстанция отключена
+STR_METRO_HEAT_GRID_FED                                         :подстанция под током
+STR_METRO_HEAT_GRID_LINE                                        :ЛЭП
+STR_METRO_HEAT_GRID_PLANT                                       :электростанции
+STR_METRO_HEAT_GRID_SUBSTATION                                  :подстанции
+STR_METRO_HEAT_GRID_VENT                                        :вентшахты
+STR_METRO_HEAT_OVERLOAD                                         :перегрузка (блэкаут)
+STR_METRO_HEAT_RAIL_PLAIN                                       :без контактной сети
+STR_METRO_HEAT_RAIL_FED                                         :контактная сеть под током
+STR_METRO_HEAT_RAIL_UNFED                                       :контактная сеть без тока
+STR_METRO_HEAT_TOWN_INACTIVE                                    :не активен
+STR_METRO_HEAT_TOWN_ACTIVE                                      :активен
+STR_METRO_HEAT_DISTRICT_BUSINESS                                :деловой
+STR_METRO_HEAT_DISTRICT_RESIDENTIAL                             :спальный
+STR_METRO_HEAT_DISTRICT_CENTRE                                  :центры районов
+STR_METRO_HEAT_MIGRATION_OUT_MUCH                               :уезжают, больше 1%
+STR_METRO_HEAT_MIGRATION_OUT                                    :уезжают
+STR_METRO_HEAT_MIGRATION_NONE                                   :без переездов
+STR_METRO_HEAT_MIGRATION_IN                                     :приезжают
+STR_METRO_HEAT_MIGRATION_IN_MUCH                                :приезжают, больше 1%
+STR_METRO_ORDER_SHOW_ROUTE_ON_MAP                               :Показать маршрут на карте
+STR_METRO_CINEMA_CAPTION                                        :{WHITE}Кинокамера
+STR_METRO_CINEMA_BEHIND                                         :Сзади (1)
+STR_METRO_CINEMA_BEHIND_TOOLTIP                                 :{BLACK}Камера идёт за целью по ходу движения
+STR_METRO_CINEMA_ORBIT                                          :Облёт (2)
+STR_METRO_CINEMA_ORBIT_TOOLTIP                                  :{BLACK}Камера кружит вокруг цели
+STR_METRO_CINEMA_RANDOM                                         :Случайный (3)
+STR_METRO_CINEMA_RANDOM_TOOLTIP                                 :{BLACK}Каждые 10–20 секунд новая интересная цель: быстрые и подземные поезда, машинки в пробках, толпа у стадиона, самолёты на взлёте
+STR_METRO_CINEMA_NEXT                                           :Следующая цель
+STR_METRO_CINEMA_NEXT_TOOLTIP                                   :{BLACK}Сразу перейти к другой интересной цели
+STR_METRO_CINEMA_HIDE                                           :Скрыть интерфейс (H)
+STR_METRO_CINEMA_HIDE_TOOLTIP                                   :{BLACK}Вид на весь экран поверх всех окон; H возвращает интерфейс, Esc — выход из кинокамеры
+STR_METRO_CINEMA_EXIT                                           :Выход (Esc)
+STR_METRO_CINEMA_EXIT_TOOLTIP                                   :{BLACK}Выключить кинокамеру
+STR_METRO_CINEMA_HINT                                           :{WHITE}Esc — выход · H — интерфейс · 1 сзади · 2 облёт · 3 случайный
+STR_METRO_CINEMA_TARGET_VEHICLE                                 :Камера: {VEHICLE}
+STR_METRO_CINEMA_TARGET_CAR                                     :Камера: машинка, {TOWN}
+STR_METRO_CINEMA_TARGET_PEDESTRIAN                              :Камера: пешеход, {TOWN}
+STR_METRO_CINEMA_TARGET_STADIUM                                 :День матча: стадион, {TOWN}
+STR_METRO_CINEMA_TARGET_NONE                                    :Ищу, за кем следить...
+STR_METRO_CINEMA_VEHICLE_TOOLTIP                                :{BLACK}Кинокамера: плавно следовать за этим транспортом (Ctrl+K — случайные цели)
+STR_METRO_CONTRACT_CAPTION                                      :{WHITE}Госконтракты
+STR_METRO_CONTRACT_LIST_TOOLTIP                                 :{BLACK}Предложения и контракты городов: щелчок — выбрать
+STR_METRO_CONTRACT_NONE                                         :{BLACK}Предложений пока нет. Активные города от 5000 жителей предлагают контракт раз в 1–2 года.
+STR_METRO_CONTRACT_ROW                                          :{BLACK}{TOWN}: {RAW_STRING} — {RAW_STRING}
+STR_METRO_CONTRACT_SUMMARY_DISTRICT                             :станция метро у центра района ({STRING}, {NUM}×{NUM})
+STR_METRO_CONTRACT_SUMMARY_LINE                                 :линия до города {TOWN}
+STR_METRO_CONTRACT_SUMMARY_PASSENGERS                           :{COMMA} пассажиров в месяц {NUM} месяца подряд
+STR_METRO_CONTRACT_STATUS_OFFERED                               :{ORANGE}предложение, ответить до {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_ACTIVE                                :{YELLOW}выполняется, срок до {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_ACTIVE_PASSENGERS                     :{YELLOW}выполняется, срок до {DATE_SHORT}; в прошлом месяце {COMMA}, подряд {NUM} из {NUM}
+STR_METRO_CONTRACT_STATUS_DONE                                  :{GREEN}выполнен {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_FAILED                                :{RED}провален {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_REFUSED                               :{GRAY}отказ {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_EXPIRED                               :{GRAY}без ответа, истёк {DATE_SHORT}
+STR_METRO_CONTRACT_TITLE                                        :Госконтракт: {TOWN}
+STR_METRO_CONTRACT_TEMPLATE                                     :Администрация города {TOWN} предлагает контракт: {RAW_STRING}. Срок — {NUM} г. после согласия. Награда: {CURRENCY_LONG} и +{NUM} к рейтингу.
+STR_METRO_CONTRACT_DETAIL_TITLE                                 :{GOLD}{RAW_STRING}
+STR_METRO_CONTRACT_DETAIL_TEXT                                  :{BLACK}{RAW_STRING}
+STR_METRO_CONTRACT_DETAIL_REWARD                                :{BLACK}Награда: {GREEN}{CURRENCY_LONG}{BLACK} и рейтинг +{NUM}; провал — рейтинг −{NUM}, отказ — без штрафа
+STR_METRO_CONTRACT_PENDING                                      :{GRAY}мэр пишет письмо...
+STR_METRO_CONTRACT_ACCEPT                                       :Принять
+STR_METRO_CONTRACT_ACCEPT_TOOLTIP                               :{BLACK}Принять контракт: срок пойдёт с сегодняшнего дня
+STR_METRO_CONTRACT_REFUSE                                       :Отказаться
+STR_METRO_CONTRACT_REFUSE_TOOLTIP                               :{BLACK}Отказаться без штрафа
+STR_METRO_CONTRACT_TOWN                                         :К месту
+STR_METRO_CONTRACT_TOWN_TOOLTIP                                 :{BLACK}Показать город (или центр района) на карте
+STR_METRO_CONTRACT_ERR_ANSWER                                   :{WHITE}Не удалось ответить на предложение...
+STR_METRO_CONTRACT_NEWS_OFFER                                   :{BIG_FONT}{BLACK}{TOWN} предлагает госконтракт: {RAW_STRING}. Награда {CURRENCY_LONG}
+STR_METRO_CONTRACT_NEWS_DONE                                    :{BIG_FONT}{BLACK}Госконтракт {TOWN} выполнен! Получено {CURRENCY_LONG}, рейтинг +{NUM}
+STR_METRO_CONTRACT_NEWS_FAILED                                  :{BIG_FONT}{BLACK}Госконтракт {TOWN} провален: рейтинг −{NUM}
+STR_METRO_TOWN_CONTRACTS_BUTTON                                 :Контракты
+STR_METRO_TOWN_CONTRACTS_TOOLTIP                                :{BLACK}Госконтракты городов: предложения, прогресс, история
+STR_METRO_TOWN_ELECTIONS_BUTTON                                 :Выборы
+STR_METRO_TOWN_ELECTIONS_TOOLTIP                                :{BLACK}Мэр, дата выборов, кандидаты и история выборов
+STR_METRO_ELECTION_CAPTION                                      :{WHITE}Выборы мэра — {TOWN}
+STR_METRO_ELECTION_MAYOR                                        :{BLACK}Мэр: {STRING}
+STR_METRO_ELECTION_MAYOR_NAMED                                  :{BLACK}Мэр: {RAW_STRING} ({STRING})
+STR_METRO_ELECTION_NOT_YET                                      :{BLACK}Выборы начнутся, когда город станет активным.
+STR_METRO_ELECTION_TOO_SMALL                                    :{BLACK}Выборы проводятся в городах от {COMMA} жителей.
+STR_METRO_ELECTION_NEXT                                         :{BLACK}Следующие выборы: {DATE_LONG}; шанс лояльного кандидата сейчас {NUM}%
+STR_METRO_ELECTION_SOON                                         :{ORANGE}Выборы {DATE_LONG}! Шанс лояльного кандидата {NUM}% (реклама за месяц до выборов: +10%)
+STR_METRO_ELECTION_CANDIDATES                                   :{BLACK}Кандидаты:
+STR_METRO_ELECTION_CANDIDATE                                    :{BLACK}  • {RAW_STRING} ({STRING}): {RAW_STRING}
+STR_METRO_ELECTION_CANDIDATE_LOYAL                              :{BLACK}  • {GREEN}{RAW_STRING}{BLACK} ({STRING}, лоялен к компании): {RAW_STRING}
+STR_METRO_ELECTION_AI_PENDING                                   :{GRAY}  ИИ пишет программы кандидатов...
+STR_METRO_ELECTION_HISTORY                                      :{BLACK}История:
+STR_METRO_ELECTION_HISTORY_ROW                                  :{BLACK}  {DATE_SHORT}: {RAW_STRING} ({STRING}){STRING}, шанс лояльного {NUM}%, рейтинг {NUM}
+STR_METRO_ELECTION_LOYAL_MARK                                   :, лоялен
+STR_METRO_ELECTION_PROGRAM_STRICT                               :Порядок и ответственность: компания должна работать безупречно
+STR_METRO_ELECTION_PROGRAM_KIND                                 :Город для людей: удобный транспорт и забота о каждом
+STR_METRO_ELECTION_PROGRAM_BUREAUCRAT                           :Регламенты, отчёты и прозрачный бюджет
+STR_METRO_ELECTION_PROGRAM_ECOLOGIST                            :Зелёный город: деревья, тишина и чистый транспорт
+STR_METRO_ELECTION_PROGRAM_PRAGMATIST                           :Только цифры: больше пассажиров, лучше обслуживание станций
+STR_METRO_ELECTION_PROGRAM_POPULIST                             :Новые станции в каждом районе — уже в этом году!
+STR_METRO_ELECTION_PROGRAM_LOYAL                                :Вместе с транспортной компанией: новые линии и метро
+STR_METRO_ELECTION_NEWS_ANNOUNCE                                :{BIG_FONT}{BLACK}{TOWN}: выборы мэра {DATE_LONG}, кандидатов: {NUM}
+STR_METRO_ELECTION_NEWS_LOYAL_WON                               :{BIG_FONT}{BLACK}{TOWN}: мэром избран {RAW_STRING} ({STRING}), лояльный к компании. Рейтинг {NUM}
+STR_METRO_ELECTION_NEWS_OTHER_WON                               :{BIG_FONT}{BLACK}{TOWN}: мэром избран {RAW_STRING} ({STRING}). Рейтинг компании {NUM}
+STR_METRO_AI_MAYOR_NAMED                                        :{BLACK}Мэр: {RAW_STRING} — {STRING}
+STR_METRO_DISPATCH_CAPTION                                      :{WHITE}Диспетчер
+STR_METRO_DISPATCH_CAPTION_VEHICLE                              :{WHITE}Диспетчер: {VEHICLE}
+STR_METRO_DISPATCH_SPEED                                        :{BLACK}Скорость {VELOCITY}, цель {YELLOW}{VELOCITY}{BLACK}, максимум {VELOCITY}
+STR_METRO_DISPATCH_SPEED_FREE                                   :{BLACK}Скорость {VELOCITY}, без ограничения (максимум {VELOCITY})
+STR_METRO_DISPATCH_NEXT_STATION                                 :{BLACK}Следующая станция: {STATION}
+STR_METRO_DISPATCH_AT_STATION                                   :{BLACK}На станции: {STATION}
+STR_METRO_DISPATCH_NO_STATION                                   :{BLACK}Следующая станция: —
+STR_METRO_DISPATCH_SIGNAL_NONE                                  :{BLACK}Сигнал впереди: нет
+STR_METRO_DISPATCH_SIGNAL_GREEN                                 :{BLACK}Сигнал впереди: {GREEN}зелёный
+STR_METRO_DISPATCH_SIGNAL_RED                                   :{BLACK}Сигнал впереди: {RED}красный{BLACK} (проезд — штраф {CURRENCY_LONG})
+STR_METRO_DISPATCH_TURN                                         :{BLACK}На следующей развилке: {STRING}
+STR_METRO_DISPATCH_TURN_AUTO                                    :по маршруту
+STR_METRO_DISPATCH_TURN_LEFT                                    :налево
+STR_METRO_DISPATCH_TURN_STRAIGHT                                :прямо
+STR_METRO_DISPATCH_TURN_RIGHT                                   :направо
+STR_METRO_DISPATCH_COURSE_AUTO                                  :{BLACK}Курс: по маршруту
+STR_METRO_DISPATCH_COURSE                                       :{BLACK}Курс: {STRING}
+STR_METRO_DISPATCH_DIR_N                                        :север
+STR_METRO_DISPATCH_DIR_NE                                       :северо-восток
+STR_METRO_DISPATCH_DIR_E                                        :восток
+STR_METRO_DISPATCH_DIR_SE                                       :юго-восток
+STR_METRO_DISPATCH_DIR_S                                        :юг
+STR_METRO_DISPATCH_DIR_SW                                       :юго-запад
+STR_METRO_DISPATCH_DIR_W                                        :запад
+STR_METRO_DISPATCH_DIR_NW                                       :северо-запад
+STR_METRO_DISPATCH_FINES                                        :{RED}Проездов на красный: {NUM}, штрафы {CURRENCY_LONG}
+STR_METRO_DISPATCH_KEYS                                         :{GRAY}W/S — скорость, пробел — стоп, F — без ограничения, A/E/D — налево/прямо/направо, Q — по маршруту, R — на красный, Esc — выход
+STR_METRO_DISPATCH_KEYS_SHIP                                    :{GRAY}W/S — скорость, пробел — стоп, F — без ограничения, A/D — курс, Q — по маршруту, Esc — выход
+STR_METRO_DISPATCH_KEYS_AIR                                     :{GRAY}W/S — скорость в полёте, F — без ограничения, T — взлёт, L — посадка, Esc — выход
+STR_METRO_DISPATCH_FASTER                                       :Быстрее (W)
+STR_METRO_DISPATCH_FASTER_TOOLTIP                               :{BLACK}Целевая скорость +10 км/ч
+STR_METRO_DISPATCH_SLOWER                                       :Медленнее (S)
+STR_METRO_DISPATCH_SLOWER_TOOLTIP                               :{BLACK}Целевая скорость −10 км/ч
+STR_METRO_DISPATCH_HALT                                         :Стоп (пробел)
+STR_METRO_DISPATCH_HALT_TOOLTIP                                 :{BLACK}Затормозить до остановки
+STR_METRO_DISPATCH_FREE                                         :Свободно (F)
+STR_METRO_DISPATCH_FREE_TOOLTIP                                 :{BLACK}Снять ограничение скорости
+STR_METRO_DISPATCH_LEFT                                         :Налево (A)
+STR_METRO_DISPATCH_STRAIGHT                                     :Прямо (E)
+STR_METRO_DISPATCH_RIGHT                                        :Направо (D)
+STR_METRO_DISPATCH_TURN_TOOLTIP                                 :{BLACK}Выбор на следующей развилке (стрелка или поворот); у кораблей A/D поворачивают курс
+STR_METRO_DISPATCH_AUTO                                         :По маршруту (Q)
+STR_METRO_DISPATCH_AUTO_TOOLTIP                                 :{BLACK}Вернуть выбор пути игре
+STR_METRO_DISPATCH_RED                                          :На красный (R)
+STR_METRO_DISPATCH_RED_TOOLTIP                                  :{BLACK}Поезд проезжает красный сигнал впереди — штраф 10 кусков пути
+STR_METRO_DISPATCH_TAKEOFF                                      :Взлёт (T)
+STR_METRO_DISPATCH_TAKEOFF_TOOLTIP                              :{BLACK}Самолёт покидает аэропорт сейчас
+STR_METRO_DISPATCH_LAND                                         :Посадка (L)
+STR_METRO_DISPATCH_LAND_TOOLTIP                                 :{BLACK}Сесть в ближайшем ангаре
+STR_METRO_DISPATCH_EXIT                                         :Выход (Esc)
+STR_METRO_DISPATCH_EXIT_TOOLTIP                                 :{BLACK}Вернуть управление игре
+STR_METRO_DISPATCH_ERR                                          :{WHITE}Диспетчер не может это сделать...
+STR_METRO_DISPATCH_ERR_NOT_AT_AIRPORT                           :{WHITE}Самолёт не стоит в аэропорту
+STR_METRO_DISPATCH_VEHICLE_TOOLTIP                              :{BLACK}Диспетчер: ручное управление этим транспортом

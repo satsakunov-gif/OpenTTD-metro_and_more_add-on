@@ -16,6 +16,8 @@
 #include "town_type.h"
 
 #include <array>
+#include <functional>
+#include <string>
 #include <map>
 #include <vector>
 
@@ -69,6 +71,7 @@ struct MetroTownAiState {
 	std::array<uint16_t, METRO_TOWN_CHANGE_COUNT> changes{}; ///< Player changes since the last review.
 	uint32_t last_population = 0;      ///< Population at the last review.
 	uint16_t last_station_count = 0;   ///< Company stations near the town at the last review.
+	std::string mayor_name;            ///< Name of the elected mayor (stage 9 elections), empty before the first elections.
 
 	/* Not saved. */
 	bool pending = false;              ///< A request for this town is queued or running.
@@ -103,5 +106,16 @@ int32_t MetroAiGetFailedYearReport(std::string &reason);
 void ShowMetroYearReportWindow(int32_t year = -1);
 
 bool ConMetroAi(std::span<std::string_view> argv);
+
+/* For the government contracts and the mayor elections (stage 9). */
+void MetroAiRequestJson(std::string system_prompt, std::string user_prompt, int max_tokens, std::function<void(const std::string *json)> done);
+std::string MetroAiLanguageName();
+uint8_t MetroAiMayorCount();
+StringID MetroAiMayorName(uint8_t character);
+const char *MetroAiMayorPrompt(uint8_t character);
+uint8_t MetroAiGetMayor(const Town *t);
+std::string MetroAiGetMayorName(const Town *t);
+void MetroAiSetMayor(const Town *t, uint8_t character, const std::string &name, const std::string &needs);
+int MetroAiChangeCompanyRating(Town *t, int delta);
 
 #endif /* METRO_AI_H */

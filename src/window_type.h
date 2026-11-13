@@ -898,6 +898,36 @@ enum class WindowClass : uint16_t {
 	MetroMalls,
 
 	/**
+	 * Metro mod cinema camera panel; %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroCinema,
+
+	/**
+	 * Metro mod cinema camera full screen view (the interface hidden); %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroCinemaView,
+
+	/**
+	 * Metro mod dispatcher panel (manual control of a vehicle); %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroDispatcher,
+
+	/**
+	 * Metro mod government contracts of the company; %Window numbers:
+	 *   - 0 = Only window.
+	 */
+	MetroContracts,
+
+	/**
+	 * Metro mod mayor elections of a town; %Window numbers:
+	 *   - #TownID = the town.
+	 */
+	MetroElections,
+
+	/**
 	 * Metro mod district map of a town; %Window numbers:
 	 *   - #TownID = #MetroDistrictsWidgets
 	 */

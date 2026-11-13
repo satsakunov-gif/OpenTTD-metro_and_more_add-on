@@ -265,8 +265,9 @@ void BuildLinkStatsLegend()
 	_legend_linkstats[i].end = true;
 }
 
-/** Metro mod: legend of the heat map: three filter rows (click to switch), then the levels in two columns. */
+/** Metro mod: legend of the heat map: mode and three filter rows (click to switch), then the levels in two columns. */
 static const LegendAndColour _legend_heat[] = {
+	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
 	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
 	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
 	{STR_METRO_HEAT_LEGEND_SAMPLE, PC_WHITE, IT_INVALID, 0, CompanyID::Invalid(), true, false, false},
@@ -1124,7 +1125,7 @@ void SmallMapWindow::DrawSmallMap(DrawPixelInfo *dpi, bool draw_indicators) cons
 	}
 
 	/* Metro mod: heat map — link lines of the chosen cargo coloured by volume, transfer icons. */
-	if (this->map_type == SmallMapType::Heat) {
+	if (this->map_type == SmallMapType::Heat && MetroHeatShowsLinks()) {
 		CargoTypes mask = MetroHeatOverlayCargoMask();
 		if (this->overlay->GetCargoMask() != mask) this->overlay->SetCargoMask(mask);
 		this->overlay->colour_by_volume = true;
@@ -1417,7 +1418,7 @@ void SmallMapWindow::DrawLegend(const Rect &text, const Rect &icon, bool highlig
 						uint row = static_cast<uint>(&tbl - _legend_heat);
 						legend_colour = MetroHeatLegendColour(row);
 						GfxFillRect(icon, PC_BLACK);
-						DrawString(text, MetroHeatLegendText(row), row < 3 ? TextColour::White : TextColour::Black);
+						DrawString(text, MetroHeatLegendText(row), row < METRO_HEAT_FILTER_ROWS ? TextColour::White : TextColour::Black);
 						break;
 					}
 
@@ -1662,8 +1663,8 @@ int SmallMapWindow::GetPositionOnLegend(Point pt)
 			} else if (this->map_type == SmallMapType::Heat) {
 				/* Metro mod: the filter rows (first column) switch on a click. */
 				int click_pos = this->GetPositionOnLegend(pt);
-				if (click_pos >= 0 && click_pos < 3) {
-					MetroHeatLegendClick(click_pos);
+				if (click_pos >= 0 && click_pos < static_cast<int>(METRO_HEAT_FILTER_ROWS)) {
+					MetroHeatLegendClick(click_pos, _ctrl_pressed);
 					this->overlay->SetDirty();
 					this->SetDirty();
 					SndClickBeep();

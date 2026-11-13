@@ -12,6 +12,7 @@
 #include "metro_city.h"
 #include "metro_power.h"
 #include "metro_town.h"
+#include "metro_civic.h"
 #include "misc/history_type.hpp"
 #include "misc/history_func.hpp"
 #include "road.h"
@@ -133,6 +134,8 @@ Town::~Town()
 	MetroAiOnTownDeleted(this->index);
 	MetroCityOnTownDeleted(this->index);
 	MetroTownOnTownDeleted(this->index);
+	MetroContractsOnTownDeleted(this->index);
+	MetroElectionsOnTownDeleted(this->index);
 
 	/* Delete town authority window
 	 * and remove from list of sorted towns */
@@ -3850,6 +3853,7 @@ static CommandCost TownActionAdvertiseSmall(Town *t, DoCommandFlags flags)
 {
 	if (flags.Test(DoCommandFlag::Execute)) {
 		ModifyStationRatingAround(t->xy, _current_company, 0x40, 10);
+		MetroElectionsNoteAdvertising(t); // Metro mod: advertising before elections helps the loyal candidate.
 	}
 	return CommandCost();
 }
@@ -3864,6 +3868,7 @@ static CommandCost TownActionAdvertiseMedium(Town *t, DoCommandFlags flags)
 {
 	if (flags.Test(DoCommandFlag::Execute)) {
 		ModifyStationRatingAround(t->xy, _current_company, 0x70, 15);
+		MetroElectionsNoteAdvertising(t); // Metro mod: advertising before elections helps the loyal candidate.
 	}
 	return CommandCost();
 }
@@ -3878,6 +3883,7 @@ static CommandCost TownActionAdvertiseLarge(Town *t, DoCommandFlags flags)
 {
 	if (flags.Test(DoCommandFlag::Execute)) {
 		ModifyStationRatingAround(t->xy, _current_company, 0xA0, 20);
+		MetroElectionsNoteAdvertising(t); // Metro mod: advertising before elections helps the loyal candidate.
 	}
 	return CommandCost();
 }

@@ -17,6 +17,10 @@
 #include "metro_station_names.h"
 #include "metro_trams.h"
 #include "metro_underground.h"
+#include "metro_cinema.h"
+#include "metro_civic.h"
+#include "metro_dispatcher.h"
+#include "metro_sprites.h"
 #include "core/string_consumer.hpp"
 #include "console_internal.h"
 #include "crashlog.h"
@@ -4476,6 +4480,10 @@ void IConsoleStdLibRegister()
 	IConsole::CmdRegister("metro_station",           ConMetroStation);
 	IConsole::CmdRegister("metro_trams",             ConMetroTrams);
 	IConsole::CmdRegister("metro_underground",       ConMetroUnderground);
+	IConsole::CmdRegister("metro_cinema",            ConMetroCinema);
+	IConsole::CmdRegister("metro_civic",             ConMetroCivic);
+	IConsole::CmdRegister("metro_dispatch",          ConMetroDispatch);
+	IConsole::CmdRegister("metro_sprites",           ConMetroSprites);
 	IConsole::CmdRegister("exit",                    ConExit);
 	IConsole::CmdRegister("part",                    ConPart);
 	IConsole::CmdRegister("help",                    ConHelp);

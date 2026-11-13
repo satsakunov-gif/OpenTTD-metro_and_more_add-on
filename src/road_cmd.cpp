@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "metro_ai.h"
 #include "metro_city.h"
+#include "metro_trams.h"
 #include "road.h"
 #include "road_internal.h"
 #include "viewport_func.h"
@@ -2278,10 +2279,13 @@ void DrawRoadBits(TileInfo *ti, RoadBits road, RoadBits tram, Roadside roadside,
 
 	/* Draw baseset underlay */
 	PaletteID pal = PAL_NONE;
-	SpriteID image = GetRoadGroundSprite(ti, roadside, road_rti, road == ROAD_NONE ? tram_offset : road_offset, &pal, snow_or_desert);
-	DrawGroundSprite(image, pal);
+	/* Metro mod: a dedicated tram track alone on its tile is vanilla rails on grass (stage 10). */
+	if (!MetroDrawDedicatedTramGround(ti, road, tram, DrawRoadAsSnowOrDesert(snow_or_desert, roadside), roadside == Roadside::Barren)) {
+		SpriteID image = GetRoadGroundSprite(ti, roadside, road_rti, road == ROAD_NONE ? tram_offset : road_offset, &pal, snow_or_desert);
+		DrawGroundSprite(image, pal);
 
-	DrawRoadOverlays(ti, pal, road_rti, tram_rti, road_offset, tram_offset);
+		DrawRoadOverlays(ti, pal, road_rti, tram_rti, road_offset, tram_offset);
+	}
 
 	/* Draw one way */
 	if (road_rti != nullptr) {

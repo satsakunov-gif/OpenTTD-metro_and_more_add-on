@@ -32,6 +32,8 @@
 
 #include "table/sprites.h"
 
+#include "metro_sprites.h"
+
 #include "safeguards.h"
 
 #include "table/landscape_sprite.h"
@@ -478,6 +480,7 @@ void GfxLoadSprites()
 	GfxInitSpriteMem();
 	GfxInitPalettes();
 	LoadSpriteTables();
+	MetroSpritesLoad(); // Metro mod: own sprites from PNG files after the base set and the NewGRFs.
 	GfxClearSpriteCacheLoadIndex();
 	GfxDetermineMainColours();
 

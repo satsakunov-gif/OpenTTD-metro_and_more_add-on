@@ -1417,6 +1417,10 @@ static uint GetWindowZPriority(WindowClass wc)
 	uint z_priority = 0;
 
 	switch (wc) {
+		case WindowClass::MetroCinemaView: // Metro mod: the cinema hides the whole interface.
+			++z_priority;
+			[[fallthrough]];
+
 		case WindowClass::ToolTips:
 			++z_priority;
 			[[fallthrough]];

@@ -789,6 +789,8 @@ enum class Commands : uint8_t {
 	MetroBuildMall,                         ///< Metro mod: build or close an underground mall
 	MetroBuildElevatedLine,                 ///< Metro mod: build an elevated monorail line at once
 	MetroBuildElevatedSpan,                 ///< Metro mod: build a span (bridge) of the elevated monorail
+	MetroContractAnswer,                    ///< Metro mod: accept or refuse a government contract
+	MetroDispatchControl,                   ///< Metro mod: dispatcher, manual control of a vehicle
 
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)
 };

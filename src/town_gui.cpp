@@ -54,6 +54,7 @@
 #include "town_cmd.h"
 
 #include "widgets/town_widget.h"
+#include "metro_civic.h"
 #include "table/strings.h"
 #include "newgrf_debug.h"
 #include <algorithm>
@@ -87,6 +88,14 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_authority_widge
 };
 
 /** Town authority window. */
+/** Metro mod: lines of the AI review and of the elections in the local authority window. */
+static std::vector<std::string> MetroAuthorityLines(const Town *t)
+{
+	std::vector<std::string> lines = MetroAiGetAuthorityLines(t);
+	for (std::string &line : MetroElectionsGetAuthorityLines(t)) lines.push_back(std::move(line));
+	return lines;
+}
+
 struct TownAuthorityWindow : Window {
 private:
 	Town *town = nullptr; ///< Town being displayed.
@@ -321,7 +330,7 @@ public:
 		switch (widget) {
 			case WID_TA_METRO_AI: {
 				Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
-				for (const std::string &line : MetroAiGetAuthorityLines(this->town)) {
+				for (const std::string &line : MetroAuthorityLines(this->town)) {
 					ir.top = DrawStringMultiLine(ir, line);
 				}
 				break;
@@ -405,7 +414,7 @@ public:
 			case WID_TA_METRO_AI: {
 				int width = size.width - padding.width;
 				uint height = 0;
-				for (const std::string &line : MetroAiGetAuthorityLines(this->town)) height += GetStringHeight(line, width);
+				for (const std::string &line : MetroAuthorityLines(this->town)) height += GetStringHeight(line, width);
 				size.height = std::max<uint>(size.height, height + padding.height);
 				break;
 			}
@@ -777,6 +786,14 @@ public:
 				ShowMetroDistrictsWindow(this->town->index);
 				break;
 
+			case WID_TV_METRO_CONTRACTS:
+				ShowMetroContractsWindow(this->town->index);
+				break;
+
+			case WID_TV_METRO_ELECTIONS:
+				ShowMetroElectionsWindow(this->town->index);
+				break;
+
 			case WID_TV_METRO_LANDMARKS:
 				MetroCityToggleLandmarks();
 				SetWindowClassesDirty(WindowClass::TownView);
@@ -918,6 +935,10 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widge
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_SERVICES), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_SERVICES_BUTTON, STR_METRO_CITY_SERVICES_TOOLTIP),
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_METRO_LANDMARKS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_CITY_LANDMARKS_BUTTON, STR_METRO_CITY_LANDMARKS_TOOLTIP),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_DISTRICTS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_TOWN_DISTRICTS_BUTTON, STR_METRO_TOWN_DISTRICTS_TOOLTIP),
+	EndContainer(),
+	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_CONTRACTS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_TOWN_CONTRACTS_BUTTON, STR_METRO_TOWN_CONTRACTS_TOOLTIP),
+		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_METRO_ELECTIONS), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_METRO_TOWN_ELECTIONS_BUTTON, STR_METRO_TOWN_ELECTIONS_TOOLTIP),
 	EndContainer(),
 };
 

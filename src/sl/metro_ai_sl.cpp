@@ -28,6 +28,7 @@ static const NamedSaveLoad _metro_town_ai_desc[] = {
 	NSL("changes",            SLE_ARR(MetroTownAiState, changes,            SLE_UINT16, METRO_TOWN_CHANGE_COUNT)),
 	NSL("last_population",    SLE_VAR(MetroTownAiState, last_population,    SLE_UINT32)),
 	NSL("last_station_count", SLE_VAR(MetroTownAiState, last_station_count, SLE_UINT16)),
+	NSL("mayor_name",         SLE_SSTR(MetroTownAiState, mayor_name,        SLE_STR | SLF_ALLOW_CONTROL)),
 };
 
 static void Save_MTAI()

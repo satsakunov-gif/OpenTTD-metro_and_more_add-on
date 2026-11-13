@@ -87,6 +87,8 @@
 
 #include "dropdown_common_type.h"
 
+#include "metro_sprites.h"
+
 #include "safeguards.h"
 
 
@@ -2521,7 +2523,9 @@ static std::unique_ptr<NWidgetBase> MakeMainToolbar()
 				break;
 		}
 		StringID tip = widget == WID_TN_METRO_GRID ? STR_METRO_POWER_TOOLBAR_BUTTON_TOOLTIP : static_cast<StringID>(STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
-		auto leaf = std::make_unique<NWidgetLeaf>(tp, Colours::Grey, widget, WidgetData{.sprite = sprite}, tip);
+		/* Metro mod: own icon of the power grid button from a PNG file where it exists. */
+		SpriteID image = widget == WID_TN_METRO_GRID ? MetroSprite(MetroSpriteId::IconGrid, sprite) : sprite;
+		auto leaf = std::make_unique<NWidgetLeaf>(tp, Colours::Grey, widget, WidgetData{.sprite = image}, tip);
 		leaf->SetToolbarMinimalSize(1);
 		hor->Add(std::move(leaf));
 	}

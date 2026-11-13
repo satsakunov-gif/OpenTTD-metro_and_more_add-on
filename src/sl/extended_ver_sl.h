@@ -204,6 +204,7 @@ enum SlXvFeatureIndex {
 	XSLFI_METRO_TOWN,                             ///< Metro mod: districts, commuting, migration (MTDS, MTTL chunks)
 	XSLFI_METRO_UNDERGROUND,                      ///< Metro mod: underground layers (MTUG chunk; object type 15)
 	XSLFI_METRO_ELEVATED,                         ///< Metro mod: elevated monorail (map bits of rail, rail station and rail bridge head tiles)
+	XSLFI_METRO_CIVIC,                            ///< Metro mod: government contracts and mayor elections (MTGC, MTGN, MTEL, MTEC, MTEH chunks)
 
 	XSLFI_RIFF_HEADER_60_BIT,                     ///< Size field in RIFF chunk header is 60 bit
 	XSLFI_HEIGHT_8_BIT,                           ///< Map tile height is 8 bit instead of 4 bit, but savegame version may be before this became true in trunk

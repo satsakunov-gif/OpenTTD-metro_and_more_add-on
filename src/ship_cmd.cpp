@@ -42,6 +42,7 @@
 #include "3rdparty/cpp-ring-buffer/ring_buffer.hpp"
 #include "3rdparty/robin_hood/robin_hood.h"
 
+#include "metro_dispatcher.h"
 #include "table/strings.h"
 
 #include "safeguards.h"
@@ -566,6 +567,12 @@ static Track ChooseShipTrack(Ship *v, TileIndex tile, TrackBits tracks)
 {
 	bool path_found = true;
 	Track track;
+
+	/* Metro mod: the dispatcher steers a course. */
+	if (Track manual = MetroDispatchChooseShipTrack(v, tracks); manual != INVALID_TRACK) {
+		v->cached_path.clear();
+		return manual;
+	}
 
 	if (v->dest_tile == INVALID_TILE) {
 		/* No destination, don't invoke pathfinder. */

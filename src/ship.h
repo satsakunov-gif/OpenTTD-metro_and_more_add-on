@@ -13,6 +13,7 @@
 #include <array>
 
 #include "vehicle_base.h"
+#include "metro_dispatcher.h"
 #include "water_map.h"
 #include "3rdparty/cpp-ring-buffer/ring_buffer.hpp"
 
@@ -63,7 +64,7 @@ struct Ship final : public SpecializedVehicle<Ship, VehicleType::Ship, Vehicle> 
 	int GetDisplayMaxSpeed() const override{ return this->vcache.cached_max_speed / 2; }
 	int GetEffectiveMaxSpeed() const;
 	int GetDisplayEffectiveMaxSpeed() const { return this->GetEffectiveMaxSpeed() / 2; }
-	int GetCurrentMaxSpeed() const override { return std::min<int>(this->GetEffectiveMaxSpeed(), this->current_order.GetMaxSpeed() * 2); }
+	int GetCurrentMaxSpeed() const override { return MetroDispatchAdjustSpeed(this, std::min<int>(this->GetEffectiveMaxSpeed(), this->current_order.GetMaxSpeed() * 2)); } // Metro mod: the dispatcher.
 	Money GetRunningCost() const override;
 	bool IsInDepot() const override { return this->state == TRACK_BIT_DEPOT; }
 	bool Tick() override;

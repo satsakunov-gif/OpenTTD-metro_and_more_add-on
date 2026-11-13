@@ -112,6 +112,7 @@ struct VentState {
 
 static std::vector<PowerNetwork> _networks;
 static std::unordered_map<uint32_t, int> _object_network;        ///< Grid object -> network.
+static std::unordered_map<uint32_t, int> _line_network;          ///< Power line tile -> network (for the map modes).
 static std::unordered_map<uint32_t, uint> _industry_networks;    ///< Power station -> number of networks it feeds.
 static std::unordered_map<uint32_t, SubstationState> _substations;
 static std::unordered_map<uint32_t, VentState> _vents;
@@ -533,6 +534,7 @@ static void RebuildNetworks()
 	_topology_dirty = false;
 	_networks.clear();
 	_object_network.clear();
+	_line_network.clear();
 	_industry_networks.clear();
 
 	/* Tiles of the vanilla power stations, shared by all companies. */
@@ -570,6 +572,7 @@ static void RebuildNetworks()
 			net.owner = c->index;
 			std::unordered_set<uint32_t> objects;
 			std::unordered_set<uint32_t> industries;
+			std::vector<uint32_t> lines;
 			std::vector<uint32_t> stack{start};
 			visited.insert(start);
 			while (!stack.empty()) {
@@ -581,6 +584,7 @@ static void RebuildNetworks()
 					industries.insert(st->second);
 				} else {
 					net.line_tiles++;
+					lines.push_back(t);
 				}
 				TileIndex tile{t};
 				for (DiagDirection dir : EnumRange(DiagDirection::End)) {
@@ -593,6 +597,7 @@ static void RebuildNetworks()
 			if (objects.empty() && industries.empty()) continue;
 
 			int index = static_cast<int>(_networks.size());
+			for (uint32_t line : lines) _line_network[line] = index;
 			for (uint32_t object : objects) {
 				_object_network[object] = index;
 				switch (GetBuildingSpec(GetBuilding(Object::Get(object))).role) {
@@ -868,6 +873,61 @@ static void UpdatePower()
 	SetWindowClassesDirty(WindowClass::MetroPowerNetwork);
 }
 
+/** Load of a network in percent of what its plants give now (999 = demand without any power). */
+static uint16_t GetNetworkLoadPercent(int network)
+{
+	if (network < 0 || network >= static_cast<int>(_networks.size())) return 0;
+	const PowerNetwork &net = _networks[network];
+	uint64_t demand = static_cast<uint64_t>(net.vent_demand_kw) + net.track_demand_kw;
+	if (net.capacity_kw == 0) return demand == 0 ? 0 : 999;
+	return static_cast<uint16_t>(std::min<uint64_t>(demand * 100 / net.capacity_kw, 999));
+}
+
+/** The grid for the map modes: every line tile and building with its state and the load of its network. */
+std::vector<MetroPowerMapItem> MetroPowerGetMapItems()
+{
+	if (_topology_dirty) RebuildNetworks();
+	std::vector<MetroPowerMapItem> items;
+	for (const auto &[tile, owner] : _metro_power_lines) {
+		auto it = _line_network.find(tile);
+		items.push_back({TileIndex{tile}, Owner{owner}, MetroPowerMapKind::Line, 1, GetNetworkLoadPercent(it == _line_network.end() ? -1 : it->second)});
+	}
+	for (const Object *o : Object::Iterate()) {
+		if (!IsMetroPowerObject(o->type)) continue;
+		auto net = _object_network.find(o->index.base());
+		uint16_t load = GetNetworkLoadPercent(net == _object_network.end() ? -1 : net->second);
+		Owner owner = GetTileOwner(o->location.tile);
+		switch (GetBuildingSpec(GetBuilding(o)).role) {
+			case MetroPowerRole::Plant:
+				items.push_back({o->location.tile, owner, MetroPowerMapKind::Plant, 1, load});
+				break;
+			case MetroPowerRole::Substation: {
+				auto it = _substations.find(o->index.base());
+				bool powered = it != _substations.end() && it->second.powered;
+				items.push_back({o->location.tile, owner, MetroPowerMapKind::Substation, static_cast<uint8_t>(powered ? 1 : 2), load});
+				break;
+			}
+			case MetroPowerRole::Vent: {
+				auto it = _vents.find(o->index.base());
+				uint8_t state = it == _vents.end() ? 0 : (it->second.grid ? 1 : (it->second.diesel ? 2 : 0));
+				items.push_back({o->location.tile, owner, MetroPowerMapKind::Vent, state, load});
+				break;
+			}
+		}
+	}
+	return items;
+}
+
+uint MetroPowerSubstationRadius()
+{
+	return METRO_POWER_SUBSTATION_RADIUS;
+}
+
+uint MetroPowerVentRadius()
+{
+	return METRO_POWER_VENT_RADIUS;
+}
+
 uint MetroPowerGetTrainPowerPercent(const Train *front)
 {
 	if (_train_power_percent.empty()) return 100;
@@ -942,6 +1002,7 @@ void MetroPowerReset()
 	_metro_power_companies.clear();
 	_networks.clear();
 	_object_network.clear();
+	_line_network.clear();
 	_industry_networks.clear();
 	_substations.clear();
 	_vents.clear();

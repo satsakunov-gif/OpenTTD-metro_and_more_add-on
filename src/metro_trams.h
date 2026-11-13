@@ -12,6 +12,7 @@
 
 #include "engine_type.h"
 #include "newgrf_type.h"
+#include "road_type.h"
 
 #include <span>
 #include <string_view>
@@ -20,5 +21,6 @@ void MetroSetupTramEngines();
 void MetroTramsAfterLoad();
 bool IsMetroTramEngineScope(GrfID grfid);
 bool ConMetroTrams(std::span<std::string_view> argv);
+bool MetroDrawDedicatedTramGround(const struct TileInfo *ti, RoadBits road, RoadBits tram, bool snow_or_desert, bool barren);
 
 #endif /* METRO_TRAMS_H */

@@ -518,6 +518,24 @@ static const char *GetSpriteTypeName(SpriteType type)
  * @param encoder     Sprite encoder to use.
  * @return Read sprite data.
  */
+/* Metro mod: own sprites from PNG files (stage 10.1, metro_sprites.cpp). */
+extern bool MetroIsCustomSprite(SpriteID id);
+extern LowZoomLevels MetroLoadCustomSprite(SpriteID id, SpriteLoader::SpriteCollection &sprite);
+
+/** Metro mod: read an own sprite from its PNG files; the question mark sprite if they can't be read. */
+static void *ReadMetroSprite(SpriteID id, SpriteAllocator &allocator, SpriteEncoder *encoder, LowZoomLevels zoom_levels)
+{
+	SpriteLoader::SpriteCollection sprite;
+	LowZoomLevels loaded = MetroLoadCustomSprite(id, sprite);
+	if (loaded.None() || !ResizeSprites(sprite, loaded, encoder, zoom_levels)) {
+		return (void*)GetRawSprite(SPR_IMG_QUERY, SpriteType::Normal, LOW_ZOOM_ALL_BITS, &allocator, encoder);
+	}
+	for (ZoomLevel zoom = ZoomLevel::Begin; zoom != ZoomLevel::SpriteEnd; zoom++) {
+		if (!zoom_levels.Test(zoom)) sprite[zoom].data = nullptr;
+	}
+	return encoder->Encode(SpriteType::Normal, sprite, allocator);
+}
+
 static void *ReadSprite(const SpriteCache *sc, SpriteID id, SpriteType sprite_type, SpriteAllocator &allocator, SpriteEncoder *encoder, LowZoomLevels zoom_levels)
 {
 	/* Use current blitter if no other sprite encoder is given. */
@@ -528,6 +546,8 @@ static void *ReadSprite(const SpriteCache *sc, SpriteID id, SpriteType sprite_ty
 		zoom_levels = LOW_ZOOM_ALL_BITS;
 	}
 	if (encoder->NoSpriteDataRequired()) zoom_levels = {};
+
+	if (sprite_type == SpriteType::Normal && MetroIsCustomSprite(id)) return ReadMetroSprite(id, allocator, encoder, zoom_levels);
 
 	SpriteFile &file = *sc->file;
 	size_t file_pos = sc->file_pos;

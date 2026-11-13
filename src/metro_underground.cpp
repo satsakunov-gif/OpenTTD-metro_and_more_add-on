@@ -28,6 +28,8 @@
 #include "metro_trains.h"
 #include "depot_func.h"
 #include "metro_underground.h"
+#include "metro_dispatcher.h"
+#include "metro_sprites.h"
 #include "metro_underground_cmd.h"
 #include "metro_overlay.h"
 #include "station_cmd.h"
@@ -254,6 +256,7 @@ bool IsMetroSlowTile(TileIndex tile)
 /** Speed limit of a train with its engine on a transformer or an incline. */
 int MetroAdjustTrainSpeed(const Train *t, int max_speed)
 {
+	max_speed = MetroDispatchAdjustSpeed(t, max_speed); // Metro mod: the dispatcher's target speed (stage 9).
 	if (_metro_underground.empty() || !IsMetroOverlayTile(t->tile) || !IsMetroSlowTile(t->tile)) return max_speed;
 	return std::min<int>(max_speed, METRO_INCLINE_SPEED_KMH);
 }
@@ -804,9 +807,15 @@ void MetroUndergroundDrawTile(const TileInfo *ti)
 	if (!_metro_underground_view) return;
 	/* Earth everywhere, as freshly cleared land (the buildings above are translucent); deeper layers darker. */
 	uint offset = SlopeToSpriteOffset(ti->tileh);
-	DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + offset, PAL_NONE, 0, 0, 0);
-	for (uint i = 1; i < _metro_underground_view_layer; i++) {
-		DrawGroundSpriteAt((SPR_FLAT_BARE_LAND + offset) | (1 << PALETTE_MODIFIER_TRANSPARENT), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+	MetroSpriteId own = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::GroundLayer1) + _metro_underground_view_layer - 1);
+	if (offset == 0 && MetroHasSprite(own)) {
+		/* Own earth of the layer from a PNG file (stage 10.1); flat tiles only for now. */
+		DrawGroundSpriteAt(MetroSprite(own, SPR_FLAT_BARE_LAND), PAL_NONE, 0, 0, 0);
+	} else {
+		DrawGroundSpriteAt(SPR_FLAT_BARE_LAND + offset, PAL_NONE, 0, 0, 0);
+		for (uint i = 1; i < _metro_underground_view_layer; i++) {
+			DrawGroundSpriteAt((SPR_FLAT_BARE_LAND + offset) | (1 << PALETTE_MODIFIER_TRANSPARENT), PALETTE_TO_TRANSPARENT, 0, 0, 0);
+		}
 	}
 	/* Decorations in the earth where no metro is: placeholders (rocks) for fossils, dinosaur skeletons, worms... */
 	if (GetMetroUndergroundTile(ti->tile, _metro_underground_view_layer) == nullptr) {
@@ -1108,7 +1117,7 @@ static void MetroTestAddCar(CompanyID company, uint layer, TileIndex depot, Vehi
 bool ConMetroUnderground(std::span<std::string_view> argv)
 {
 	if (argv.size() < 2) {
-		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | heat [filter <0-4> <0-2> <0-1>] | malls | mall <station> <size 1-3, 0 close> | mallwindow | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
+		IConsolePrint(CC_HELP, "Metro mod underground. Usage: metro_underground layers | info <x> <y> | line <x1> <y1> <x2> <y2> <layer 1-3> | remove <x1> <y1> <x2> <y2> <layer> | corner <x> <y> <layer> <0-3> | incline <x1> <y1> <x2> <y2> <upper layer 1-2> | depot <x> <y> <layer> <dir 0-3> [remove] | engines | levels | heat [filter <0-4> <0-1> | mode <0-16> | route <vehicle>|off] | malls | mall <station> <size 1-3, 0 close> | mallwindow | upgrade <x> <y> | extraentrance <x> <y> [remove] | testtrain <x> <y> <layer> | transformer <x> <y> <dir 0-3> | trains | entrance <x> <y> | view <0-3> | window | count");
 		return true;
 	}
 	std::string_view cmd = argv[1];
@@ -1191,10 +1200,9 @@ bool ConMetroUnderground(std::span<std::string_view> argv)
 		return true;
 	}
 	if (cmd == "heat") {
-		/* heat [filter <transport 0-4> <cargo 0-2> <period 0-1>] */
+		/* heat [filter <transport 0-4> <period 0-1> | mode <0-16> | route <vehicle>|off | show] */
 		std::vector<std::string_view> args(argv.begin() + 2, argv.end());
 		if (!args.empty() && args[0] == "show") {
-			extern void MetroShowHeatSmallMap();
 			MetroShowHeatSmallMap();
 			return true;
 		}

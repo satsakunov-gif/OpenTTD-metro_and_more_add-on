@@ -61,6 +61,9 @@
 
 #include "table/strings.h"
 
+#include "metro_cinema.h"
+#include "metro_dispatcher.h"
+
 #include "safeguards.h"
 
 
@@ -3817,6 +3820,8 @@ static constexpr std::initializer_list<NWidgetPart> _nested_vehicle_view_widgets
 			EndContainer(),
 			NWidget(WWT_PUSHIMGBTN, Colours::Grey, WID_VV_SHOW_ORDERS), SetMinimalSize(18, 18), SetSpriteTip(SPR_SHOW_ORDERS),
 			NWidget(WWT_PUSHIMGBTN, Colours::Grey, WID_VV_SHOW_DETAILS), SetMinimalSize(18, 18), SetSpriteTip(SPR_SHOW_VEHICLE_DETAILS),
+			NWidget(WWT_PUSHIMGBTN, Colours::Grey, WID_VV_METRO_CINEMA), SetMinimalSize(18, 18), SetSpriteTip(SPR_CENTRE_VIEW_VEHICLE, STR_METRO_CINEMA_VEHICLE_TOOLTIP), // Metro mod.
+			NWidget(WWT_PUSHIMGBTN, Colours::Grey, WID_VV_METRO_DISPATCH), SetMinimalSize(18, 18), SetSpriteTip(SPR_IMG_COMPANY_GENERAL, STR_METRO_DISPATCH_VEHICLE_TOOLTIP), // Metro mod.
 			NWidget(WWT_PANEL, Colours::Grey), SetMinimalSize(18, 0), SetResize(0, 1), EndContainer(),
 		EndContainer(),
 	EndContainer(),
@@ -4138,6 +4143,7 @@ public:
 		this->SetWidgetDisabledState(WID_VV_GOTO_DEPOT, !is_localcompany);
 		this->SetWidgetDisabledState(WID_VV_REFIT, !refittable_and_stopped_in_depot || !is_localcompany);
 		this->SetWidgetDisabledState(WID_VV_CLONE, !is_localcompany);
+		this->SetWidgetDisabledState(WID_VV_METRO_DISPATCH, !is_localcompany); // Metro mod.
 
 		this->UpdateDepotButton();
 
@@ -4514,6 +4520,14 @@ public:
 					ShowOrdersWindow(v);
 				}
 				break;
+			case WID_VV_METRO_CINEMA: // Metro mod: cinema camera.
+				MetroCinemaStart(v->index);
+				break;
+
+			case WID_VV_METRO_DISPATCH: // Metro mod: dispatcher.
+				MetroDispatchStart(v->index);
+				break;
+
 			case WID_VV_SHOW_DETAILS: // show details
 				if (_ctrl_pressed) {
 					ShowCompanyGroupForVehicle(v);

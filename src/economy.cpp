@@ -1470,6 +1470,7 @@ void CargoPayment::PayFinalDelivery(CargoType cargo, CargoPacket *cp, uint count
 {
 	/* Handle end of route payment */
 	Money profit = DeliverGoods(count, cargo, this->current_station, cp->GetDistance(current_tile), cp->GetPeriodsInTransit(), Company::Get(this->front->owner), cp->GetSource());
+	MetroHeatRecordIncome(Station::GetIfValid(this->current_station), this->front->type, cargo, profit); // Metro mod: profitability map mode.
 
 	profit -= cp->GetFeederShare(count);
 

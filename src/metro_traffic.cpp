@@ -48,6 +48,9 @@
 
 #include <unordered_map>
 
+#include "metro_sprites.h"
+#include "metro_walkers.h"
+
 #include "safeguards.h"
 
 /** A private car: drives on the road tile @p tile in direction @p dir; @p progress 0..15 from the entry edge. */
@@ -61,6 +64,7 @@ struct MetroCar {
 	uint8_t colour;
 	uint16_t tiles;   ///< Tiles driven.
 	uint16_t sub_progress = 0; ///< Speed accumulated towards the next pixel.
+	uint32_t id = 0;  ///< Stable number for the cinema camera.
 };
 
 /** A pedestrian walking on the sidewalk towards @p target; disappears there ("dives into the entrance"). */
@@ -73,6 +77,7 @@ struct MetroPedestrian {
 	uint8_t colour;
 	uint16_t steps;
 	bool side;        ///< Which sidewalk.
+	uint32_t id = 0;  ///< Stable number for the cinema camera.
 };
 
 static std::vector<MetroCar> _cars;
@@ -81,6 +86,7 @@ static std::unordered_multimap<uint32_t, uint32_t> _cars_on_tile;        ///< Ti
 static std::unordered_multimap<uint32_t, uint32_t> _pedestrians_on_tile; ///< Tile -> index in #_pedestrians.
 static std::unordered_map<uint16_t, bool> _towns_in_view;                ///< Active towns simulated in detail (value: pedestrians too).
 static std::unordered_map<uint16_t, uint8_t> _town_jam_estimate;         ///< Slowdown in percent at the centre of each active town.
+static uint32_t _next_actor_id = 0;                                       ///< Numbers of the cars and pedestrians.
 
 void MetroTrafficReset()
 {
@@ -295,6 +301,7 @@ static void SpawnCar(const Town *t)
 	/* Newer models are more common: take from the newest half of the list. */
 	uint8_t sprite = sprites[sprites.size() / 2 + InteractiveRandomRange(static_cast<uint32_t>(sprites.size() - sprites.size() / 2))];
 	_cars.push_back({start, target, t->index.base(), dir, TILE_SIZE / 2, sprite, static_cast<uint8_t>(InteractiveRandomRange(METRO_CAR_COLOUR_COUNT)), 0});
+	_cars.back().id = ++_next_actor_id;
 }
 
 /** Cars on the tile driving in the direction (or any direction when DiagDirection::Invalid). */
@@ -475,6 +482,7 @@ static void SpawnPedestrian(const Town *t)
 		DiagDirection dir = ChooseDirection(start, DiagDirection::Invalid, target);
 		if (dir == DiagDirection::Invalid) return;
 		_pedestrians.push_back({start, target, t->index.base(), dir, TILE_SIZE / 2, static_cast<uint8_t>(InteractiveRandomRange(METRO_CAR_COLOUR_COUNT)), 0, InteractiveRandomRange(2) == 0});
+	_pedestrians.back().id = ++_next_actor_id;
 		return;
 	}
 	TileIndex station = FindNearbyStation(road);
@@ -496,6 +504,7 @@ static void SpawnPedestrian(const Town *t)
 	DiagDirection dir = ChooseDirection(start, DiagDirection::Invalid, target);
 	if (dir == DiagDirection::Invalid) return;
 	_pedestrians.push_back({start, target, t->index.base(), dir, TILE_SIZE / 2, static_cast<uint8_t>(InteractiveRandomRange(METRO_CAR_COLOUR_COUNT)), 0, InteractiveRandomRange(2) == 0});
+	_pedestrians.back().id = ++_next_actor_id;
 }
 
 /** Move a pedestrian by one pixel; returns false when it arrives or gets lost. */
@@ -598,13 +607,11 @@ static void UpdateJamEstimates(uint slice, uint slices)
 	}
 }
 
-int MetroTrafficAdjustRoadVehicleSpeed(const RoadVehicle *v, int max_speed)
+/** Jam on a road tile in percent of speed lost (the estimate of the town and the cars on screen), 0 if none. */
+uint MetroTrafficGetJamPercent(TileIndex tile)
 {
-	if (_town_jam_estimate.empty() && _cars_on_tile.empty()) return max_speed;
-	if (!Company::IsValidHumanID(v->owner)) return max_speed;
-	TileIndex tile = v->tile;
-	if (RoadTypeIsTram(v->roadtype) && IsTileType(tile, TileType::Road) && GetRoadTypeTram(tile) == ROADTYPE_METRO_TRAM) return max_speed; // Dedicated tram track.
-	if (GetCarRoadBits(tile) == ROAD_NONE) return max_speed; // Tram-only tiles, stations, depots, bridges: no jams.
+	if (_town_jam_estimate.empty() && _cars_on_tile.empty()) return 0;
+	if (GetCarRoadBits(tile) == ROAD_NONE) return 0; // Tram-only tiles, stations, depots, bridges: no jams.
 	uint16_t town = GetTownIndex(tile).base();
 	uint slowdown = 0;
 	if (auto it = _town_jam_estimate.find(town); it != _town_jam_estimate.end()) {
@@ -619,7 +626,59 @@ int MetroTrafficAdjustRoadVehicleSpeed(const RoadVehicle *v, int max_speed)
 	}
 	/* On screen: the cars around the vehicle. */
 	slowdown = std::max(slowdown, CountCarsOn(tile, DiagDirection::Invalid) * METRO_JAM_SLOWDOWN_PER_CAR);
-	slowdown = std::min<uint>(slowdown, METRO_JAM_MAX_SLOWDOWN);
+	return std::min<uint>(slowdown, METRO_JAM_MAX_SLOWDOWN);
+}
+
+/** A car or pedestrian for the cinema camera. */
+static MetroTrafficActor MakeActor(const MetroCar &car)
+{
+	bool right = _settings_game.vehicle.road_side == RoadVehicleDrivingSide::Right;
+	Point pos = GetPosition(car.tile, car.dir, car.progress, right ? METRO_CARS_LANE_OFFSET : -METRO_CARS_LANE_OFFSET);
+	bool jammed = CountCarsOn(car.tile, DiagDirection::Invalid) >= 2 || MetroTrafficGetJamPercent(car.tile) >= METRO_JAM_MAX_SLOWDOWN / 2;
+	return {car.id, false, pos.x, pos.y, car.dir, jammed, car.town};
+}
+
+static MetroTrafficActor MakeActor(const MetroPedestrian &p)
+{
+	Point pos = GetPosition(p.tile, p.dir, p.progress, p.side ? METRO_PEDESTRIANS_SIDEWALK_OFFSET : -METRO_PEDESTRIANS_SIDEWALK_OFFSET);
+	return {p.id, true, pos.x, pos.y, p.dir, false, p.town};
+}
+
+/** All cars and pedestrians now (only in the towns on screen). */
+std::vector<MetroTrafficActor> MetroTrafficListActors()
+{
+	std::vector<MetroTrafficActor> list;
+	list.reserve(_cars.size() + _pedestrians.size());
+	for (const MetroCar &car : _cars) list.push_back(MakeActor(car));
+	for (const MetroPedestrian &p : _pedestrians) list.push_back(MakeActor(p));
+	return list;
+}
+
+/** The car or pedestrian with the number; false if it is gone. */
+bool MetroTrafficFindActor(uint32_t id, MetroTrafficActor &actor)
+{
+	for (const MetroCar &car : _cars) {
+		if (car.id == id) {
+			actor = MakeActor(car);
+			return true;
+		}
+	}
+	for (const MetroPedestrian &p : _pedestrians) {
+		if (p.id == id) {
+			actor = MakeActor(p);
+			return true;
+		}
+	}
+	return false;
+}
+
+int MetroTrafficAdjustRoadVehicleSpeed(const RoadVehicle *v, int max_speed)
+{
+	if (_town_jam_estimate.empty() && _cars_on_tile.empty()) return max_speed;
+	if (!Company::IsValidHumanID(v->owner)) return max_speed;
+	TileIndex tile = v->tile;
+	if (RoadTypeIsTram(v->roadtype) && IsTileType(tile, TileType::Road) && GetRoadTypeTram(tile) == ROADTYPE_METRO_TRAM) return max_speed; // Dedicated tram track.
+	uint slowdown = MetroTrafficGetJamPercent(tile);
 	return slowdown == 0 ? max_speed : std::max(1, max_speed * static_cast<int>(100 - slowdown) / 100);
 }
 
@@ -644,7 +703,8 @@ void MetroTrafficDrawTile(const TileInfo *ti)
 		const MetroCar &car = _cars[it->second];
 		Point pos = GetPosition(car.tile, car.dir, car.progress, right ? METRO_CARS_LANE_OFFSET : -METRO_CARS_LANE_OFFSET);
 		int z = GetSlopePixelZ(pos.x, pos.y);
-		SpriteID sprite = _metro_car_sprites[car.sprite].sprite + to_underlying(DiagDirToDir(car.dir));
+		/* Own sprites (stage 10.1) where they exist: 8 directions in the same order. */
+		SpriteID sprite = MetroSprite(static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::CarFirst) + car.sprite), _metro_car_sprites[car.sprite].sprite) + to_underlying(DiagDirToDir(car.dir));
 		AddSortableSpriteToDraw(sprite, GetColourPalette(static_cast<Colours>(car.colour)), pos.x, pos.y, z, SpriteBounds({-1, -1, 0}, {3, 3, 6}, {1, 1, 0}));
 	}
 
@@ -655,7 +715,17 @@ void MetroTrafficDrawTile(const TileInfo *ti)
 		const MetroPedestrian &p = _pedestrians[it->second];
 		Point pos = GetPosition(p.tile, p.dir, p.progress, p.side ? METRO_PEDESTRIANS_SIDEWALK_OFFSET : -METRO_PEDESTRIANS_SIDEWALK_OFFSET);
 		int z = GetSlopePixelZ(pos.x, pos.y);
-		AddSortableSpriteToDraw(SPR_BLOT, GetColourPalette(static_cast<Colours>(p.colour)), pos.x, pos.y, z + 2, SpriteBounds({0, 0, 0}, {1, 1, 4}, {}));
+		uint frame = (p.progress / 4) % 4;
+		uint image = to_underlying(p.dir) * 4 + frame; // 4 directions (NE, SE, SW, NW) x 4 frames of the step.
+		if (MetroHasSprite(MetroSpriteId::Pedestrian)) {
+			/* Own walker from PNG files (stage 10). */
+			AddSortableSpriteToDraw(MetroSprite(MetroSpriteId::Pedestrian, SPR_BLOT, image), PAL_NONE, pos.x, pos.y, z, SpriteBounds({0, 0, 0}, {1, 1, 8}, {}));
+		} else if (MetroWalkerChoice look = MetroWalkerChoose(p.tile, p.id, p.colour); MetroWalkerSprite(look.index) != 0) {
+			/* Drawn by code (stage 10): clothes by era, winter and umbrellas. */
+			AddSortableSpriteToDraw(MetroWalkerSprite(look.index + image), look.pal, pos.x, pos.y, z, SpriteBounds({0, 0, 0}, {1, 1, 8}, {}));
+		} else {
+			AddSortableSpriteToDraw(SPR_BLOT, GetColourPalette(static_cast<Colours>(p.colour)), pos.x, pos.y, z + 2, SpriteBounds({0, 0, 0}, {1, 1, 4}, {}));
+		}
 	}
 }
 

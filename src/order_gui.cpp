@@ -48,6 +48,8 @@
 
 #include "table/strings.h"
 
+#include "metro_heatmap.h"
+
 #include "safeguards.h"
 
 enum CargoTypeOrdersWindowVariant {
@@ -599,7 +601,8 @@ static const StringID _order_manage_list_dropdown[] = {
 	STR_ORDER_EXPORT_ORDER_LIST,
 	STR_ORDER_IMPORT_ORDER_LIST_REPLACE,
 	STR_ORDER_IMPORT_ORDER_LIST_APPEND,
-	STR_ORDER_IMPORT_ORDER_LIST_APPEND_REVERSED
+	STR_ORDER_IMPORT_ORDER_LIST_APPEND_REVERSED,
+	STR_METRO_ORDER_SHOW_ROUTE_ON_MAP, // Metro mod: the stations of the orders on the heat map.
 };
 
 /** Variables for conditional orders; this defines the order of appearance in the dropdown box */
@@ -3927,6 +3930,7 @@ public:
 					case 3: ShowSaveLoadDialog(AbstractFileType::Orderlist, SaveLoadOperation::Load, FiosOrderListInfo(this->GetVehicle())); break;
 					case 4: ShowSaveLoadDialog(AbstractFileType::Orderlist, SaveLoadOperation::Load, FiosOrderListInfo(this->GetVehicle(), this->GetVehicle()->GetNumOrders())); break;
 					case 5: ShowSaveLoadDialog(AbstractFileType::Orderlist, SaveLoadOperation::Load, FiosOrderListInfo(this->GetVehicle(), this->GetVehicle()->GetNumOrders(), true)); break;
+					case 6: MetroHeatSetRoute(this->vehicle->index); break; // Metro mod.
 					default: NOT_REACHED();
 				}
 				break;

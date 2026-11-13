@@ -24,10 +24,15 @@ add_files(
     metro_elevated_tables.h
     metro_station_names_tables.h
     metro_mall_tables.h
+    metro_cinema_tables.h
+    metro_civic_tables.h
+    metro_dispatcher_tables.h
+    metro_sprite_tables.h
     metro_station_tables.h
     metro_train_tables.h
     metro_tram_tables.h
     metro_underground_tables.h
+    metro_walker_tables.h
     genland.h
     heightmap_colours.h
     industry_land.h

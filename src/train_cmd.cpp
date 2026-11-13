@@ -13,6 +13,8 @@
 #include "metro_underground.h"
 #include "error.h"
 #include "metro_power.h"
+#include "metro_dispatcher.h"
+#include "metro_sprites.h"
 #include "articulated_vehicles.h"
 #include "command_func.h"
 #include "pathfinder/yapf/yapf.hpp"
@@ -1441,6 +1443,12 @@ void Train::GetImage(Direction direction, EngineImageType image_type, VehicleSpr
 
 	if (this->flags.Test(VehicleRailFlag::Flipped)) direction = ReverseDir(direction);
 
+	/* Metro mod: own sprites of the metro trains from PNG files (stage 10.1). */
+	if (SpriteID own; MetroSpritesVehicleImage(this->engine_type, direction, own)) {
+		result->Set(own);
+		return;
+	}
+
 	if (IsCustomVehicleSpriteNum(spritenum)) {
 		if (spritenum == CUSTOM_VEHICLE_SPRITENUM_REVERSED) direction = ReverseDir(direction);
 		GetCustomVehicleSprite(this, direction, image_type, result);
@@ -1462,6 +1470,11 @@ static void GetRailIcon(EngineID engine, bool rear_head, int &y, EngineImageType
 	const Engine *e = Engine::Get(engine);
 	Direction dir = rear_head ? Direction::E : Direction::W;
 	uint8_t spritenum = e->VehInfo<RailVehicleInfo>().image_index;
+
+	if (SpriteID own; MetroSpritesVehicleImage(engine, dir, own)) { // Metro mod: own sprites.
+		result->Set(own);
+		return;
+	}
 
 	if (IsCustomVehicleSpriteNum(spritenum)) {
 		GetCustomVehicleIcon(engine, dir, image_type, result);
@@ -4568,6 +4581,9 @@ static ChooseTrainTrackResult ChooseTrainTrack(Train *consist, const TileIndex t
 	TrackBits res_tracks = (TrackBits)(GetReservedTrackbits(tile) & DiagdirReachesTracks(enterdir));
 	/* Do we have a suitable reserved track? */
 	if (res_tracks != TRACK_BIT_NONE) return { FindFirstTrack(res_tracks), result_flags };
+
+	/* Metro mod: the dispatcher sets the switch of this junction. */
+	tracks = MetroDispatchFilterTrainTracks(consist, enterdir, tracks);
 
 	bool mark_stuck = (flags & CTTF_MARK_STUCK);
 

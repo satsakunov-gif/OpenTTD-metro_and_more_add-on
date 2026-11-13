@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "aircraft.h"
+#include "metro_dispatcher.h"
 #include "landscape.h"
 #include "news_func.h"
 #include "newgrf_engine.h"
@@ -700,6 +701,9 @@ static int UpdateAircraftSpeed(Aircraft *v, uint speed_limit = SPEED_LIMIT_NONE,
 		if (broken_speed < speed_limit) hard_limit = false;
 		speed_limit = std::min(speed_limit, broken_speed);
 	}
+
+	/* Metro mod: the dispatcher's target speed in flight. */
+	speed_limit = std::min<uint>(speed_limit, static_cast<uint>(MetroDispatchAdjustSpeed(v, INT_MAX)));
 
 	if (v->vcache.cached_max_speed < speed_limit) {
 		if (v->cur_speed < speed_limit) hard_limit = false;

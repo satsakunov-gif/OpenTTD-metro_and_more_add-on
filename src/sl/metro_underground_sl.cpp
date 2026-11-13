@@ -230,6 +230,8 @@ struct MetroTrafficRecord {
 	uint32_t history[METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES]{};
 	uint32_t transfers_month = 0;
 	uint32_t transfers[METRO_HEAT_MONTHS]{};
+	int64_t income_month[METRO_HEAT_CATEGORIES]{};
+	int64_t income[METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES]{};
 };
 
 static const NamedSaveLoad _metro_traffic_desc[] = {
@@ -238,6 +240,8 @@ static const NamedSaveLoad _metro_traffic_desc[] = {
 	NSL("history",         SLE_ARR(MetroTrafficRecord, history,         SLE_UINT32, METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES)),
 	NSL("transfers_month", SLE_VAR(MetroTrafficRecord, transfers_month, SLE_UINT32)),
 	NSL("transfers",       SLE_ARR(MetroTrafficRecord, transfers,       SLE_UINT32, METRO_HEAT_MONTHS)),
+	NSL("income_month",    SLE_ARR(MetroTrafficRecord, income_month,    SLE_INT64,  METRO_HEAT_CATEGORIES)),
+	NSL("income",          SLE_ARR(MetroTrafficRecord, income,          SLE_INT64,  METRO_HEAT_MONTHS * METRO_HEAT_CATEGORIES)),
 };
 
 static void Save_MTHT()
@@ -247,9 +251,15 @@ static void Save_MTHT()
 	for (const auto &[station, t] : _metro_station_traffic) {
 		MetroTrafficRecord r;
 		r.station = station;
-		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) r.month[c] = t.month[c];
+		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) {
+			r.month[c] = t.month[c];
+			r.income_month[c] = t.income_month[c].base();
+		}
 		for (uint m = 0; m < METRO_HEAT_MONTHS; m++) {
-			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) r.history[m * METRO_HEAT_CATEGORIES + c] = t.history[m][c];
+			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) {
+				r.history[m * METRO_HEAT_CATEGORIES + c] = t.history[m][c];
+				r.income[m * METRO_HEAT_CATEGORIES + c] = t.income[m][c].base();
+			}
 			r.transfers[m] = t.transfers[m];
 		}
 		r.transfers_month = t.transfers_month;
@@ -266,9 +276,15 @@ static void Load_MTHT()
 		MetroTrafficRecord r;
 		SlObjectLoadFiltered(&r, slt);
 		MetroStationTraffic &t = _metro_station_traffic[r.station];
-		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) t.month[c] = r.month[c];
+		for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) {
+			t.month[c] = r.month[c];
+			t.income_month[c] = r.income_month[c];
+		}
 		for (uint m = 0; m < METRO_HEAT_MONTHS; m++) {
-			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) t.history[m][c] = r.history[m * METRO_HEAT_CATEGORIES + c];
+			for (uint c = 0; c < METRO_HEAT_CATEGORIES; c++) {
+				t.history[m][c] = r.history[m * METRO_HEAT_CATEGORIES + c];
+				t.income[m][c] = r.income[m * METRO_HEAT_CATEGORIES + c];
+			}
 			t.transfers[m] = r.transfers[m];
 		}
 		t.transfers_month = r.transfers_month;

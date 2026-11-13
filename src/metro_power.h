@@ -123,6 +123,27 @@ struct MetroPowerNetworkInfo {
 	std::vector<std::string> plants; ///< One line per plant.
 };
 MetroPowerNetworkInfo MetroPowerGetNetworkInfo(TileIndex tile);
+
+/** Kind of an item of the grid on the map modes. */
+enum class MetroPowerMapKind : uint8_t {
+	Line,
+	Plant,
+	Substation,
+	Vent,
+};
+
+/** A line tile or building of the grid for the map modes. */
+struct MetroPowerMapItem {
+	TileIndex tile;
+	Owner owner;
+	MetroPowerMapKind kind;
+	uint8_t state;         ///< Substation: 1 powered, 2 cut off. Vent shaft: 0 not working, 1 from the grid, 2 on the diesel.
+	uint16_t load_percent; ///< Demand of its network in percent of the power the plants give now (999 = no power at all).
+};
+
+std::vector<MetroPowerMapItem> MetroPowerGetMapItems();
+uint MetroPowerSubstationRadius();
+uint MetroPowerVentRadius();
 std::vector<std::string> MetroPowerGetBuildingLines(TileIndex tile);
 void ShowMetroPowerNetworkWindow(TileIndex tile);
 void ShowMetroPowerToolbar();

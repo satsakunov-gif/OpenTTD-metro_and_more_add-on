@@ -1,0 +1,5 @@
+# Pictures as received: sorted into raw/ by hand or with --assign, not committed.
+inbox/*
+!inbox/.gitkeep
+# Cleaned full-size pictures of --debug.
+game/_debug/

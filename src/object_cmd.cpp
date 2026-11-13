@@ -46,6 +46,8 @@
 #include "table/strings.h"
 #include "table/object_land.h"
 
+#include "metro_sprites.h"
+
 #include "safeguards.h"
 
 ObjectPool _object_pool("Object");
@@ -661,7 +663,11 @@ static void DrawTile_Object(TileInfo *ti, DrawTileProcParams params)
 			DrawGroundSprite(dts->ground.sprite, palette);
 		}
 
-		if (!IsInvisibilitySet(TransparencyOption::Structures)) {
+		/* Metro mod: an own sprite of the object from a PNG file replaces the vanilla building. */
+		SpriteID own = IsInvisibilitySet(TransparencyOption::Structures) ? 0 : MetroSpritesObjectImage(ti->tile);
+		if (own != 0) {
+			AddSortableSpriteToDraw(own, PAL_NONE, *ti, SpriteBounds({0, 0, 0}, {TILE_SIZE, TILE_SIZE, 48}, {}), IsTransparencySet(TransparencyOption::Structures));
+		} else if (!IsInvisibilitySet(TransparencyOption::Structures)) {
 			for (const DrawTileSeqStruct &dtss : dts->GetSequence()) {
 				/* Metro mod services use recoloured house sprites. */
 				PaletteID pal = ((IsMetroServiceObject(type) || IsMetroPowerObject(type) || IsMetroEntranceObject(type)) && dtss.image.pal != PAL_NONE) ? dtss.image.pal : palette;

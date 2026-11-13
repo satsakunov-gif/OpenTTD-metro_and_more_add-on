@@ -44,6 +44,8 @@
 #include "tile_cmd.h"
 #include "script/api/script_event_types.hpp"
 
+#include "metro_dispatcher.h"
+#include "metro_sprites.h"
 #include "table/strings.h"
 
 #include "safeguards.h"
@@ -114,6 +116,11 @@ static void GetRoadVehIcon(EngineID engine, EngineImageType image_type, VehicleS
 	const Engine *e = Engine::Get(engine);
 	uint8_t spritenum = e->VehInfo<RoadVehicleInfo>().image_index;
 
+	if (SpriteID own; MetroSpritesVehicleImage(engine, Direction::W, own)) { // Metro mod: own tram sprites.
+		result->Set(own);
+		return;
+	}
+
 	if (IsCustomVehicleSpriteNum(spritenum)) {
 		GetCustomVehicleIcon(engine, Direction::W, image_type, result);
 		if (result->IsValid()) return;
@@ -128,6 +135,12 @@ static void GetRoadVehIcon(EngineID engine, EngineImageType image_type, VehicleS
 void RoadVehicle::GetImage(Direction direction, EngineImageType image_type, VehicleSpriteSeq *result) const
 {
 	uint8_t spritenum = this->spritenum;
+
+	/* Metro mod: own sprites of the trams from PNG files (stage 10.1). */
+	if (SpriteID own; MetroSpritesVehicleImage(this->engine_type, direction, own)) {
+		result->Set(own);
+		return;
+	}
 
 	if (IsCustomVehicleSpriteNum(spritenum)) {
 		if (spritenum == CUSTOM_VEHICLE_SPRITENUM_REVERSED) direction = ReverseDir(direction);
@@ -548,6 +561,7 @@ inline int RoadVehicle::GetCurrentMaxSpeed() const
 	}
 
 	max_speed = MetroTrafficAdjustRoadVehicleSpeed(this, max_speed); // Metro mod: traffic jams in active towns.
+	max_speed = MetroDispatchAdjustSpeed(this, max_speed); // Metro mod: the dispatcher's target speed.
 	return std::min(max_speed, this->current_order.GetMaxSpeed() * 2);
 }
 
@@ -1273,6 +1287,12 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 			v->cached_path->clear();
 		}
 		return FilterRedSignal(static_cast<Trackdir>(FindFirstBit(ts.trackdirs)));
+	}
+
+	/* Metro mod: the dispatcher chooses the turn at this junction. */
+	if (Trackdir manual = MetroDispatchChooseRoadTrackdir(v, enterdir, ts.trackdirs); manual != INVALID_TRACKDIR) {
+		if (v->cached_path != nullptr) v->cached_path->clear();
+		return FilterRedSignal(manual);
 	}
 
 	/* Path cache is out of date, clear it */

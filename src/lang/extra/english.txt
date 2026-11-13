@@ -2940,8 +2940,8 @@ STR_METRO_MALL_ERR_CANT_CLOSE                                   :{WHITE}Can't cl
 STR_METRO_MALL_ERR_NO_MALL                                      :{WHITE}... the station has no mall
 STR_METRO_MALL_ERR_HAS_MALL                                     :{WHITE}... the station has a mall already; close it first
 STR_METRO_MALL_ERR_NOT_MEGAHUB                                  :{WHITE}... a mall needs a megahub station
-STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Heat map: traffic of the stations over their catchment, blue (little) to red (much); link lines of the chosen cargo coloured by volume; white squares = stations with transfers
-STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Transport: road vehicles (click)
+STR_METRO_HEAT_TOOLTIP                                          :{BLACK}Heat map and map modes: the first legend row switches the mode (passenger flow, cargo flow, stations, jams, profitability, coverage, metro, power grid, towns...), the next rows are filters; blue (little) to red (much)
+STR_METRO_HEAT_LEGEND_SAMPLE                                    :{TINY_FONT}Mode: authority rating (click, Ctrl+click back)
 STR_METRO_HEAT_FILTER                                           :{TINY_FONT}{STRING} (click)
 STR_METRO_HEAT_ALL_TRANSPORT                                    :All transport
 STR_METRO_HEAT_TRAINS                                           :Trains
@@ -2956,3 +2956,201 @@ STR_METRO_HEAT_YEAR                                             :Last 12 months
 STR_METRO_HEAT_LEVEL                                            :{TINY_FONT}{BLACK}from {COMMA}
 STR_METRO_HEAT_NO_TRAFFIC                                       :{TINY_FONT}{BLACK}no traffic yet
 STR_METRO_HEAT_TYPE                                             :Heat map
+STR_METRO_MAP_MODE_ROW                                          :{TINY_FONT}Mode: {STRING} (click, Ctrl+click back)
+STR_METRO_MAP_MODE_PASSENGERS                                   :passenger flow
+STR_METRO_MAP_MODE_FREIGHT                                      :cargo flow
+STR_METRO_MAP_MODE_STATION_LOAD                                 :station load
+STR_METRO_MAP_MODE_STATION_RATING                               :station rating
+STR_METRO_MAP_MODE_JAMS                                         :traffic jams
+STR_METRO_MAP_MODE_PROFIT                                       :profitability
+STR_METRO_MAP_MODE_COVERAGE                                     :transport coverage
+STR_METRO_MAP_MODE_METRO_LAYERS                                 :metro layers
+STR_METRO_MAP_MODE_VENTILATION                                  :ventilation
+STR_METRO_MAP_MODE_GRID                                         :power grid
+STR_METRO_MAP_MODE_GRID_LOAD                                    :grid load
+STR_METRO_MAP_MODE_ELECTRIFICATION                              :track electrification
+STR_METRO_MAP_MODE_ACTIVE_TOWNS                                 :active towns
+STR_METRO_MAP_MODE_TOWN_RATING                                  :authority rating
+STR_METRO_MAP_MODE_DISTRICTS                                    :districts
+STR_METRO_MAP_MODE_TOURISTS                                     :tourists
+STR_METRO_MAP_MODE_MIGRATION                                    :migration
+STR_METRO_HEAT_FILTER_OFF                                       :{TINY_FONT}{GRAY}{STRING} (not used here)
+STR_METRO_HEAT_ROUTE_ALL                                        :{TINY_FONT}All routes (set in the orders window)
+STR_METRO_HEAT_ROUTE_ALL_OFF                                    :{TINY_FONT}{GRAY}All routes (not used here)
+STR_METRO_HEAT_ROUTE_VEHICLE                                    :{TINY_FONT}Route: {VEHICLE} (click to clear)
+STR_METRO_HEAT_ROUTE_VEHICLE_OFF                                :{TINY_FONT}{GRAY}Route: {VEHICLE} (not used here)
+STR_METRO_HEAT_CATEGORY                                         :{TINY_FONT}{BLACK}{STRING}
+STR_METRO_HEAT_LEVEL_MONEY                                      :{TINY_FONT}{BLACK}from {CURRENCY_SHORT}
+STR_METRO_HEAT_LEVEL_PERCENT                                    :{TINY_FONT}{BLACK}from {NUM}%
+STR_METRO_HEAT_LEVEL_JAM                                        :{TINY_FONT}{BLACK}slower by {NUM}%+
+STR_METRO_HEAT_LEVEL_LOAD                                       :{TINY_FONT}{BLACK}load from {NUM}%
+STR_METRO_HEAT_LEVEL_RATING                                     :{TINY_FONT}{BLACK}from {NUM}
+STR_METRO_HEAT_LEVEL_STATIONS                                   :{TINY_FONT}{BLACK}{NUM} station{P "" s}
+STR_METRO_HEAT_LEVEL_STATIONS_MORE                              :{TINY_FONT}{BLACK}{NUM}+ stations
+STR_METRO_HEAT_NOTHING_WAITING                                  :nothing waiting
+STR_METRO_HEAT_NO_TOURISTS                                      :no tourists yet
+STR_METRO_HEAT_LAYER_1                                          :tracks of -1
+STR_METRO_HEAT_LAYER_2                                          :tracks of -2
+STR_METRO_HEAT_LAYER_3                                          :tracks of -3
+STR_METRO_HEAT_INCLINE                                          :inclines
+STR_METRO_HEAT_PLATFORM                                         :platforms
+STR_METRO_HEAT_ENTRANCE                                         :entrances
+STR_METRO_HEAT_VENT_GRID                                        :shaft on the grid
+STR_METRO_HEAT_VENT_DIESEL                                      :shaft on the diesel
+STR_METRO_HEAT_VENT_OFF                                         :shaft not working
+STR_METRO_HEAT_DEEP_AIRED                                       :-3 platforms aired
+STR_METRO_HEAT_DEEP_STUFFY                                      :-3 platforms stuffy
+STR_METRO_HEAT_GRID_OFF                                         :substation cut off
+STR_METRO_HEAT_GRID_FED                                         :substation powered
+STR_METRO_HEAT_GRID_LINE                                        :power lines
+STR_METRO_HEAT_GRID_PLANT                                       :power plants
+STR_METRO_HEAT_GRID_SUBSTATION                                  :substations
+STR_METRO_HEAT_GRID_VENT                                        :vent shafts
+STR_METRO_HEAT_OVERLOAD                                         :overload (blackout)
+STR_METRO_HEAT_RAIL_PLAIN                                       :no catenary
+STR_METRO_HEAT_RAIL_FED                                         :catenary, powered
+STR_METRO_HEAT_RAIL_UNFED                                       :catenary, no power
+STR_METRO_HEAT_TOWN_INACTIVE                                    :not active
+STR_METRO_HEAT_TOWN_ACTIVE                                      :active
+STR_METRO_HEAT_DISTRICT_BUSINESS                                :business
+STR_METRO_HEAT_DISTRICT_RESIDENTIAL                             :residential
+STR_METRO_HEAT_DISTRICT_CENTRE                                  :district centres
+STR_METRO_HEAT_MIGRATION_OUT_MUCH                               :leaving, over 1%
+STR_METRO_HEAT_MIGRATION_OUT                                    :leaving
+STR_METRO_HEAT_MIGRATION_NONE                                   :no moves
+STR_METRO_HEAT_MIGRATION_IN                                     :arriving
+STR_METRO_HEAT_MIGRATION_IN_MUCH                                :arriving, over 1%
+STR_METRO_ORDER_SHOW_ROUTE_ON_MAP                               :Show route on the map
+STR_METRO_CINEMA_CAPTION                                        :{WHITE}Cinema camera
+STR_METRO_CINEMA_BEHIND                                         :Behind (1)
+STR_METRO_CINEMA_BEHIND_TOOLTIP                                 :{BLACK}The camera trails the target along its motion
+STR_METRO_CINEMA_ORBIT                                          :Orbit (2)
+STR_METRO_CINEMA_ORBIT_TOOLTIP                                  :{BLACK}The camera circles the target
+STR_METRO_CINEMA_RANDOM                                         :Random (3)
+STR_METRO_CINEMA_RANDOM_TOOLTIP                                 :{BLACK}A new interesting target every 10-20 seconds: fast and underground trains, cars in jams, stadium crowds, aircraft taking off
+STR_METRO_CINEMA_NEXT                                           :Next target
+STR_METRO_CINEMA_NEXT_TOOLTIP                                   :{BLACK}Follow another interesting target now
+STR_METRO_CINEMA_HIDE                                           :Hide interface (H)
+STR_METRO_CINEMA_HIDE_TOOLTIP                                   :{BLACK}Full screen view over all windows; H brings the interface back, Esc ends the cinema
+STR_METRO_CINEMA_EXIT                                           :Exit (Esc)
+STR_METRO_CINEMA_EXIT_TOOLTIP                                   :{BLACK}End the cinema camera
+STR_METRO_CINEMA_HINT                                           :{WHITE}Esc - exit · H - interface · 1 behind · 2 orbit · 3 random
+STR_METRO_CINEMA_TARGET_VEHICLE                                 :Following: {VEHICLE}
+STR_METRO_CINEMA_TARGET_CAR                                     :Following: a car in {TOWN}
+STR_METRO_CINEMA_TARGET_PEDESTRIAN                              :Following: a pedestrian in {TOWN}
+STR_METRO_CINEMA_TARGET_STADIUM                                 :Match day at the stadium of {TOWN}
+STR_METRO_CINEMA_TARGET_NONE                                    :Looking for something to follow...
+STR_METRO_CINEMA_VEHICLE_TOOLTIP                                :{BLACK}Cinema camera: follow this vehicle smoothly (Ctrl+K - random targets)
+STR_METRO_CONTRACT_CAPTION                                      :{WHITE}Government contracts
+STR_METRO_CONTRACT_LIST_TOOLTIP                                 :{BLACK}Offers and contracts of the towns: click to select
+STR_METRO_CONTRACT_NONE                                         :{BLACK}No offers yet. Active towns of 5000 people offer a contract every 1-2 years.
+STR_METRO_CONTRACT_ROW                                          :{BLACK}{TOWN}: {RAW_STRING} - {RAW_STRING}
+STR_METRO_CONTRACT_SUMMARY_DISTRICT                             :a metro station near the centre of a district ({STRING}, {NUM}x{NUM})
+STR_METRO_CONTRACT_SUMMARY_LINE                                 :a line to {TOWN}
+STR_METRO_CONTRACT_SUMMARY_PASSENGERS                           :{COMMA} passengers a month, {NUM} months in a row
+STR_METRO_CONTRACT_STATUS_OFFERED                               :{ORANGE}offer, answer by {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_ACTIVE                                :{YELLOW}running, deadline {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_ACTIVE_PASSENGERS                     :{YELLOW}running, deadline {DATE_SHORT}; last month {COMMA}, in a row {NUM} of {NUM}
+STR_METRO_CONTRACT_STATUS_DONE                                  :{GREEN}fulfilled {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_FAILED                                :{RED}failed {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_REFUSED                               :{GRAY}refused {DATE_SHORT}
+STR_METRO_CONTRACT_STATUS_EXPIRED                               :{GRAY}not answered, expired {DATE_SHORT}
+STR_METRO_CONTRACT_TITLE                                        :Government contract: {TOWN}
+STR_METRO_CONTRACT_TEMPLATE                                     :The council of {TOWN} offers a contract: {RAW_STRING}. Deadline: {NUM} year{P "" s} after accepting. Reward: {CURRENCY_LONG} and +{NUM} rating.
+STR_METRO_CONTRACT_DETAIL_TITLE                                 :{GOLD}{RAW_STRING}
+STR_METRO_CONTRACT_DETAIL_TEXT                                  :{BLACK}{RAW_STRING}
+STR_METRO_CONTRACT_DETAIL_REWARD                                :{BLACK}Reward: {GREEN}{CURRENCY_LONG}{BLACK} and rating +{NUM}; failure: rating -{NUM}, refusing costs nothing
+STR_METRO_CONTRACT_PENDING                                      :{GRAY}the mayor is writing...
+STR_METRO_CONTRACT_ACCEPT                                       :Accept
+STR_METRO_CONTRACT_ACCEPT_TOOLTIP                               :{BLACK}Accept the contract: the deadline counts from today
+STR_METRO_CONTRACT_REFUSE                                       :Refuse
+STR_METRO_CONTRACT_REFUSE_TOOLTIP                               :{BLACK}Refuse without a penalty
+STR_METRO_CONTRACT_TOWN                                         :Show place
+STR_METRO_CONTRACT_TOWN_TOOLTIP                                 :{BLACK}Show the town (or the district centre) on the map
+STR_METRO_CONTRACT_ERR_ANSWER                                   :{WHITE}Can't answer the offer...
+STR_METRO_CONTRACT_NEWS_OFFER                                   :{BIG_FONT}{BLACK}{TOWN} offers a government contract: {RAW_STRING}. Reward {CURRENCY_LONG}
+STR_METRO_CONTRACT_NEWS_DONE                                    :{BIG_FONT}{BLACK}Government contract of {TOWN} fulfilled! {CURRENCY_LONG} received, rating +{NUM}
+STR_METRO_CONTRACT_NEWS_FAILED                                  :{BIG_FONT}{BLACK}Government contract of {TOWN} failed: rating -{NUM}
+STR_METRO_TOWN_CONTRACTS_BUTTON                                 :Contracts
+STR_METRO_TOWN_CONTRACTS_TOOLTIP                                :{BLACK}Government contracts of the towns: offers, progress, history
+STR_METRO_TOWN_ELECTIONS_BUTTON                                 :Elections
+STR_METRO_TOWN_ELECTIONS_TOOLTIP                                :{BLACK}Mayor, election date, candidates and past elections
+STR_METRO_ELECTION_CAPTION                                      :{WHITE}Mayor elections - {TOWN}
+STR_METRO_ELECTION_MAYOR                                        :{BLACK}Mayor: {STRING}
+STR_METRO_ELECTION_MAYOR_NAMED                                  :{BLACK}Mayor: {RAW_STRING} ({STRING})
+STR_METRO_ELECTION_NOT_YET                                      :{BLACK}Elections start when the town becomes active.
+STR_METRO_ELECTION_TOO_SMALL                                    :{BLACK}Towns of {COMMA} people and more elect a mayor.
+STR_METRO_ELECTION_NEXT                                         :{BLACK}Next elections: {DATE_LONG}; chance of the loyal candidate now {NUM}%
+STR_METRO_ELECTION_SOON                                         :{ORANGE}Elections on {DATE_LONG}! Chance of the loyal candidate {NUM}% (advertising in the last month: +10%)
+STR_METRO_ELECTION_CANDIDATES                                   :{BLACK}Candidates:
+STR_METRO_ELECTION_CANDIDATE                                    :{BLACK}  - {RAW_STRING} ({STRING}): {RAW_STRING}
+STR_METRO_ELECTION_CANDIDATE_LOYAL                              :{BLACK}  - {GREEN}{RAW_STRING}{BLACK} ({STRING}, loyal to the company): {RAW_STRING}
+STR_METRO_ELECTION_AI_PENDING                                   :{GRAY}  the AI is writing the programs...
+STR_METRO_ELECTION_HISTORY                                      :{BLACK}History:
+STR_METRO_ELECTION_HISTORY_ROW                                  :{BLACK}  {DATE_SHORT}: {RAW_STRING} ({STRING}){STRING}, chance of the loyal one {NUM}%, rating {NUM}
+STR_METRO_ELECTION_LOYAL_MARK                                   :, loyal
+STR_METRO_ELECTION_PROGRAM_STRICT                               :Order and responsibility: the company must work flawlessly
+STR_METRO_ELECTION_PROGRAM_KIND                                 :A town for people: comfortable transport and care for everyone
+STR_METRO_ELECTION_PROGRAM_BUREAUCRAT                           :Rules, reports and a transparent budget
+STR_METRO_ELECTION_PROGRAM_ECOLOGIST                            :A green town: trees, quiet and clean transport
+STR_METRO_ELECTION_PROGRAM_PRAGMATIST                           :Numbers only: more passengers, better station service
+STR_METRO_ELECTION_PROGRAM_POPULIST                             :New stations in every district - this very year!
+STR_METRO_ELECTION_PROGRAM_LOYAL                                :Together with the transport company: new lines and a metro
+STR_METRO_ELECTION_NEWS_ANNOUNCE                                :{BIG_FONT}{BLACK}{TOWN}: mayor elections on {DATE_LONG}, {NUM} candidates
+STR_METRO_ELECTION_NEWS_LOYAL_WON                               :{BIG_FONT}{BLACK}{TOWN}: {RAW_STRING} ({STRING}), loyal to the company, is the new mayor. Rating {NUM}
+STR_METRO_ELECTION_NEWS_OTHER_WON                               :{BIG_FONT}{BLACK}{TOWN}: {RAW_STRING} ({STRING}) is the new mayor. Company rating {NUM}
+STR_METRO_AI_MAYOR_NAMED                                        :{BLACK}Mayor: {RAW_STRING} - {STRING}
+STR_METRO_DISPATCH_CAPTION                                      :{WHITE}Dispatcher
+STR_METRO_DISPATCH_CAPTION_VEHICLE                              :{WHITE}Dispatcher: {VEHICLE}
+STR_METRO_DISPATCH_SPEED                                        :{BLACK}Speed {VELOCITY}, target {YELLOW}{VELOCITY}{BLACK}, maximum {VELOCITY}
+STR_METRO_DISPATCH_SPEED_FREE                                   :{BLACK}Speed {VELOCITY}, no limit (maximum {VELOCITY})
+STR_METRO_DISPATCH_NEXT_STATION                                 :{BLACK}Next station: {STATION}
+STR_METRO_DISPATCH_AT_STATION                                   :{BLACK}At station: {STATION}
+STR_METRO_DISPATCH_NO_STATION                                   :{BLACK}Next station: -
+STR_METRO_DISPATCH_SIGNAL_NONE                                  :{BLACK}Signal ahead: none
+STR_METRO_DISPATCH_SIGNAL_GREEN                                 :{BLACK}Signal ahead: {GREEN}green
+STR_METRO_DISPATCH_SIGNAL_RED                                   :{BLACK}Signal ahead: {RED}red{BLACK} (running it costs {CURRENCY_LONG})
+STR_METRO_DISPATCH_TURN                                         :{BLACK}At the next junction: {STRING}
+STR_METRO_DISPATCH_TURN_AUTO                                    :by route
+STR_METRO_DISPATCH_TURN_LEFT                                    :left
+STR_METRO_DISPATCH_TURN_STRAIGHT                                :straight
+STR_METRO_DISPATCH_TURN_RIGHT                                   :right
+STR_METRO_DISPATCH_COURSE_AUTO                                  :{BLACK}Course: by route
+STR_METRO_DISPATCH_COURSE                                       :{BLACK}Course: {STRING}
+STR_METRO_DISPATCH_DIR_N                                        :north
+STR_METRO_DISPATCH_DIR_NE                                       :north-east
+STR_METRO_DISPATCH_DIR_E                                        :east
+STR_METRO_DISPATCH_DIR_SE                                       :south-east
+STR_METRO_DISPATCH_DIR_S                                        :south
+STR_METRO_DISPATCH_DIR_SW                                       :south-west
+STR_METRO_DISPATCH_DIR_W                                        :west
+STR_METRO_DISPATCH_DIR_NW                                       :north-west
+STR_METRO_DISPATCH_FINES                                        :{RED}Red signals run: {NUM}, fines {CURRENCY_LONG}
+STR_METRO_DISPATCH_KEYS                                         :{GRAY}W/S speed, space stop, F no limit, A/E/D left/straight/right, Q by route, R run red, Esc exit
+STR_METRO_DISPATCH_KEYS_SHIP                                    :{GRAY}W/S speed, space stop, F no limit, A/D course, Q by route, Esc exit
+STR_METRO_DISPATCH_KEYS_AIR                                     :{GRAY}W/S speed in flight, F no limit, T take off, L land, Esc exit
+STR_METRO_DISPATCH_FASTER                                       :Faster (W)
+STR_METRO_DISPATCH_FASTER_TOOLTIP                               :{BLACK}Target speed +10 km/h
+STR_METRO_DISPATCH_SLOWER                                       :Slower (S)
+STR_METRO_DISPATCH_SLOWER_TOOLTIP                               :{BLACK}Target speed -10 km/h
+STR_METRO_DISPATCH_HALT                                         :Stop (space)
+STR_METRO_DISPATCH_HALT_TOOLTIP                                 :{BLACK}Brake to a halt
+STR_METRO_DISPATCH_FREE                                         :Free (F)
+STR_METRO_DISPATCH_FREE_TOOLTIP                                 :{BLACK}Remove the speed limit
+STR_METRO_DISPATCH_LEFT                                         :Left (A)
+STR_METRO_DISPATCH_STRAIGHT                                     :Straight (E)
+STR_METRO_DISPATCH_RIGHT                                        :Right (D)
+STR_METRO_DISPATCH_TURN_TOOLTIP                                 :{BLACK}Choice at the next junction (switch or turn); ships: A/D turn the course
+STR_METRO_DISPATCH_AUTO                                         :By route (Q)
+STR_METRO_DISPATCH_AUTO_TOOLTIP                                 :{BLACK}Give the choice of the way back to the game
+STR_METRO_DISPATCH_RED                                          :Run red (R)
+STR_METRO_DISPATCH_RED_TOOLTIP                                  :{BLACK}The train passes the red signal ahead - a fine of 10 rail pieces
+STR_METRO_DISPATCH_TAKEOFF                                      :Take off (T)
+STR_METRO_DISPATCH_TAKEOFF_TOOLTIP                              :{BLACK}The aircraft leaves the airport now
+STR_METRO_DISPATCH_LAND                                         :Land (L)
+STR_METRO_DISPATCH_LAND_TOOLTIP                                 :{BLACK}Land at the nearest hangar
+STR_METRO_DISPATCH_EXIT                                         :Exit (Esc)
+STR_METRO_DISPATCH_EXIT_TOOLTIP                                 :{BLACK}Give the control back to the game
+STR_METRO_DISPATCH_ERR                                          :{WHITE}The dispatcher can't do that...
+STR_METRO_DISPATCH_ERR_NOT_AT_AIRPORT                           :{WHITE}The aircraft is not standing at an airport
+STR_METRO_DISPATCH_VEHICLE_TOOLTIP                              :{BLACK}Dispatcher: control this vehicle by hand

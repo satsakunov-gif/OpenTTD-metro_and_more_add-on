@@ -27,6 +27,11 @@
 #include "command_func.h"
 #include "road_cmd.h"
 #include "road_map.h"
+#include "rail.h"
+#include "tile_cmd.h"
+#include "track_func.h"
+#include "viewport_func.h"
+#include "sprite.h"
 #include "town.h"
 #include "core/backup_type.hpp"
 #include "core/string_consumer.hpp"
@@ -151,6 +156,75 @@ bool ConMetroTrams(std::span<std::string_view> argv)
 		IConsolePrint(CC_DEFAULT, "engine {} '{}': built-in {}, tram {}, intro {}, speed {} km/h, capacity {}, cost {}, buildable {}", e->index, GetString(STR_ENGINE_NAME, e->index),
 				IsMetroTramEngineScope(eid.grfid) ? "yes" : "no", tram ? "yes" : "no", e->intro_date, e->GetDisplayMaxSpeed(), e->GetDisplayDefaultCapacity(), e->GetCost(),
 				company != CompanyID::Invalid() && IsEngineBuildable(e->index, VehicleType::Road, company) ? "yes" : "no");
+	}
+	return true;
+}
+
+/** Rail pieces that show a dedicated tram track. */
+static TrackBits DedicatedTramTracks(RoadBits tram)
+{
+	/* Straight pieces, then the curves: a curve joins two neighbouring edges, a T-junction gets a curve from its
+	 * odd edge to both ends of the straight, a crossing stays two straight pieces. */
+	TrackBits tracks = TRACK_BIT_NONE;
+	bool x = (tram & ROAD_X) == ROAD_X, y = (tram & ROAD_Y) == ROAD_Y;
+	if (x) tracks |= TRACK_BIT_X;
+	if (y) tracks |= TRACK_BIT_Y;
+	if (x && y) return tracks;
+	auto has = [&](RoadBits b) { return (tram & b) == b; };
+	if (has(ROAD_NW | ROAD_NE)) tracks |= TRACK_BIT_UPPER;
+	if (has(ROAD_SW | ROAD_SE)) tracks |= TRACK_BIT_LOWER;
+	if (has(ROAD_NW | ROAD_SW)) tracks |= TRACK_BIT_LEFT;
+	if (has(ROAD_NE | ROAD_SE)) tracks |= TRACK_BIT_RIGHT;
+	return tracks;
+}
+
+/**
+ * Draw a dedicated tram track (#ROADTYPE_METRO_TRAM) without a road as vanilla rails on grass (stage 10).
+ * @return False to draw the vanilla tram track (half pieces at track ends, roads on the tile).
+ */
+bool MetroDrawDedicatedTramGround(const TileInfo *ti, RoadBits road, RoadBits tram, bool snow_or_desert, bool barren)
+{
+	if (road != ROAD_NONE || !IsTileType(ti->tile, TileType::Road) || GetRoadTypeTram(ti->tile) != ROADTYPE_METRO_TRAM) return false;
+	TrackBits tracks = DedicatedTramTracks(tram);
+	if (tracks == TRACK_BIT_NONE) return false;
+	const RailTypeInfo *rti = GetRailTypeInfo(RAILTYPE_RAIL);
+	SpriteID image;
+	bool junction = false;
+	if (ti->tileh != SLOPE_FLAT) {
+		/* Only straight pieces lie on inclined slopes; other slopes are levelled by the foundation. */
+		static const std::pair<Slope, uint8_t> sloped[] = { {SLOPE_NE, 20}, {SLOPE_SE, 21}, {SLOPE_SW, 22}, {SLOPE_NW, 23} }; // As _track_sloped_sprites in rail_cmd.cpp.
+		auto it = std::ranges::find(sloped, ti->tileh, &std::pair<Slope, uint8_t>::first);
+		if (it == std::end(sloped) || (tracks != TRACK_BIT_X && tracks != TRACK_BIT_Y)) return false;
+		image = rti->base_sprites.track_y + it->second;
+	} else {
+		switch (tracks) {
+			case TRACK_BIT_Y:     image = rti->base_sprites.track_y;     break;
+			case TRACK_BIT_X:     image = rti->base_sprites.track_y + 1; break;
+			case TRACK_BIT_UPPER: image = rti->base_sprites.track_y + 2; break;
+			case TRACK_BIT_LOWER: image = rti->base_sprites.track_y + 3; break;
+			case TRACK_BIT_RIGHT: image = rti->base_sprites.track_y + 4; break;
+			case TRACK_BIT_LEFT:  image = rti->base_sprites.track_y + 5; break;
+			case TRACK_BIT_CROSS: image = rti->base_sprites.track_y + 6; break;
+			default:
+				junction = true;
+				image = rti->base_sprites.ground + 4; // Ballast under the whole junction.
+				break;
+		}
+	}
+	PaletteID pal = PAL_NONE;
+	if (snow_or_desert) {
+		image += rti->snow_offset;
+	} else if (barren) {
+		pal = PALETTE_TO_BARE_LAND;
+	}
+	DrawGroundSprite(image, pal);
+	if (junction) {
+		if (tracks & TRACK_BIT_X)     DrawGroundSprite(rti->base_sprites.single_x, PAL_NONE);
+		if (tracks & TRACK_BIT_Y)     DrawGroundSprite(rti->base_sprites.single_y, PAL_NONE);
+		if (tracks & TRACK_BIT_UPPER) DrawGroundSprite(rti->base_sprites.single_n, PAL_NONE);
+		if (tracks & TRACK_BIT_LOWER) DrawGroundSprite(rti->base_sprites.single_s, PAL_NONE);
+		if (tracks & TRACK_BIT_LEFT)  DrawGroundSprite(rti->base_sprites.single_w, PAL_NONE);
+		if (tracks & TRACK_BIT_RIGHT) DrawGroundSprite(rti->base_sprites.single_e, PAL_NONE);
 	}
 	return true;
 }

@@ -315,6 +315,19 @@ add_files(
     metro_station_names.h
     metro_heatmap.cpp
     metro_heatmap.h
+    metro_cinema.cpp
+    metro_cinema.h
+    metro_civic.h
+    metro_contracts.cpp
+    metro_contracts_cmd.h
+    metro_elections.cpp
+    metro_dispatcher.cpp
+    metro_dispatcher.h
+    metro_dispatcher_cmd.h
+    metro_sprites.cpp
+    metro_sprites.h
+    metro_walkers.cpp
+    metro_walkers.h
     metro_malls.cpp
     metro_malls.h
     metro_malls_cmd.h

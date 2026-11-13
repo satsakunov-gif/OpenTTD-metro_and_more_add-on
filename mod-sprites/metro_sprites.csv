@@ -1,0 +1,50 @@
+section,name,kind,anchor,width,height,what
+electricity,substation,single,building,64,64,Подстанция 1x1
+electricity,gas_plant,parts4,building,64,80,Газовая электростанция 2x2 (4 тайла)
+electricity,nuclear_plant,parts4,building,64,96,Атомная электростанция 2x2 (4 тайла)
+electricity,solar_plant,parts4,building,64,48,Солнечная электростанция 2x2 (4 тайла)
+electricity,wind_turbine,single,building,64,112,Ветряк 1x1
+electricity,vent_shaft,single,building,64,56,Вентшахта метро 1x1
+electricity,icon_grid,single,icon,20,20,Кнопка «Электросеть» на верхней панели
+electricity,icon_line,single,icon,20,20,Инструмент: ЛЭП
+electricity,icon_line_remove,single,icon,20,20,Инструмент: убрать ЛЭП
+electricity,icon_substation,single,icon,20,20,Инструмент: подстанция
+electricity,icon_gas_plant,single,icon,20,20,Инструмент: газовая станция
+electricity,icon_nuclear_plant,single,icon,20,20,Инструмент: атомная станция
+electricity,icon_solar_plant,single,icon,20,20,Инструмент: солнечная станция
+electricity,icon_wind_turbine,single,icon,20,20,Инструмент: ветряк
+electricity,icon_vent_shaft,single,icon,20,20,Инструмент: вентшахта
+metro,entrance,single,building,64,64,Павильон входа в метро (буква «М») 1x1
+metro,ground_layer1,single,ground,64,31,Подземный грунт слоя −1 (глина), ровный тайл
+metro,ground_layer2,single,ground,64,31,Подземный грунт слоя −2 (камень), ровный тайл
+metro,ground_layer3,single,ground,64,31,Подземный грунт слоя −3 (гранит), ровный тайл
+metro,train_a_head,dir8,vehicle,32,24,«Серия А» — головной вагон
+metro,train_a_car,dir8,vehicle,32,24,«Серия А» — вагон
+metro,train_e_head,dir8,vehicle,32,24,«Серия Е» — головной вагон
+metro,train_e_car,dir8,vehicle,32,24,«Серия Е» — вагон
+metro,train_premetro_head,dir8,vehicle,32,24,«Преметро» — головной вагон
+metro,train_premetro_car,dir8,vehicle,32,24,«Преметро» — вагон
+metro,train_2000_head,dir8,vehicle,32,24,«Серия 2000» — головной вагон
+metro,train_2000_car,dir8,vehicle,32,24,«Серия 2000» — вагон
+metro,train_diametr_head,dir8,vehicle,32,24,«Диаметр» — головной вагон
+metro,train_diametr_car,dir8,vehicle,32,24,«Диаметр» — вагон
+metro,train_deep_head,dir8,vehicle,32,24,«Глубокий» — головной вагон
+metro,train_deep_car,dir8,vehicle,32,24,«Глубокий» — вагон
+metro,train_vacuum_head,dir8,vehicle,32,24,«Вакуум» — головной вагон
+metro,train_vacuum_car,dir8,vehicle,32,24,«Вакуум» — вагон
+metro,train_capsule_head,dir8,vehicle,32,24,«Капсула» — головной вагон
+metro,train_capsule_car,dir8,vehicle,32,24,«Капсула» — вагон
+transport,tram_t50,dir8,vehicle,32,24,Трамвай Т-50
+transport,tram_t70,dir8,vehicle,32,24,Трамвай Т-70
+transport,tram_lowfloor,dir8,vehicle,32,24,Низкопольный трамвай
+transport,tram_aero,dir8,vehicle,32,24,Аэротрам
+city,school,single,building,64,96,Школа 1x1
+city,hospital,single,building,64,96,Больница 1x1
+city,university,single,building,64,96,Университет 1x1
+city,car_1950,dir8,vehicle,20,14,Машинка до 1965
+city,van_1950,dir8,vehicle,20,14,Фургон до 1965
+city,car_1965,dir8,vehicle,20,14,Машинка с 1965
+city,van_1965,dir8,vehicle,20,14,Фургон с 1965
+city,car_1990,dir8,vehicle,20,14,Машинка с 1990
+city,van_1990,dir8,vehicle,20,14,Фургон с 1990
+people,pedestrian,diag4x4,walker,8,14,Пешеход: 4 направления × 4 кадра шага

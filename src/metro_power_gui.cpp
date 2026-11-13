@@ -28,6 +28,8 @@
 #include "table/sprites.h"
 #include "table/strings.h"
 
+#include "metro_sprites.h"
+
 #include "safeguards.h"
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -53,10 +55,12 @@ static std::unique_ptr<NWidgetBase> MakeMetroPowerButtons()
 		leaf->SetFill(0, 1);
 		hor->Add(std::move(leaf));
 	};
-	add(WID_MPT_LINE, METRO_POWER_ICON_LINE, STR_METRO_POWER_TOOLTIP_LINE);
-	add(WID_MPT_LINE_REMOVE, METRO_POWER_ICON_LINE_REMOVE, STR_METRO_POWER_TOOLTIP_LINE_REMOVE);
+	/* Own icons from PNG files where they exist (stage 10.1), else vanilla. */
+	add(WID_MPT_LINE, MetroSprite(MetroSpriteId::IconLine, METRO_POWER_ICON_LINE), STR_METRO_POWER_TOOLTIP_LINE);
+	add(WID_MPT_LINE_REMOVE, MetroSprite(MetroSpriteId::IconLineRemove, METRO_POWER_ICON_LINE_REMOVE), STR_METRO_POWER_TOOLTIP_LINE_REMOVE);
 	for (uint i = 0; i < METRO_POWER_BUILDING_COUNT; i++) {
-		add(WID_MPT_BUILDING_FIRST + i, _metro_power_building_icons[i], STR_METRO_POWER_TOOLTIP_BUILDING);
+		MetroSpriteId icon = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::IconSubstation) + i);
+		add(WID_MPT_BUILDING_FIRST + i, MetroSprite(icon, _metro_power_building_icons[i]), STR_METRO_POWER_TOOLTIP_BUILDING);
 	}
 	auto filler = std::make_unique<NWidgetBackground>(WWT_PANEL, Colours::DarkGreen, -1);
 	filler->SetFill(1, 1);

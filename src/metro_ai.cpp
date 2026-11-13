@@ -403,12 +403,23 @@ static std::string BuildYearUserPrompt(int32_t year)
 
 /** One queued AI request. */
 struct MetroAiJob {
-	enum class Kind : uint8_t { TownReview, YearReport };
+	enum class Kind : uint8_t { TownReview, YearReport, Custom };
 	Kind kind;
 	uint16_t town = 0;  ///< Town for #Kind::TownReview.
-	int32_t year = 0;   ///< Year for #Kind::YearReport.
+	int32_t year = 0;   ///< Year for #Kind::YearReport, number of the request for #Kind::Custom.
 	uint8_t attempt = 0; ///< Number of retries already made.
 };
+
+/** A request of another part of the mod (contract letters, election candidates): prompts and what to do with the answer. */
+struct MetroAiCustomRequest {
+	std::string system_prompt;
+	std::string user_prompt;
+	int max_tokens = 0;
+	std::function<void(const std::string *json)> done; ///< Called with the JSON text of the answer, or nullptr when it failed.
+};
+
+static std::map<int32_t, MetroAiCustomRequest> _metro_ai_custom; ///< Custom requests waiting or running.
+static int32_t _metro_ai_custom_next = 0;
 
 /** Receives the answer of one request; kept alive after completion as the HTTP layer may still poll it. */
 class MetroAiCallback : public HTTPCallback {
@@ -525,7 +536,13 @@ static void SendNextRequest()
 		std::string system_prompt;
 		std::string user_prompt;
 		int max_tokens;
-		if (job.kind == MetroAiJob::Kind::TownReview) {
+		if (job.kind == MetroAiJob::Kind::Custom) {
+			auto it = _metro_ai_custom.find(job.year);
+			if (it == _metro_ai_custom.end()) continue;
+			system_prompt = it->second.system_prompt;
+			user_prompt = it->second.user_prompt;
+			max_tokens = it->second.max_tokens;
+		} else if (job.kind == MetroAiJob::Kind::TownReview) {
 			const Town *t = Town::GetIfValid(job.town);
 			if (t == nullptr || !Company::IsValidID(_local_company)) {
 				Debug(misc, 1, "[metro_ai] skipping review of town {}: town={} company={}", job.town, t != nullptr, Company::IsValidID(_local_company));
@@ -739,7 +756,18 @@ static void FinishRequest(MetroAiCallback &cb)
 		return;
 	}
 
-	if (cb.job.kind == MetroAiJob::Kind::TownReview) {
+	if (cb.job.kind == MetroAiJob::Kind::Custom) {
+		auto it = _metro_ai_custom.find(cb.job.year);
+		if (it == _metro_ai_custom.end()) return;
+		std::function<void(const std::string *)> done = std::move(it->second.done);
+		_metro_ai_custom.erase(it);
+		if (failure == MetroAiFailure::None && j.has_value()) {
+			std::string text = j->dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+			done(&text);
+		} else {
+			done(nullptr);
+		}
+	} else if (cb.job.kind == MetroAiJob::Kind::TownReview) {
 		Town *t = Town::GetIfValid(cb.job.town);
 		if (t == nullptr) return;
 		MetroTownAiState &state = GetTownState(t);
@@ -802,6 +830,7 @@ void MetroAiReset()
 	if (!_metro_ai_config_loaded) LoadMetroAiConfig();
 	_metro_ai_generation++;
 	_metro_ai_queue.clear();
+	_metro_ai_custom.clear();
 	_metro_town_ai.clear();
 	_metro_year_reports.clear();
 	_metro_year_pending = -1;
@@ -889,7 +918,11 @@ std::vector<std::string> MetroAiGetAuthorityLines(const Town *t)
 		return lines;
 	}
 	const MetroTownAiState &state = it->second;
-	lines.push_back(GetString(STR_METRO_AI_MAYOR, _metro_mayor_characters[state.mayor].name));
+	if (state.mayor_name.empty()) {
+		lines.push_back(GetString(STR_METRO_AI_MAYOR, _metro_mayor_characters[state.mayor].name));
+	} else {
+		lines.push_back(GetString(STR_METRO_AI_MAYOR_NAMED, state.mayor_name, _metro_mayor_characters[state.mayor].name));
+	}
 	if (state.has_review) {
 		lines.push_back(GetString(STR_METRO_AI_VERDICT, state.verdict, state.ai_rating, state.last_delta, CalTime::Date{state.review_date}));
 		lines.push_back(GetString(STR_METRO_AI_EXPLANATION, state.explanation));
@@ -926,6 +959,78 @@ std::vector<std::string> MetroAiGetAuthorityLines(const Town *t)
 		lines.push_back(GetString(STR_METRO_AI_CHANGES, state.ChangeWeight()));
 	}
 	return lines;
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Contracts and elections (stage 9)                                                              */
+/* ---------------------------------------------------------------------------------------------- */
+
+/** Queue a request with own prompts; @p done gets the JSON text of the answer or nullptr (also without the AI). */
+void MetroAiRequestJson(std::string system_prompt, std::string user_prompt, int max_tokens, std::function<void(const std::string *json)> done)
+{
+	if (!MetroAiIsEnabled()) {
+		done(nullptr);
+		return;
+	}
+	int32_t id = ++_metro_ai_custom_next;
+	_metro_ai_custom[id] = {std::move(system_prompt), std::move(user_prompt), max_tokens, std::move(done)};
+	_metro_ai_queue.push_back({MetroAiJob::Kind::Custom, 0, id});
+}
+
+std::string MetroAiLanguageName()
+{
+	return GetLanguageName();
+}
+
+uint8_t MetroAiMayorCount()
+{
+	return static_cast<uint8_t>(std::size(_metro_mayor_characters));
+}
+
+StringID MetroAiMayorName(uint8_t character)
+{
+	return _metro_mayor_characters[std::min<uint>(character, std::size(_metro_mayor_characters) - 1)].name;
+}
+
+const char *MetroAiMayorPrompt(uint8_t character)
+{
+	return _metro_mayor_characters[std::min<uint>(character, std::size(_metro_mayor_characters) - 1)].prompt;
+}
+
+/** Character of the mayor of the town (a random one is given on the first call). */
+uint8_t MetroAiGetMayor(const Town *t)
+{
+	return GetTownState(t).mayor;
+}
+
+std::string MetroAiGetMayorName(const Town *t)
+{
+	auto it = _metro_town_ai.find(t->index.base());
+	return it == _metro_town_ai.end() ? std::string{} : it->second.mayor_name;
+}
+
+/** A new mayor after elections: the character of the reviews, the name and the program as the needs of the town. */
+void MetroAiSetMayor(const Town *t, uint8_t character, const std::string &name, const std::string &needs)
+{
+	MetroTownAiState &state = GetTownState(t);
+	state.mayor = character;
+	state.mayor_name = name;
+	state.needs = needs;
+	SetWindowDirty(WindowClass::TownAuthority, t->index);
+}
+
+/** Change the rating of the local company in the town (as a review does); returns the change applied. */
+int MetroAiChangeCompanyRating(Town *t, int delta)
+{
+	if (!Company::IsValidID(_local_company) || _cheats.town_rating.value || delta == 0) return 0;
+	int old_rating = t->have_ratings.Test(_local_company) ? t->ratings[_local_company] : RATING_INITIAL;
+	int new_rating = Clamp(old_rating + delta, RATING_MINIMUM, RATING_MAXIMUM);
+	if (!t->have_ratings.Test(_local_company) || (old_rating > 0) != (new_rating > 0)) ZoningTownAuthorityRatingChange();
+	t->have_ratings.Set(_local_company);
+	t->ratings[_local_company] = new_rating;
+	t->UpdateVirtCoord();
+	SetWindowDirty(WindowClass::TownAuthority, t->index);
+	return new_rating - old_rating;
 }
 
 const MetroYearReport *MetroAiGetYearReport(int32_t year)

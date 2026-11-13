@@ -10,6 +10,11 @@
 #ifndef METRO_TRAFFIC_H
 #define METRO_TRAFFIC_H
 
+#include "tile_type.h"
+#include "direction_type.h"
+
+#include <vector>
+
 #include <span>
 #include <string_view>
 
@@ -19,6 +24,21 @@ struct RoadVehicle;
 void MetroTrafficReset();
 void MetroTrafficDrawTile(const TileInfo *ti);
 int MetroTrafficAdjustRoadVehicleSpeed(const RoadVehicle *v, int max_speed);
+uint MetroTrafficGetJamPercent(TileIndex tile);
+
+/** A private car or pedestrian, for the cinema camera. */
+struct MetroTrafficActor {
+	uint32_t id = 0;
+	bool pedestrian = false;
+	int x = 0;            ///< World pixels.
+	int y = 0;
+	DiagDirection dir = DiagDirection::Invalid;
+	bool jammed = false;  ///< A car stuck in a jam.
+	uint16_t town = 0;
+};
+
+std::vector<MetroTrafficActor> MetroTrafficListActors();
+bool MetroTrafficFindActor(uint32_t id, MetroTrafficActor &actor);
 
 bool ConMetroTraffic(std::span<std::string_view> argv);
 
