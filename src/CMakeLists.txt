@@ -310,6 +310,7 @@ add_files(
     metro_traffic.h
     metro_elevated.cpp
     metro_elevated.h
+    metro_level_tools.h
     metro_elevated_cmd.h
     metro_station_names.cpp
     metro_station_names.h

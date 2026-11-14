@@ -29,6 +29,7 @@
 #include "table/strings.h"
 
 #include "metro_sprites.h"
+#include "metro_level_tools.h"
 
 #include "safeguards.h"
 
@@ -45,6 +46,16 @@ enum MetroPowerToolbarWidgets : WidgetID {
 	WID_MPT_INFO,           ///< The chosen tool: price, power, year; and the hint.
 };
 
+/** Icon of a tool (own PNG where it exists, else vanilla); used by the buttons and the rows of the list. */
+static SpriteID MetroPowerToolSprite(WidgetID widget)
+{
+	if (widget == WID_MPT_LINE) return MetroSprite(MetroSpriteId::IconLine, METRO_POWER_ICON_LINE);
+	if (widget == WID_MPT_LINE_REMOVE) return MetroSprite(MetroSpriteId::IconLineRemove, METRO_POWER_ICON_LINE_REMOVE);
+	uint i = widget - WID_MPT_BUILDING_FIRST;
+	MetroSpriteId icon = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::IconSubstation) + i);
+	return MetroSprite(icon, _metro_power_building_icons[i]);
+}
+
 /** Icon of a tool button (vanilla sprites for now; see DESIGN.md "Спрайты"). */
 static std::unique_ptr<NWidgetBase> MakeMetroPowerButtons()
 {
@@ -56,11 +67,10 @@ static std::unique_ptr<NWidgetBase> MakeMetroPowerButtons()
 		hor->Add(std::move(leaf));
 	};
 	/* Own icons from PNG files where they exist (stage 10.1), else vanilla. */
-	add(WID_MPT_LINE, MetroSprite(MetroSpriteId::IconLine, METRO_POWER_ICON_LINE), STR_METRO_POWER_TOOLTIP_LINE);
-	add(WID_MPT_LINE_REMOVE, MetroSprite(MetroSpriteId::IconLineRemove, METRO_POWER_ICON_LINE_REMOVE), STR_METRO_POWER_TOOLTIP_LINE_REMOVE);
+	add(WID_MPT_LINE, MetroPowerToolSprite(WID_MPT_LINE), STR_METRO_POWER_TOOLTIP_LINE);
+	add(WID_MPT_LINE_REMOVE, MetroPowerToolSprite(WID_MPT_LINE_REMOVE), STR_METRO_POWER_TOOLTIP_LINE_REMOVE);
 	for (uint i = 0; i < METRO_POWER_BUILDING_COUNT; i++) {
-		MetroSpriteId icon = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::IconSubstation) + i);
-		add(WID_MPT_BUILDING_FIRST + i, MetroSprite(icon, _metro_power_building_icons[i]), STR_METRO_POWER_TOOLTIP_BUILDING);
+		add(WID_MPT_BUILDING_FIRST + i, MetroPowerToolSprite(WID_MPT_BUILDING_FIRST + i), STR_METRO_POWER_TOOLTIP_BUILDING);
 	}
 	auto filler = std::make_unique<NWidgetBackground>(WWT_PANEL, Colours::DarkGreen, -1);
 	filler->SetFill(1, 1);
@@ -117,21 +127,19 @@ struct MetroPowerToolbarWindow : Window {
 		if (widget != WID_MPT_INFO) return;
 		/* All tools listed, then the hint. */
 		uint lines = 2 + METRO_POWER_BUILDING_COUNT;
-		size.height = std::max<uint>(size.height, lines * GetCharacterHeight(FontSize::Normal) + GetStringHeight(STR_METRO_POWER_TOOLBAR_HINT, size.width - padding.width) + padding.height + WidgetDimensions::scaled.vsep_wide);
+		size.height = std::max<uint>(size.height, lines * MetroToolRowHeight() + GetStringHeight(STR_METRO_POWER_TOOLBAR_HINT, size.width - padding.width) + padding.height + WidgetDimensions::scaled.vsep_wide);
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
 	{
 		if (widget != WID_MPT_INFO) return;
 		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+		int h = MetroToolRowHeight();
 		for (int w = WID_MPT_LINE; w <= WID_MPT_BUILDING_LAST; w++) {
 			bool available;
 			std::string text = this->GetToolText(w, available);
-			if (w == this->selected) {
-				GfxFillRect(r.left + 1, ir.top, r.right - 1, ir.top + GetCharacterHeight(FontSize::Normal) - 1, PixelColour{GetColourGradient(Colours::DarkGreen, Shade::Lighter)});
-			}
-			DrawString(ir, text, available ? TextColour::Black : TextColour::Grey);
-			ir.top += GetCharacterHeight(FontSize::Normal);
+			DrawMetroToolRow(ir.WithHeight(h), MetroPowerToolSprite(w), text, available, w == this->selected, Colours::DarkGreen);
+			ir.top += h;
 		}
 		ir.top += WidgetDimensions::scaled.vsep_wide;
 		DrawStringMultiLine(ir, STR_METRO_POWER_TOOLBAR_HINT);
@@ -147,6 +155,12 @@ struct MetroPowerToolbarWindow : Window {
 
 	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
 	{
+		if (widget == WID_MPT_INFO) {
+			/* A row of the list works like its button. */
+			int row = this->GetRowFromWidget(pt.y, WID_MPT_INFO, WidgetDimensions::scaled.framerect.top, MetroToolRowHeight());
+			if (row < 0 || row > WID_MPT_BUILDING_LAST - WID_MPT_LINE) return;
+			widget = WID_MPT_LINE + row;
+		}
 		if (widget < WID_MPT_LINE || widget > WID_MPT_BUILDING_LAST) return;
 		bool available;
 		this->GetToolText(widget, available);

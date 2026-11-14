@@ -2464,7 +2464,7 @@ STR_METRO_ELEVATED_RAIL_BUTTON_TOOLTIP                          :{BLACK}Мод �
 STR_METRO_ELEVATED_TOOLBAR_CAPTION                              :{WHITE}Надземный монорельс
 STR_METRO_ELEVATED_TOOLBAR_LIST_TOOLTIP                         :{BLACK}Щёлкните по уровню, чтобы сменить его, выберите инструмент и протяните по карте
 STR_METRO_ELEVATED_TOOLBAR_HINT                                 :{BLACK}Сначала постройте монорельс на земле. Поднять участок: протяните по прямому пути и платформам — там, где он встречает путь на земле, появятся рампы (по уровню на тайл). Поднять рамкой: пути и станции в рамке (развязки) — они должны встречаться только с поднятым путём, рампой или пролётом. Только ровная земля. Пролёт: мост на выбранном уровне между двумя свободными тайлами (опорами), до 10 тайлов над низкими домами, дорогами, путями и водой; не над высотками и другими мостами.
-STR_METRO_ELEVATED_ROW_LEVEL                                    :Уровень: {NUM} (щёлкните, чтобы сменить)
+STR_METRO_ELEVATED_ROW_LEVEL                                    :Высота: {NUM} (щёлкните, чтобы сменить)
 STR_METRO_ELEVATED_ROW_LINE                                     :Поднять участок на уровень {NUM} (рампы по {NUM} тайла там, где он встречает землю)
 STR_METRO_ELEVATED_ROW_RAISE                                    :Поднять рамкой на уровень {NUM} ({CURRENCY_LONG} за кусок и уровень)
 STR_METRO_ELEVATED_ROW_LOWER                                    :Опустить на землю
@@ -2503,6 +2503,17 @@ STR_METRO_TRAM_LOWFLOOR                                         :Низкопо�
 STR_METRO_TRAM_AERO                                             :Аэротрам
 STR_METRO_UNDERGROUND_RAIL_BUTTON                               :{BLACK}Метро
 STR_METRO_UNDERGROUND_RAIL_BUTTON_TOOLTIP                       :{BLACK}Мод «Метро»: подземка — пути на слоях −1..−3 и входы
+STR_METRO_LEVEL_BUTTON                                          :{BLACK}Уровень: {STRING1}
+STR_METRO_LEVEL_BUTTON_TOOLTIP                                  :{BLACK}Мод «Метро»: уровень стройки — +1 эстакада (только монорельс), 0 земля, −1…−3 слои метро (открываются по годам). Инструменты уровня появляются под кнопками
+STR_METRO_LEVEL_LIST_TOOLTIP                                    :{BLACK}Выберите инструмент и щёлкните или протяните по карте. Повторный щелчок по углу, депо или трансформатору поворачивает их
+STR_METRO_LEVEL_SHORT_ELEVATED                                  :+{NUM} эстакада
+STR_METRO_LEVEL_SHORT_GROUND                                    :{NUM} земля
+STR_METRO_LEVEL_SHORT_UNDERGROUND                               :−{NUM} метро
+STR_METRO_LEVEL_ELEVATED                                        :+1: эстакада (надземный монорельс)
+STR_METRO_LEVEL_ELEVATED_NONE                                   :+1: эстакада — только для монорельса
+STR_METRO_LEVEL_GROUND                                          :0: земля (обычная стройка)
+STR_METRO_LEVEL_UNDERGROUND                                     :−{NUM}: метро, {STRING}
+STR_METRO_LEVEL_UNDERGROUND_CLOSED                              :−{NUM}: метро, {STRING} — откроется в {NUM}
 STR_METRO_UNDERGROUND_TOOLBAR_CAPTION                           :{WHITE}Метро
 STR_METRO_UNDERGROUND_TOOLBAR_LIST_TOOLTIP                      :{BLACK}Щёлкните по виду или слою, чтобы сменить их, выберите инструмент и щёлкните по карте. В подземке выбранный слой яркий, остальные блёклые
 STR_METRO_UNDERGROUND_TOOLBAR_HINT                              :{BLACK}Слой −1 (с 1960): только под пустой землёй, дорогами и маленькими домами. Слой −2: под любыми зданиями, но не под водой. Слой −3: везде, и под реками. Слои пересекаются свободно; на одном слое пути сходятся на тайле стрелкой; наклон (2–3 тайла) ведёт на слой глубже. Ctrl+U — поверхность / подземка, Ctrl+Shift+U — следующий слой. Вход: павильон на 1 тайл на свободной земле.

@@ -24,6 +24,7 @@
 #include "track_type.h"
 #include "rail_type.h"
 #include "direction_type.h"
+#include "strings_type.h"
 #include "core/bitmath_func.hpp"
 
 #include <map>
@@ -65,6 +66,8 @@ const MetroUndergroundTile *GetMetroUndergroundTile(TileIndex tile, uint layer);
 bool IsMetroLayerAvailable(uint layer);
 RailType GetMetroLayerRailType(uint layer);
 int32_t GetMetroLayerYear(uint layer);
+StringID GetMetroLayerName(uint layer);
+static constexpr uint METRO_UNDERGROUND_LAYERS = 3; ///< Layers -1, -2, -3 (same as METRO_LAYER_COUNT).
 Money MetroGetUndergroundPiecePrice(uint layer);
 CommandCost MetroCheckUndergroundSurface(TileIndex tile, uint layer);
 bool IsMetroEntranceObject(ObjectType type);

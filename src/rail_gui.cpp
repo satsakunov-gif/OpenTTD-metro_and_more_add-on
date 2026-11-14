@@ -43,6 +43,7 @@
 #include "metro_power.h"
 #include "metro_elevated.h"
 #include "metro_underground.h"
+#include "metro_level_tools.h"
 #include "tracerestrict.h"
 #include "programmable_signals.h"
 #include "newgrf_newsignals.h"
@@ -65,6 +66,8 @@
 
 
 static RailType _cur_railtype;               ///< Rail type of the current build-rail toolbar.
+static constexpr bool METRO_SHOW_POLYRAIL = false; ///< Metro mod: the polyline rail tool is removed from the toolbar.
+static int _metro_build_level = METRO_BUILD_LEVEL_GROUND; ///< Metro mod: level of the rail toolbar (+1, 0, or below 0 for the underground layer of the view).
 static bool _remove_button_clicked;          ///< Flag whether 'remove' toggle-button is currently enabled
 static DiagDirection _build_depot_direction; ///< Currently selected depot direction
 static bool _convert_signal_button;          ///< convert signal button in the signal GUI pressed
@@ -544,14 +547,16 @@ static void HandleAutoSignalPlacement()
 struct BuildRailToolbarWindow : Window {
 	RailType railtype = INVALID_RAILTYPE; ///< Rail type to build.
 	WidgetID last_user_action = INVALID_WIDGET; ///< Last started user action.
+	std::unique_ptr<MetroLevelTools> metro_tools; ///< Metro mod: tools of the level, or nullptr on the ground.
 
 	BuildRailToolbarWindow(WindowDesc &desc, RailType railtype) : Window(desc), railtype(railtype)
 	{
 		this->invalidation_policy = WindowInvalidationPolicy::QueueSingle;
 		this->CreateNestedTree();
-		if (!_settings_client.gui.show_rail_polyline_tool) {
+		if (!METRO_SHOW_POLYRAIL) {
 			this->GetWidget<NWidgetStacked>(WID_RAT_POLYRAIL_SEL)->SetDisplayedPlane(SZSP_NONE);
 		}
+		this->ApplyMetroLevel(false);
 		this->FinishInitNested(TransportType::Rail);
 		this->DisableWidget(WID_RAT_REMOVE);
 		this->OnInvalidateData();
@@ -565,7 +570,88 @@ struct BuildRailToolbarWindow : Window {
 		if (this->IsWidgetLowered(WID_RAT_BUILD_WAYPOINT)) SetViewportCatchmentWaypoint(nullptr, true);
 		if (_settings_client.gui.link_terraform_toolbar) CloseWindowById(WindowClass::ScenarioGenerateLandscape, 0, false);
 		CloseWindowById(WindowClass::JoinStation, 0);
+		if (_metro_build_level < 0 && _metro_underground_view) MetroToggleUndergroundView(); // Metro mod: back to the surface.
 		this->Window::Close();
+	}
+
+	/** Metro mod: the level shown: +1, 0, or -layer of the underground view. */
+	int MetroLevel() const
+	{
+		return _metro_build_level < 0 ? -static_cast<int>(_metro_underground_view_layer) : _metro_build_level;
+	}
+
+	/**
+	 * Metro mod: make the tools, the view and the buttons match #_metro_build_level.
+	 * @param reinit Whether the window is already initialised (resize it).
+	 */
+	void ApplyMetroLevel(bool reinit)
+	{
+		if (_metro_build_level == METRO_BUILD_LEVEL_ELEVATED && !IsMetroElevatedAvailable(this->railtype)) _metro_build_level = METRO_BUILD_LEVEL_GROUND;
+		if (_metro_build_level < 0) {
+			if (!_metro_underground_view) MetroToggleUndergroundView();
+			this->metro_tools = MetroMakeUndergroundTools();
+		} else if (_metro_build_level == METRO_BUILD_LEVEL_ELEVATED) {
+			this->metro_tools = MetroMakeElevatedTools(this->railtype);
+		} else {
+			this->metro_tools.reset();
+		}
+		this->GetWidget<NWidgetStacked>(WID_RAT_METRO_SEL)->SetDisplayedPlane(this->metro_tools != nullptr ? 0 : SZSP_NONE);
+		if (reinit) {
+			this->OnInvalidateData();
+			this->ReInit();
+		}
+	}
+
+	/** Metro mod: switch to a level (+1, 0, -1..-3). */
+	void SetMetroLevel(int level)
+	{
+		if (_thd.GetCallbackWnd() == this) ResetObjectToPlace();
+		if (level < 0) {
+			_metro_underground_view_layer = static_cast<uint8_t>(-level);
+			MarkWholeScreenDirty();
+		} else if (_metro_underground_view) {
+			MetroToggleUndergroundView();
+		}
+		_metro_build_level = level < 0 ? -1 : level;
+		this->ApplyMetroLevel(true);
+	}
+
+	void ShowMetroLevelDropDown()
+	{
+		DropDownList list;
+		bool elevated = IsMetroElevatedAvailable(this->railtype);
+		list.push_back(MakeDropDownListStringItem(elevated ? STR_METRO_LEVEL_ELEVATED : STR_METRO_LEVEL_ELEVATED_NONE, METRO_BUILD_LEVEL_ELEVATED + 3, !elevated));
+		list.push_back(MakeDropDownListStringItem(STR_METRO_LEVEL_GROUND, METRO_BUILD_LEVEL_GROUND + 3));
+		for (uint layer = 1; layer <= METRO_UNDERGROUND_LAYERS; layer++) {
+			bool open = IsMetroLayerAvailable(layer);
+			std::string text = open ? GetString(STR_METRO_LEVEL_UNDERGROUND, layer, GetMetroLayerName(layer))
+					: GetString(STR_METRO_LEVEL_UNDERGROUND_CLOSED, layer, GetMetroLayerName(layer), GetMetroLayerYear(layer));
+			list.push_back(MakeDropDownListStringItem(std::move(text), 3 - static_cast<int>(layer), !open));
+		}
+		ShowDropDownList(this, std::move(list), this->MetroLevel() + 3, WID_RAT_METRO_LEVEL);
+	}
+
+	void OnDropdownSelect(WidgetID widget, int index, int) override
+	{
+		if (widget == WID_RAT_METRO_LEVEL) this->SetMetroLevel(index - 3);
+	}
+
+	void UpdateWidgetSize(WidgetID widget, Dimension &size, const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
+	{
+		switch (widget) {
+			case WID_RAT_METRO_LIST:
+				if (this->metro_tools != nullptr) size.height = this->metro_tools->RowCount() * MetroToolRowHeight() + padding.height;
+				break;
+			case WID_RAT_METRO_INFO:
+				if (this->metro_tools != nullptr) size.height = std::max<uint>(size.height, GetStringHeight(this->metro_tools->Hint(), size.width - padding.width) + padding.height);
+				break;
+			case WID_RAT_METRO_LEVEL: {
+				Dimension d = GetStringBoundingBox(GetString(STR_METRO_LEVEL_BUTTON, STR_METRO_LEVEL_SHORT_UNDERGROUND, 3));
+				d.width += padding.width + NWidgetLeaf::GetDropdownBoxDimension().width;
+				size = maxdim(size, d);
+				break;
+			}
+		}
 	}
 
 	/** List of widgets to be disabled if infrastructure limit prevents building. */
@@ -583,7 +669,7 @@ struct BuildRailToolbarWindow : Window {
 			this->ModifyRailType(_cur_railtype);
 
 			/* Update cursor and all sub windows. */
-			if (_thd.GetCallbackWnd() == this) SetCursor(this->GetCursorForWidget(this->last_user_action), PAL_NONE);
+			if (_thd.GetCallbackWnd() == this && this->last_user_action != WID_RAT_METRO_LIST) SetCursor(this->GetCursorForWidget(this->last_user_action), PAL_NONE);
 			for (WindowClass cls : {WindowClass::BuildStation, WindowClass::BuildSignal, WindowClass::BuildWaypoint, WindowClass::BuildDepot}) {
 				SetWindowDirty(cls, TransportType::Rail);
 			}
@@ -595,7 +681,7 @@ struct BuildRailToolbarWindow : Window {
 			return;
 		}
 
-		if (this->GetWidget<NWidgetStacked>(WID_RAT_POLYRAIL_SEL)->SetDisplayedPlane(_settings_client.gui.show_rail_polyline_tool ? 0 : SZSP_NONE)) {
+		if (this->GetWidget<NWidgetStacked>(WID_RAT_POLYRAIL_SEL)->SetDisplayedPlane(METRO_SHOW_POLYRAIL ? 0 : SZSP_NONE)) {
 			if (this->IsWidgetLowered(WID_RAT_POLYRAIL)) {
 				ResetObjectToPlace();
 			}
@@ -603,8 +689,9 @@ struct BuildRailToolbarWindow : Window {
 		}
 
 		bool can_build = CanBuildVehicleInfrastructure(VehicleType::Train);
-		for (const WidgetID widget : can_build_widgets) this->SetWidgetDisabledState(widget, !can_build);
-		this->SetWidgetDisabledState(WID_RAT_METRO_ELEVATED, !can_build || !IsMetroElevatedAvailable(this->railtype)); // Metro mod: with the monorail.
+		bool ground = _metro_build_level == METRO_BUILD_LEVEL_GROUND; // Metro mod: other levels have their own tools.
+		for (const WidgetID widget : can_build_widgets) this->SetWidgetDisabledState(widget, !can_build || !ground);
+		this->SetWidgetDisabledState(WID_RAT_METRO_LEVEL, !can_build);
 		if (!can_build) {
 			CloseWindowById(WindowClass::BuildSignal, TransportType::Rail);
 			CloseWindowById(WindowClass::BuildStation, TransportType::Rail);
@@ -653,6 +740,8 @@ struct BuildRailToolbarWindow : Window {
 	void ModifyRailType(RailType railtype)
 	{
 		this->railtype = railtype;
+		if (this->metro_tools != nullptr && _thd.GetCallbackWnd() == this && this->last_user_action == WID_RAT_METRO_LIST) ResetObjectToPlace();
+		this->ApplyMetroLevel(false);
 		this->ReInit();
 	}
 
@@ -696,6 +785,12 @@ struct BuildRailToolbarWindow : Window {
 			}
 			return GetString(rti->strings.toolbar_caption);
 		}
+		if (widget == WID_RAT_METRO_LEVEL) {
+			int level = this->MetroLevel();
+			if (level > 0) return GetString(STR_METRO_LEVEL_BUTTON, STR_METRO_LEVEL_SHORT_ELEVATED, level);
+			if (level < 0) return GetString(STR_METRO_LEVEL_BUTTON, STR_METRO_LEVEL_SHORT_UNDERGROUND, -level);
+			return GetString(STR_METRO_LEVEL_BUTTON, STR_METRO_LEVEL_SHORT_GROUND, 0);
+		}
 
 		return this->Window::GetWidgetString(widget, stringid);
 	}
@@ -706,6 +801,19 @@ struct BuildRailToolbarWindow : Window {
 			Dimension d = GetSpriteSize(SPR_BLOT);
 			DrawSprite(SPR_BLOT, PALETTE_TO_GREY, (r.left + r.right - d.width) / 2, (r.top + r.bottom - d.height) / 2);
 		}
+		if (this->metro_tools == nullptr) return;
+		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
+		if (widget == WID_RAT_METRO_LIST) {
+			int h = MetroToolRowHeight();
+			for (int row = 0; row < this->metro_tools->RowCount(); row++) {
+				bool available;
+				std::string text = this->metro_tools->GetRowText(row, available);
+				Rect rr = ir.WithHeight(h);
+				DrawMetroToolRow(rr, this->metro_tools->GetRowSprite(row), text, available, row == this->metro_tools->selected, Colours::DarkGreen);
+				ir.top += h;
+			}
+		}
+		if (widget == WID_RAT_METRO_INFO) DrawStringMultiLine(ir, this->metro_tools->Hint());
 	}
 
 	/**
@@ -771,14 +879,18 @@ struct BuildRailToolbarWindow : Window {
 			ShowMetroPowerToolbar();
 			return;
 		}
-		if (widget == WID_RAT_METRO_ELEVATED) {
-			ShowMetroElevatedToolbar(this->railtype);
+		if (widget == WID_RAT_METRO_LEVEL) {
+			this->ShowMetroLevelDropDown();
 			return;
 		}
-		if (widget == WID_RAT_METRO_UNDERGROUND) {
-			ShowMetroUndergroundToolbar();
+		if (widget == WID_RAT_METRO_LIST) {
+			if (this->metro_tools == nullptr) return;
+			int row = this->GetRowFromWidget(pt.y, WID_RAT_METRO_LIST, WidgetDimensions::scaled.framerect.top, MetroToolRowHeight());
+			if (this->metro_tools->Click(this, row)) this->last_user_action = WID_RAT_METRO_LIST;
+			this->SetWidgetDirty(WID_RAT_METRO_LIST);
 			return;
 		}
+		if (widget == WID_RAT_METRO_INFO) return;
 
 		_remove_button_clicked = false;
 
@@ -794,7 +906,7 @@ struct BuildRailToolbarWindow : Window {
 		});
 
 		if (widget == WID_RAT_POLYRAIL) {
-			if (!_settings_client.gui.show_rail_polyline_tool) return;
+			if (!METRO_SHOW_POLYRAIL) return;
 			bool was_snap = CurrentlySnappingRailPlacement();
 			bool was_open = this->IsWidgetLowered(WID_RAT_POLYRAIL);
 			bool do_snap;
@@ -872,7 +984,7 @@ struct BuildRailToolbarWindow : Window {
 		switch (hotkey) {
 			case HOTKEY_POLYRAIL:
 			case HOTKEY_NEW_POLYRAIL:
-				if (!_settings_client.gui.show_rail_polyline_tool) return EventState::Handled;
+				if (!METRO_SHOW_POLYRAIL) return EventState::Handled;
 				/* Indicate to the OnClick that the action comes from a hotkey rather
 				 * then from a click and that the CTRL state should be ignored. */
 				this->last_user_action = hotkey;
@@ -903,6 +1015,10 @@ struct BuildRailToolbarWindow : Window {
 
 	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
 	{
+		if (this->last_user_action == WID_RAT_METRO_LIST) {
+			if (this->metro_tools != nullptr) this->metro_tools->PlaceObject(tile);
+			return;
+		}
 		switch (this->last_user_action) {
 			case WID_RAT_BUILD_NS:
 				VpStartPlaceSizing(tile, VPM_FIX_VERTICAL | VPM_RAILDIRS, DDSP_PLACE_RAIL);
@@ -980,6 +1096,7 @@ struct BuildRailToolbarWindow : Window {
 
 	void OnPlaceMouseUp([[maybe_unused]] ViewportPlaceMethod select_method, ViewportDragDropSelectionProcess select_proc, [[maybe_unused]] Point pt, TileIndex start_tile, TileIndex end_tile) override
 	{
+		if (pt.x != -1 && this->metro_tools != nullptr && this->metro_tools->PlaceMouseUp(select_proc, start_tile, end_tile)) return;
 		if (pt.x != -1) {
 			switch (select_proc) {
 				default: NOT_REACHED();
@@ -1054,6 +1171,10 @@ struct BuildRailToolbarWindow : Window {
 		this->RaiseButtons();
 		this->DisableWidget(WID_RAT_REMOVE);
 		this->SetWidgetDirty(WID_RAT_REMOVE);
+		if (this->metro_tools != nullptr) {
+			this->metro_tools->selected = -1;
+			this->SetWidgetDirty(WID_RAT_METRO_LIST);
+		}
 
 		CloseWindowById(WindowClass::BuildSignal, TransportType::Rail);
 		CloseWindowById(WindowClass::BuildStation, TransportType::Rail);
@@ -1098,7 +1219,7 @@ struct BuildRailToolbarWindow : Window {
 		this->ModifyRailType(_last_built_railtype);
 
 		/* Update cursor and all sub windows. */
-		if (_thd.GetCallbackWnd() == this) SetCursor(this->GetCursorForWidget(this->last_user_action), PAL_NONE);
+		if (_thd.GetCallbackWnd() == this && this->last_user_action != WID_RAT_METRO_LIST) SetCursor(this->GetCursorForWidget(this->last_user_action), PAL_NONE);
 		for (WindowClass cls : {WindowClass::BuildStation, WindowClass::BuildSignal, WindowClass::BuildWaypoint, WindowClass::BuildDepot}) {
 			SetWindowDirty(cls, TransportType::Rail);
 		}
@@ -1189,10 +1310,14 @@ static constexpr std::initializer_list<NWidgetPart> _nested_build_rail_widgets =
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetSpriteTip(SPR_IMG_CONVERT_RAIL, STR_NULL),
 		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_POWER),
 						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_POWER_RAIL_BUTTON, STR_METRO_POWER_RAIL_BUTTON_TOOLTIP),
-		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_ELEVATED),
-						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_ELEVATED_RAIL_BUTTON, STR_METRO_ELEVATED_RAIL_BUTTON_TOOLTIP),
-		NWidget(WWT_PUSHTXTBTN, Colours::DarkGreen, WID_RAT_METRO_UNDERGROUND),
-						SetFill(0, 1), SetToolbarMinimalSize(1), SetStringTip(STR_METRO_UNDERGROUND_RAIL_BUTTON, STR_METRO_UNDERGROUND_RAIL_BUTTON_TOOLTIP),
+		NWidget(WWT_DROPDOWN, Colours::DarkGreen, WID_RAT_METRO_LEVEL),
+						SetFill(0, 1), SetToolTip(STR_METRO_LEVEL_BUTTON_TOOLTIP),
+	EndContainer(),
+	NWidget(NWID_SELECTION, Colours::Invalid, WID_RAT_METRO_SEL),
+		NWidget(NWID_VERTICAL),
+			NWidget(WWT_PANEL, Colours::DarkGreen, WID_RAT_METRO_LIST), SetMinimalSize(400, 0), SetFill(1, 0), SetToolTip(STR_METRO_LEVEL_LIST_TOOLTIP), EndContainer(),
+			NWidget(WWT_PANEL, Colours::DarkGreen, WID_RAT_METRO_INFO), SetMinimalSize(400, 0), SetFill(1, 0), EndContainer(),
+		EndContainer(),
 	EndContainer(),
 };
 
@@ -1228,6 +1353,26 @@ Window *ShowBuildRailToolbar(RailType railtype)
 	CloseWindowByClass(WindowClass::BuildToolbar);
 	_remove_button_clicked = false;
 	return new BuildRailToolbarWindow(_build_rail_desc, railtype);
+}
+
+/**
+ * Metro mod: open the rail toolbar at a construction level (+1 elevated, 0 ground, -1..-3 underground).
+ * @param railtype Rail type of the toolbar.
+ * @param level Level to switch to.
+ */
+void ShowRailToolbarAtMetroLevel(RailType railtype, int level)
+{
+	if (!Company::IsValidID(_local_company)) return;
+	if (railtype >= RAILTYPE_END || !HasRailTypeAvail(_local_company, railtype)) {
+		auto it = std::ranges::find_if(_sorted_railtypes, [](RailType r) { return HasRailTypeAvail(_local_company, r); });
+		if (it == _sorted_railtypes.end()) return;
+		railtype = *it;
+	}
+	/* Also from console scripts, which run outside of the local company. */
+	Backup<CompanyID> cur_company(_current_company, _local_company, FILE_LINE);
+	Window *w = ShowBuildRailToolbar(railtype);
+	if (w != nullptr) static_cast<BuildRailToolbarWindow *>(w)->SetMetroLevel(level);
+	cur_company.Restore();
 }
 
 /* TODO: For custom stations, respect their allowed platforms/lengths bitmasks!

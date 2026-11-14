@@ -16,6 +16,7 @@
 
 #include "stdafx.h"
 #include "metro_elevated.h"
+#include "metro_level_tools.h"
 #include "metro_elevated_cmd.h"
 #include "bridge.h"
 #include "bridge_map.h"
@@ -44,6 +45,7 @@
 #include "viewport_func.h"
 #include "window_func.h"
 #include "window_gui.h"
+#include "zoom_func.h"
 #include "tile_cmd.h"
 #include "engine_base.h"
 #include "engine_func.h"
@@ -629,26 +631,31 @@ void MetroElevatedAfterLoad()
 /* Construction window                                                                            */
 /* ---------------------------------------------------------------------------------------------- */
 
-/** Widgets of the #MetroElevatedToolbarWindow. */
-enum MetroElevatedToolbarWidgets : WidgetID {
-	WID_MET_LIST, ///< Level and tools.
-	WID_MET_INFO, ///< Hint.
-};
+/** Height of a row of a tool list: the icon or the text, whichever is higher. */
+uint MetroToolRowHeight()
+{
+	return std::max<uint>(GetCharacterHeight(FontSize::Normal), GetSpriteSize(SPR_IMG_RAIL_NE).height) + ScaleGUITrad(2);
+}
 
-static constexpr std::initializer_list<NWidgetPart> _nested_metro_elevated_toolbar_widgets = {
-	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, Colours::DarkGreen),
-		NWidget(WWT_CAPTION, Colours::DarkGreen), SetStringTip(STR_METRO_ELEVATED_TOOLBAR_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_SHADEBOX, Colours::DarkGreen),
-		NWidget(WWT_STICKYBOX, Colours::DarkGreen),
-	EndContainer(),
-	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MET_LIST), SetMinimalSize(360, 0), SetFill(1, 0), SetResize(1, 0), SetToolTip(STR_METRO_ELEVATED_TOOLBAR_LIST_TOOLTIP), EndContainer(),
-	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MET_INFO), SetMinimalSize(360, 0), SetFill(1, 1), SetResize(1, 0), EndContainer(),
-};
+/**
+ * Draw a row of a tool list: highlight if selected, the icon in a column at the start, then the text.
+ * @param row rectangle of the row (inside the frame)
+ */
+void DrawMetroToolRow(const Rect &row, SpriteID sprite, std::string_view text, bool available, bool selected, Colours colour)
+{
+	if (selected) GfxFillRect(row.left, row.top, row.right, row.bottom, PixelColour{GetColourGradient(colour, Shade::Lighter)});
+	bool rtl = _current_text_dir == TD_RTL;
+	int column = std::max(GetSpriteSize(SPR_IMG_RAIL_NE).width, GetSpriteSize(SPR_IMG_BRIDGE).width) + ScaleGUITrad(4);
+	Dimension d = GetSpriteSize(sprite);
+	int x = rtl ? row.right - column + (column - static_cast<int>(d.width)) / 2 : row.left + (column - static_cast<int>(d.width)) / 2;
+	DrawSprite(sprite, available ? PAL_NONE : PALETTE_TO_GREY, x, CentreBounds(row.top, row.bottom + 1, d.height));
+	Rect tr = row.Indent(column + WidgetDimensions::scaled.hsep_normal, rtl);
+	DrawString(tr.left, tr.right, CentreBounds(row.top, row.bottom + 1, GetCharacterHeight(FontSize::Normal)), text, available ? TextColour::Black : TextColour::Grey);
+}
 
-/** Rows of the window. */
+/** Rows of the elevated tools. */
 enum MetroElevatedRow : int {
-	MER_LEVEL, ///< Level of the next construction (click to switch).
+	MER_LEVEL, ///< Height of the next construction (click to switch).
 	MER_BUILD, ///< Build an elevated line at once.
 	MER_LINE,  ///< Raise a straight stretch, ramps at its ends.
 	MER_RAISE, ///< Raise track and stations.
@@ -657,19 +664,25 @@ enum MetroElevatedRow : int {
 	MER_COUNT,
 };
 
-/** Construction of the elevated monorail: choose the level, a tool, then the map. */
-struct MetroElevatedToolbarWindow : Window {
-	int selected = -1;
+/** Construction of the elevated monorail (level +1 of the rail toolbar): choose the height, a tool, then the map. */
+struct MetroElevatedTools : MetroLevelTools {
 	uint8_t level = METRO_ELEVATED_MIN_LEVEL;
 	RailType railtype;
 
-	MetroElevatedToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc), railtype(static_cast<RailType>(window_number))
+	explicit MetroElevatedTools(RailType railtype) : railtype(railtype) {}
+
+	int RowCount() const override { return MER_COUNT; }
+	StringID Hint() const override { return STR_METRO_ELEVATED_TOOLBAR_HINT; }
+
+	SpriteID GetRowSprite(int row) const override
 	{
-		this->InitNested(window_number);
+		static const SpriteID sprites[MER_COUNT] = { SPR_IMG_TERRAFORM_UP, SPR_IMG_AUTORAIL, SPR_IMG_RAIL_NE, SPR_IMG_LEVEL_LAND, SPR_IMG_TERRAFORM_DOWN, SPR_IMG_BRIDGE };
+		return sprites[row];
 	}
 
-	std::string GetRowText(int row) const
+	std::string GetRowText(int row, bool &available) const override
 	{
+		available = true;
 		switch (row) {
 			case MER_LEVEL: return GetString(STR_METRO_ELEVATED_ROW_LEVEL, this->level);
 			case MER_BUILD: return GetString(STR_METRO_ELEVATED_ROW_BUILD, this->level);
@@ -681,58 +694,24 @@ struct MetroElevatedToolbarWindow : Window {
 		}
 	}
 
-	void UpdateWidgetSize(WidgetID widget, Dimension &size, const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
+	bool Click(Window *w, int row) override
 	{
-		switch (widget) {
-			case WID_MET_LIST:
-				size.height = MER_COUNT * GetCharacterHeight(FontSize::Normal) + padding.height;
-				break;
-			case WID_MET_INFO:
-				size.height = std::max<uint>(size.height, GetStringHeight(STR_METRO_ELEVATED_TOOLBAR_HINT, size.width - padding.width) + padding.height);
-				break;
-		}
-	}
-
-	void DrawWidget(const Rect &r, WidgetID widget) const override
-	{
-		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
-		switch (widget) {
-			case WID_MET_LIST:
-				for (int row = 0; row < MER_COUNT; row++) {
-					if (row == this->selected) {
-						GfxFillRect(r.left + 1, ir.top, r.right - 1, ir.top + GetCharacterHeight(FontSize::Normal) - 1, PixelColour{GetColourGradient(Colours::DarkGreen, Shade::Lighter)});
-					}
-					DrawString(ir, this->GetRowText(row), TextColour::Black);
-					ir.top += GetCharacterHeight(FontSize::Normal);
-				}
-				break;
-			case WID_MET_INFO:
-				DrawStringMultiLine(ir, STR_METRO_ELEVATED_TOOLBAR_HINT);
-				break;
-		}
-	}
-
-	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
-	{
-		if (widget != WID_MET_LIST) return;
-		int row = this->GetRowFromWidget(pt.y, WID_MET_LIST, WidgetDimensions::scaled.framerect.top, GetCharacterHeight(FontSize::Normal));
-		if (row < 0 || row >= MER_COUNT) return;
+		if (row < 0 || row >= MER_COUNT) return false;
 		if (row == MER_LEVEL) {
 			this->level = this->level >= METRO_ELEVATED_MAX_LEVEL ? METRO_ELEVATED_MIN_LEVEL : this->level + 1;
-			this->SetDirty();
-			return;
+			return this->selected >= 0;
 		}
 		if (this->selected == row) {
 			ResetObjectToPlace();
-			return;
+			return false;
 		}
 		CursorID cursor = row == MER_LOWER ? SPR_CURSOR_DEMOLISH_FIRST : (row == MER_SPAN ? SPR_CURSOR_BRIDGE : SPR_CURSOR_NS_TRACK);
-		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, this);
+		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, w);
 		this->selected = row;
-		this->SetDirty();
+		return true;
 	}
 
-	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
+	void PlaceObject(TileIndex tile) override
 	{
 		switch (this->selected) {
 			case MER_BUILD: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_ELEVATED_BUILD); break;
@@ -744,53 +723,39 @@ struct MetroElevatedToolbarWindow : Window {
 		}
 	}
 
-	void OnPlaceDrag(ViewportPlaceMethod select_method, [[maybe_unused]] ViewportDragDropSelectionProcess select_proc, Point pt) override
+	bool PlaceMouseUp(ViewportDragDropSelectionProcess select_proc, TileIndex start_tile, TileIndex end_tile) override
 	{
-		VpSelectTilesWithMethod(pt.x, pt.y, select_method);
-	}
-
-	void OnPlaceMouseUp([[maybe_unused]] ViewportPlaceMethod select_method, ViewportDragDropSelectionProcess select_proc, Point pt, TileIndex start_tile, TileIndex end_tile) override
-	{
-		if (pt.x == -1) return;
 		switch (select_proc) {
 			case DDSP_METRO_ELEVATED_BUILD:
 				Command<Commands::MetroBuildElevatedLine>::Post(STR_METRO_ELEVATED_ERR_CANT_BUILD, end_tile, start_tile, this->level, this->railtype);
-				break;
+				return true;
 			case DDSP_METRO_ELEVATED_LINE:
 				Command<Commands::MetroElevateLine>::Post(STR_METRO_ELEVATED_ERR_CANT_RAISE, end_tile, start_tile, this->level);
-				break;
+				return true;
 			case DDSP_METRO_ELEVATED_RAISE:
 				Command<Commands::MetroElevateRail>::Post(STR_METRO_ELEVATED_ERR_CANT_RAISE, end_tile, start_tile, this->level);
-				break;
+				return true;
 			case DDSP_METRO_ELEVATED_LOWER:
 				Command<Commands::MetroElevateRail>::Post(STR_METRO_ELEVATED_ERR_CANT_LOWER, end_tile, start_tile, 0);
-				break;
+				return true;
 			case DDSP_METRO_ELEVATED_SPAN:
 				Command<Commands::MetroBuildElevatedSpan>::Post(STR_METRO_ELEVATED_ERR_CANT_SPAN, end_tile, start_tile, this->level, this->railtype);
-				break;
+				return true;
 			default:
-				break;
+				return false;
 		}
-	}
-
-	void OnPlaceObjectAbort() override
-	{
-		this->selected = -1;
-		this->SetDirty();
 	}
 };
 
-static WindowDesc _metro_elevated_toolbar_desc(__FILE__, __LINE__,
-	WindowPosition::Automatic, "metro_elevated_toolbar", 0, 0,
-	WindowClass::MetroElevatedToolbar, WindowClass::None,
-	WindowDefaultFlag::Construction,
-	_nested_metro_elevated_toolbar_widgets
-);
+std::unique_ptr<MetroLevelTools> MetroMakeElevatedTools(RailType railtype)
+{
+	return std::make_unique<MetroElevatedTools>(railtype);
+}
 
 void ShowMetroElevatedToolbar(RailType railtype)
 {
 	if (!IsMetroElevatedAvailable(railtype)) return;
-	AllocateWindowDescFront<MetroElevatedToolbarWindow>(_metro_elevated_toolbar_desc, railtype);
+	ShowRailToolbarAtMetroLevel(railtype, METRO_BUILD_LEVEL_ELEVATED);
 }
 
 /* ---------------------------------------------------------------------------------------------- */

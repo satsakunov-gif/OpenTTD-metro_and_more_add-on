@@ -32,8 +32,10 @@ enum RailToolbarWidgets : WidgetID {
 	WID_RAT_CONVERT_RAIL,   ///< Convert other rail to this type.
 	WID_RAT_CONVERT_RAIL_TRACK, ///< Convert other rail to this type (track).
 	WID_RAT_METRO_POWER,    ///< Metro mod: open the power grid construction window.
-	WID_RAT_METRO_ELEVATED, ///< Metro mod: open the elevated monorail construction window.
-	WID_RAT_METRO_UNDERGROUND, ///< Metro mod: open the metro (underground) construction window.
+	WID_RAT_METRO_LEVEL,    ///< Metro mod: level of construction (+1 elevated, 0 ground, -1..-3 underground).
+	WID_RAT_METRO_SEL,      ///< Metro mod: shows the tools of the level (hidden on the ground).
+	WID_RAT_METRO_LIST,     ///< Metro mod: tools of the level, one per row with an icon.
+	WID_RAT_METRO_INFO,     ///< Metro mod: hint for the tools of the level.
 };
 
 /** Widgets of the #BuildRailStationWindow class. */

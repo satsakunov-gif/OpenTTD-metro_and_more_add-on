@@ -28,6 +28,7 @@
 #include "metro_trains.h"
 #include "depot_func.h"
 #include "metro_underground.h"
+#include "metro_level_tools.h"
 #include "metro_dispatcher.h"
 #include "metro_sprites.h"
 #include "metro_underground_cmd.h"
@@ -61,6 +62,7 @@
 #include "object_base.h"
 #include "object_map.h"
 #include "rail.h"
+#include "toolbar_gui.h"
 #include "station_map.h"
 #include "tunnelbridge_map.h"
 #include "road_map.h"
@@ -132,6 +134,14 @@ static int32_t GetRailTypeFirstYear(RailTypeLabel label, int32_t fallback)
 }
 
 /** Year the layer (1..3) opens. */
+static_assert(METRO_UNDERGROUND_LAYERS == METRO_LAYER_COUNT);
+
+/** Name of an underground layer (1..3). */
+StringID GetMetroLayerName(uint layer)
+{
+	return _metro_layer_specs[layer - 1].name;
+}
+
 int32_t GetMetroLayerYear(uint layer)
 {
 	int32_t electric = GetRailTypeFirstYear(RAILTYPE_LABEL_ELECTRIC, METRO_FALLBACK_ELECTRIC_YEAR);
@@ -769,6 +779,7 @@ void MetroToggleUndergroundView()
 	}
 	MarkWholeScreenDirty();
 	SetWindowClassesDirty(WindowClass::MetroUndergroundToolbar);
+	SetWindowClassesDirty(WindowClass::BuildToolbar);
 	SetWindowClassesDirty(WindowClass::TransparencyToolbar);
 }
 
@@ -778,6 +789,7 @@ void MetroCycleUndergroundLayer()
 	if (!_metro_underground_view) MetroToggleUndergroundView();
 	MarkWholeScreenDirty();
 	SetWindowClassesDirty(WindowClass::MetroUndergroundToolbar);
+	SetWindowClassesDirty(WindowClass::BuildToolbar);
 }
 
 /** Draw the track of one underground tile; @p bright for the chosen layer, else faded. */
@@ -850,27 +862,9 @@ void MetroUndergroundDrawTile(const TileInfo *ti)
 /* Construction window                                                                            */
 /* ---------------------------------------------------------------------------------------------- */
 
-/** Widgets of the #MetroUndergroundToolbarWindow. */
-enum MetroUndergroundToolbarWidgets : WidgetID {
-	WID_MUT_LIST, ///< Layer and tools.
-	WID_MUT_INFO, ///< Hint.
-};
-
-static constexpr std::initializer_list<NWidgetPart> _nested_metro_underground_toolbar_widgets = {
-	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_CLOSEBOX, Colours::DarkGreen),
-		NWidget(WWT_CAPTION, Colours::DarkGreen), SetStringTip(STR_METRO_UNDERGROUND_TOOLBAR_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_SHADEBOX, Colours::DarkGreen),
-		NWidget(WWT_STICKYBOX, Colours::DarkGreen),
-	EndContainer(),
-	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MUT_LIST), SetMinimalSize(360, 0), SetFill(1, 0), SetResize(1, 0), SetToolTip(STR_METRO_UNDERGROUND_TOOLBAR_LIST_TOOLTIP), EndContainer(),
-	NWidget(WWT_PANEL, Colours::DarkGreen, WID_MUT_INFO), SetMinimalSize(360, 0), SetFill(1, 1), SetResize(1, 0), EndContainer(),
-};
-
-/** Rows of the window. */
+/** Rows of the underground tools. */
 enum MetroUndergroundRow : int {
 	MUR_VIEW,   ///< View "surface / underground" (Ctrl+U).
-	MUR_LAYER,  ///< Layer (click to switch, Ctrl+Shift+U); bright in the underground view.
 	MUR_LINE,   ///< Straight track, dragged along X or Y.
 	MUR_CORNER, ///< A corner piece (click to switch which one), then a tile.
 	MUR_INCLINE, ///< Incline to the next deeper layer, dragged from the upper end.
@@ -888,116 +882,85 @@ enum MetroUndergroundRow : int {
 static const Track _metro_corner_tracks[] = { TRACK_UPPER, TRACK_RIGHT, TRACK_LOWER, TRACK_LEFT };
 static const StringID _metro_corner_names[] = { STR_METRO_UNDERGROUND_CORNER_N, STR_METRO_UNDERGROUND_CORNER_E, STR_METRO_UNDERGROUND_CORNER_S, STR_METRO_UNDERGROUND_CORNER_W };
 
-struct MetroUndergroundToolbarWindow : Window {
-	int selected = -1;
+/** Construction of the metro (levels -1..-3 of the rail toolbar); the layer is the one shown in the underground view. */
+struct MetroUndergroundTools : MetroLevelTools {
 	uint8_t corner = 0;
 	uint8_t depot_dir = 0; ///< Exit of the depot: index in the corner names (north, east, south, west = NE, SE, SW, NW).
 
-	MetroUndergroundToolbarWindow(WindowDesc &desc, WindowNumber window_number) : Window(desc)
-	{
-		this->InitNested(window_number);
-		if (!_metro_underground_view) MetroToggleUndergroundView(); // Building the metro: show the underground.
-	}
-
 	uint8_t Layer() const { return _metro_underground_view_layer; }
 
-	std::string GetRowText(int row, bool &available) const
+	int RowCount() const override { return MUR_COUNT; }
+	StringID Hint() const override { return STR_METRO_UNDERGROUND_TOOLBAR_HINT; }
+
+	SpriteID GetRowSprite(int row) const override
 	{
-		available = true;
+		static const SpriteID sprites[MUR_COUNT] = {
+			SPR_IMG_SHOW_COUNTOURS, SPR_IMG_RAIL_NE, SPR_IMG_RAIL_NS, SPR_IMG_TERRAFORM_DOWN, SPR_IMG_RAIL_STATION, SPR_IMG_DEPOT_RAIL,
+			SPR_IMG_TUNNEL_RAIL, SPR_IMG_DYNAMITE, SPR_IMG_TOWN, SPR_IMG_SIGN, SPR_IMG_SUBSIDIES, SPR_IMG_COMPANY_FINANCE,
+		};
+		return sprites[row];
+	}
+
+	std::string GetRowText(int row, bool &available) const override
+	{
+		available = IsMetroLayerAvailable(this->Layer());
 		switch (row) {
-			case MUR_VIEW: return GetString(_metro_underground_view ? STR_METRO_UNDERGROUND_ROW_VIEW_UNDER : STR_METRO_UNDERGROUND_ROW_VIEW_SURFACE);
-			case MUR_LAYER:
-				available = IsMetroLayerAvailable(this->Layer());
-				return GetString(available ? STR_METRO_UNDERGROUND_ROW_LAYER : STR_METRO_UNDERGROUND_ROW_LAYER_CLOSED, _metro_layer_specs[this->Layer() - 1].name, GetMetroLayerYear(this->Layer()));
+			case MUR_VIEW:
+				available = true;
+				return GetString(_metro_underground_view ? STR_METRO_UNDERGROUND_ROW_VIEW_UNDER : STR_METRO_UNDERGROUND_ROW_VIEW_SURFACE);
 			case MUR_LINE: return GetString(STR_METRO_UNDERGROUND_ROW_LINE, GetUndergroundPiecePrice(this->Layer()));
 			case MUR_INCLINE:
-				available = this->Layer() < METRO_LAYER_COUNT;
-				return available ? GetString(STR_METRO_UNDERGROUND_ROW_INCLINE, _metro_layer_specs[this->Layer() - 1].name, _metro_layer_specs[this->Layer()].name) : GetString(STR_METRO_UNDERGROUND_ROW_INCLINE_NONE);
+				if (this->Layer() >= METRO_LAYER_COUNT) {
+					available = false;
+					return GetString(STR_METRO_UNDERGROUND_ROW_INCLINE_NONE);
+				}
+				return GetString(STR_METRO_UNDERGROUND_ROW_INCLINE, _metro_layer_specs[this->Layer() - 1].name, _metro_layer_specs[this->Layer()].name);
 			case MUR_CORNER: return GetString(STR_METRO_UNDERGROUND_ROW_CORNER, _metro_corner_names[this->corner]);
 			case MUR_STATION: return GetString(STR_METRO_UNDERGROUND_ROW_STATION);
-			case MUR_TRANSFORMER: return GetString(STR_METRO_UNDERGROUND_ROW_TRANSFORMER, _metro_corner_names[this->depot_dir], GetUndergroundPiecePrice(1) * METRO_TRANSFORMER_COST_FACTOR);
+			case MUR_TRANSFORMER:
+				available = IsMetroLayerAvailable(1);
+				return GetString(STR_METRO_UNDERGROUND_ROW_TRANSFORMER, _metro_corner_names[this->depot_dir], GetUndergroundPiecePrice(1) * METRO_TRANSFORMER_COST_FACTOR);
 			case MUR_DEPOT: return GetString(STR_METRO_UNDERGROUND_ROW_DEPOT, _metro_corner_names[this->depot_dir]);
-			case MUR_REMOVE: return GetString(STR_METRO_UNDERGROUND_ROW_REMOVE);
+			case MUR_REMOVE: available = true; return GetString(STR_METRO_UNDERGROUND_ROW_REMOVE);
 			case MUR_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR);
 			case MUR_EXTRA_ENTRANCE: return GetString(STR_METRO_UNDERGROUND_ROW_EXTRA_ENTRANCE, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR, _price[Price::BuildRail] * METRO_ENTRANCE_COST_FACTOR * 5);
-			case MUR_UPGRADE: return GetString(STR_METRO_UNDERGROUND_ROW_UPGRADE);
-			case MUR_MALLS: return GetString(STR_METRO_UNDERGROUND_ROW_MALLS);
+			case MUR_UPGRADE: available = true; return GetString(STR_METRO_UNDERGROUND_ROW_UPGRADE);
+			case MUR_MALLS: available = true; return GetString(STR_METRO_UNDERGROUND_ROW_MALLS);
 			default: NOT_REACHED();
 		}
 	}
 
-	void UpdateWidgetSize(WidgetID widget, Dimension &size, const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
+	bool Click(Window *w, int row) override
 	{
-		switch (widget) {
-			case WID_MUT_LIST:
-				size.height = MUR_COUNT * GetCharacterHeight(FontSize::Normal) + padding.height;
-				break;
-			case WID_MUT_INFO:
-				size.height = std::max<uint>(size.height, GetStringHeight(STR_METRO_UNDERGROUND_TOOLBAR_HINT, size.width - padding.width) + padding.height);
-				break;
-		}
-	}
-
-	void DrawWidget(const Rect &r, WidgetID widget) const override
-	{
-		Rect ir = r.Shrink(WidgetDimensions::scaled.framerect);
-		switch (widget) {
-			case WID_MUT_LIST:
-				for (int row = 0; row < MUR_COUNT; row++) {
-					if (row == this->selected) {
-						GfxFillRect(r.left + 1, ir.top, r.right - 1, ir.top + GetCharacterHeight(FontSize::Normal) - 1, PixelColour{GetColourGradient(Colours::DarkGreen, Shade::Lighter)});
-					}
-					bool available;
-					std::string text = this->GetRowText(row, available);
-					DrawString(ir, text, available ? TextColour::Black : TextColour::Grey);
-					ir.top += GetCharacterHeight(FontSize::Normal);
-				}
-				break;
-			case WID_MUT_INFO:
-				DrawStringMultiLine(ir, STR_METRO_UNDERGROUND_TOOLBAR_HINT);
-				break;
-		}
-	}
-
-	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
-	{
-		if (widget != WID_MUT_LIST) return;
-		int row = this->GetRowFromWidget(pt.y, WID_MUT_LIST, WidgetDimensions::scaled.framerect.top, GetCharacterHeight(FontSize::Normal));
-		if (row < 0 || row >= MUR_COUNT) return;
+		if (row < 0 || row >= MUR_COUNT) return false;
 		if (row == MUR_VIEW) {
 			MetroToggleUndergroundView();
-			return;
-		}
-		if (row == MUR_LAYER) {
-			MetroCycleUndergroundLayer();
-			return;
+			return this->selected >= 0;
 		}
 		if (row == MUR_MALLS) {
 			ShowMetroMallsWindow();
-			return;
+			return this->selected >= 0;
 		}
-		if (row == MUR_INCLINE && this->Layer() >= METRO_LAYER_COUNT) return;
+		if (row == MUR_INCLINE && this->Layer() >= METRO_LAYER_COUNT) return this->selected >= 0;
 		if ((row == MUR_DEPOT || row == MUR_TRANSFORMER) && this->selected == row) {
 			this->depot_dir = (this->depot_dir + 1) % 4;
-			this->SetDirty();
-			return;
+			return true;
 		}
 		if (row == MUR_CORNER && this->selected == MUR_CORNER) {
 			this->corner = (this->corner + 1) % std::size(_metro_corner_tracks);
-			this->SetDirty();
-			return;
+			return true;
 		}
 		if (this->selected == row) {
 			ResetObjectToPlace();
-			return;
+			return false;
 		}
 		CursorID cursor = row == MUR_REMOVE ? SPR_CURSOR_DEMOLISH_FIRST : ((row == MUR_ENTRANCE || row == MUR_EXTRA_ENTRANCE) ? SPR_CURSOR_TRANSMITTER : (row == MUR_UPGRADE ? SPR_CURSOR_QUERY : SPR_CURSOR_NS_TRACK));
-		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, this);
+		SetObjectToPlaceWnd(cursor, PAL_NONE, HT_RECT, w);
 		this->selected = row;
-		this->SetDirty();
+		return true;
 	}
 
-	void OnPlaceObject([[maybe_unused]] Point pt, TileIndex tile) override
+	void PlaceObject(TileIndex tile) override
 	{
 		switch (this->selected) {
 			case MUR_LINE: VpStartPlaceSizing(tile, VPM_X_OR_Y, DDSP_METRO_UNDERGROUND_LINE); break;
@@ -1026,47 +989,39 @@ struct MetroUndergroundToolbarWindow : Window {
 		}
 	}
 
-	void OnPlaceDrag(ViewportPlaceMethod select_method, [[maybe_unused]] ViewportDragDropSelectionProcess select_proc, Point pt) override
+	bool PlaceMouseUp(ViewportDragDropSelectionProcess select_proc, TileIndex start_tile, TileIndex end_tile) override
 	{
-		VpSelectTilesWithMethod(pt.x, pt.y, select_method);
-	}
-
-	void OnPlaceMouseUp([[maybe_unused]] ViewportPlaceMethod select_method, ViewportDragDropSelectionProcess select_proc, Point pt, TileIndex start_tile, TileIndex end_tile) override
-	{
-		if (pt.x == -1) return;
-		if (select_proc == DDSP_METRO_UNDERGROUND_STATION) {
-			Command<Commands::MetroBuildUndergroundStation>::Post(STR_METRO_UNDERGROUND_ERR_CANT_STATION, end_tile, start_tile, this->Layer());
-			return;
+		switch (select_proc) {
+			case DDSP_METRO_UNDERGROUND_STATION:
+				Command<Commands::MetroBuildUndergroundStation>::Post(STR_METRO_UNDERGROUND_ERR_CANT_STATION, end_tile, start_tile, this->Layer());
+				return true;
+			case DDSP_METRO_UNDERGROUND_INCLINE:
+				Command<Commands::MetroBuildIncline>::Post(STR_METRO_UNDERGROUND_ERR_CANT_INCLINE, end_tile, start_tile, this->Layer());
+				return true;
+			case DDSP_METRO_UNDERGROUND_LINE:
+			case DDSP_METRO_UNDERGROUND_REMOVE: {
+				bool remove = select_proc == DDSP_METRO_UNDERGROUND_REMOVE;
+				Track track = TileY(start_tile) == TileY(end_tile) && start_tile != end_tile ? TRACK_X : TRACK_Y;
+				if (start_tile == end_tile) track = TRACK_X;
+				Command<Commands::MetroBuildUndergroundTrack>::Post(remove ? STR_METRO_UNDERGROUND_ERR_CANT_REMOVE : STR_METRO_UNDERGROUND_ERR_CANT_BUILD, end_tile, start_tile, this->Layer(), track, remove);
+				return true;
+			}
+			default:
+				return false;
 		}
-		if (select_proc == DDSP_METRO_UNDERGROUND_INCLINE) {
-			Command<Commands::MetroBuildIncline>::Post(STR_METRO_UNDERGROUND_ERR_CANT_INCLINE, end_tile, start_tile, this->Layer());
-			return;
-		}
-		if (select_proc != DDSP_METRO_UNDERGROUND_LINE && select_proc != DDSP_METRO_UNDERGROUND_REMOVE) return;
-		bool remove = select_proc == DDSP_METRO_UNDERGROUND_REMOVE;
-		Track track = TileY(start_tile) == TileY(end_tile) && start_tile != end_tile ? TRACK_X : TRACK_Y;
-		if (start_tile == end_tile) track = TRACK_X;
-		Command<Commands::MetroBuildUndergroundTrack>::Post(remove ? STR_METRO_UNDERGROUND_ERR_CANT_REMOVE : STR_METRO_UNDERGROUND_ERR_CANT_BUILD, end_tile, start_tile, this->Layer(), track, remove);
-	}
-
-	void OnPlaceObjectAbort() override
-	{
-		this->selected = -1;
-		this->SetDirty();
 	}
 };
 
-static WindowDesc _metro_underground_toolbar_desc(__FILE__, __LINE__,
-	WindowPosition::Automatic, "metro_underground_toolbar", 0, 0,
-	WindowClass::MetroUndergroundToolbar, WindowClass::None,
-	WindowDefaultFlag::Construction,
-	_nested_metro_underground_toolbar_widgets
-);
+std::unique_ptr<MetroLevelTools> MetroMakeUndergroundTools()
+{
+	return std::make_unique<MetroUndergroundTools>();
+}
 
 void ShowMetroUndergroundToolbar()
 {
-	if (!Company::IsValidID(_local_company)) return;
-	AllocateWindowDescFront<MetroUndergroundToolbarWindow>(_metro_underground_toolbar_desc, 0);
+	uint8_t layer = _metro_underground_view_layer;
+	if (layer < 1 || layer > METRO_LAYER_COUNT) layer = 1;
+	ShowRailToolbarAtMetroLevel(_last_built_railtype, -static_cast<int>(layer));
 }
 
 /* ---------------------------------------------------------------------------------------------- */
