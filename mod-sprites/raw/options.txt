@@ -1,0 +1,7 @@
+# Per-sprite options of the converter: <name>: <options> (see --help).
+# White hospital on a white background: only almost pure white is background.
+hospital: --bg-tolerance 6 --shadow-tolerance 48 --hull
+# Silver tram with a lavender shadow: light-grey body must not count as shadow.
+tram_aero: --bg-tolerance 12 --shadow-tolerance 50 --shadow-min-luminance 150
+# Light stone steps of the university look like a shadow: keep them.
+university: --bg-tolerance 6 --no-shadow

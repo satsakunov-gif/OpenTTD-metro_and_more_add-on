@@ -704,7 +704,8 @@ void MetroTrafficDrawTile(const TileInfo *ti)
 		Point pos = GetPosition(car.tile, car.dir, car.progress, right ? METRO_CARS_LANE_OFFSET : -METRO_CARS_LANE_OFFSET);
 		int z = GetSlopePixelZ(pos.x, pos.y);
 		/* Own sprites (stage 10.1) where they exist: 8 directions in the same order. */
-		SpriteID sprite = MetroSprite(static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::CarFirst) + car.sprite), _metro_car_sprites[car.sprite].sprite) + to_underlying(DiagDirToDir(car.dir));
+		uint dir = to_underlying(DiagDirToDir(car.dir));
+		SpriteID sprite = MetroSprite(static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::CarFirst) + car.sprite), _metro_car_sprites[car.sprite].sprite + dir, dir);
 		AddSortableSpriteToDraw(sprite, GetColourPalette(static_cast<Colours>(car.colour)), pos.x, pos.y, z, SpriteBounds({-1, -1, 0}, {3, 3, 6}, {1, 1, 0}));
 	}
 

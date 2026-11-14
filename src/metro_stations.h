@@ -43,6 +43,7 @@ extern std::map<uint32_t, MetroExtraEntrance> _metro_extra_entrances;  ///< Tile
 
 void MetroStationsReset();
 uint8_t GetMetroStationLevel(StationID station);
+uint8_t MetroEntranceStationLevel(TileIndex entrance);
 bool IsMetroEntranceTileOf(TileIndex tile, Owner owner);
 void MetroForEachEntranceNear(const TileArea &area, uint radius, Owner owner, const std::function<void(TileIndex)> &f);
 int MetroStationRatingModifier(const Station *st);

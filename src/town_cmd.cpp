@@ -11,6 +11,7 @@
 #include "metro_ai.h"
 #include "metro_city.h"
 #include "metro_power.h"
+#include "metro_sprites.h"
 #include "metro_town.h"
 #include "metro_civic.h"
 #include "misc/history_type.hpp"
@@ -339,6 +340,9 @@ static void DrawTile_TownHouse(TileInfo *ti)
 
 	/* If houses are invisible, do not draw the upper part */
 	if (IsInvisibilitySet(TransparencyOption::Houses)) return;
+
+	/* Metro mod: own sprites of stadiums and parks (stage 10). */
+	if (MetroSpritesDrawHouse(ti, house_id)) return;
 
 	/* Add a house on top of the ground? */
 	SpriteID image = dcts->building.sprite;

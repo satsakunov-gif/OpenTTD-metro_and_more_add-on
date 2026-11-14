@@ -48,3 +48,12 @@ city,van_1965,dir8,vehicle,20,14,Фургон с 1965
 city,car_1990,dir8,vehicle,20,14,Машинка с 1990
 city,van_1990,dir8,vehicle,20,14,Фургон с 1990
 people,pedestrian,diag4x4,walker,8,14,Пешеход: 4 направления × 4 кадра шага
+city,car_1980,dir8,vehicle,20,14,Машинка с 1980
+city,car_2010,dir8,vehicle,20,14,Машинка с 2010
+metro,entrance_big,single,building,64,64,Павильон узловой станции (пересадочный узел и мегаузел) 1×1
+metro,entrance_sidewalk,single,walker,10,28,Вход на тротуаре: столбик с буквой «М»
+metro,wagon_coal,dir8,vehicle,32,24,Вагон метро с углём
+metro,wagon_covered,dir8,vehicle,32,24,Крытый вагон метро (прочие грузы)
+metro,wagon_mail,dir8,vehicle,32,24,Почтовый вагон метро
+city,stadium,single,building2,128,100,Стадион 2×2 (ванильные стадионы) — одна картинка на все 4 тайла
+city,park,single,building,64,48,Парк (ванильный парк 1×1)

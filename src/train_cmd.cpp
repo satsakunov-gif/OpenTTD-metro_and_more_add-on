@@ -1444,7 +1444,7 @@ void Train::GetImage(Direction direction, EngineImageType image_type, VehicleSpr
 	if (this->flags.Test(VehicleRailFlag::Flipped)) direction = ReverseDir(direction);
 
 	/* Metro mod: own sprites of the metro trains from PNG files (stage 10.1). */
-	if (SpriteID own; MetroSpritesVehicleImage(this->engine_type, direction, own)) {
+	if (SpriteID own; MetroSpritesVehicleImage(this->engine_type, direction, own, this->cargo_cap > 0 ? this->cargo_type : INVALID_CARGO)) {
 		result->Set(own);
 		return;
 	}

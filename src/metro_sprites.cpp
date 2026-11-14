@@ -22,6 +22,15 @@
 #include "stdafx.h"
 #include "metro_sprites.h"
 #include "metro_walkers.h"
+#include "metro_stations.h"
+#include "cargotype.h"
+#include "house.h"
+#include "town.h"
+#include "town_map.h"
+#include "tile_cmd.h"
+#include "transparency.h"
+#include "viewport_func.h"
+#include "table/metro_station_tables.h"
 #include "core/string_consumer.hpp"
 #include "blitter/factory.hpp"
 #include "console_func.h"
@@ -56,6 +65,7 @@ struct MetroSpriteImage {
 	std::array<std::string, 3> files; ///< 1x, 2x, 4x; empty if missing.
 	MetroSpriteAnchor anchor;
 	int walker = -1;                   ///< Pedestrian drawn by code (index for #MetroWalkerDraw), or -1 for a PNG sprite.
+	bool present = true;               ///< False for a view of a vehicle that has no file (the vanilla one is drawn).
 };
 
 static std::vector<MetroSpriteImage> _metro_sprite_images;       ///< Image of each own sprite number from #_metro_sprite_first.
@@ -99,7 +109,7 @@ static std::string ImageName(const MetroSpriteSpec &spec, uint image)
 static std::string FindSpriteDir()
 {
 	std::vector<std::filesystem::path> bases;
-	for (Searchpath sp : _valid_searchpaths) bases.emplace_back(std::filesystem::u8path(FioGetDirectory(sp, Subdirectory::None)));
+	for (Searchpath sp : _valid_searchpaths) bases.emplace_back(std::filesystem::u8path(FioGetDirectory(sp, Subdirectory::Base)));
 	bases.emplace_back(std::filesystem::current_path());
 	for (const std::filesystem::path &base : bases) {
 		for (const char *dir : _metro_sprite_dirs) {
@@ -141,10 +151,12 @@ void MetroSpritesLoad()
 				}
 			}
 		}
-		/* All images of the sprite need at least one zoom, otherwise the vanilla sprite stays. */
-		bool complete = std::ranges::all_of(images, [](const MetroSpriteImage &img) { return std::ranges::any_of(img.files, [](const std::string &f) { return !f.empty(); }); });
+		/* All images of the sprite need at least one zoom, otherwise the vanilla sprite stays; a vehicle may have
+		 * only some of its views (the others stay vanilla). */
+		for (MetroSpriteImage &img : images) img.present = std::ranges::any_of(img.files, [](const std::string &f) { return !f.empty(); });
+		bool complete = std::ranges::all_of(images, [](const MetroSpriteImage &img) { return img.present; });
 		if (!any) continue;
-		if (!complete) {
+		if (!complete && spec.kind != MetroSpriteKind::Dir8) {
 			Debug(sprite, 0, "[metro_sprites] {}/{}: some images are missing, the vanilla sprite stays", spec.section, spec.name);
 			continue;
 		}
@@ -209,6 +221,7 @@ static void AnchorOffsets(MetroSpriteAnchor anchor, int width, int height, int s
 {
 	switch (anchor) {
 		case MetroSpriteAnchor::Building: x_offs = -width / 2; y_offs = METRO_SPRITE_TILE_BOTTOM * scale - height; break;
+		case MetroSpriteAnchor::Building2x2: x_offs = -width / 2; y_offs = METRO_SPRITE_2X2_BOTTOM * scale - height; break;
 		case MetroSpriteAnchor::Ground: x_offs = -(width / 2) + scale; y_offs = 0; break;
 		case MetroSpriteAnchor::Vehicle: x_offs = -width / 2; y_offs = -(height * 3 / 4); break;
 		case MetroSpriteAnchor::Walker: x_offs = -width / 2; y_offs = -height; break;
@@ -282,10 +295,16 @@ LowZoomLevels MetroLoadCustomSprite(SpriteID id, SpriteLoader::SpriteCollection 
 	return loaded;
 }
 
+/** Whether an image of a loaded own sprite has a file. */
+static bool HasImage(SpriteID base, uint index)
+{
+	return base != 0 && _metro_sprite_images[base - _metro_sprite_first + index].present;
+}
+
 SpriteID MetroSprite(MetroSpriteId id, SpriteID fallback, uint index)
 {
 	SpriteID base = _metro_sprite_base[to_underlying(id)];
-	return base == 0 ? fallback : base + index;
+	return HasImage(base, index) ? base + index : fallback;
 }
 
 bool MetroHasSprite(MetroSpriteId id)
@@ -298,22 +317,77 @@ SpriteID MetroWalkerSprite(uint index)
 	return _metro_walker_base == 0 || index >= METRO_WALKER_SPRITE_COUNT ? 0 : _metro_walker_base + index;
 }
 
-/** Own sprite of a metro train or tram in the direction; false to keep the vanilla one. */
-bool MetroSpritesVehicleImage(EngineID engine, Direction direction, SpriteID &sprite)
+/** An own view of a sprite in the direction; for symmetric rolling stock also the view of the opposite direction. */
+static bool VehicleView(MetroSpriteId id, uint dir, bool symmetric, SpriteID &sprite)
+{
+	SpriteID base = _metro_sprite_base[to_underlying(id)];
+	if (HasImage(base, dir)) {
+		sprite = base + dir;
+		return true;
+	}
+	uint opposite = (dir + 4) & 7;
+	if (symmetric && HasImage(base, opposite)) {
+		sprite = base + opposite;
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Own sprite of a metro train or tram in the direction; false to keep the vanilla one.
+ * Metro cars: a freight car carrying coal, mail or other freight uses the wagon of its cargo; a passenger car
+ * without its own picture uses the head car of its series. Metro rolling stock looks the same both ways, so a view
+ * drawn for one direction also serves the opposite one; trams and cars use only their own views.
+ */
+bool MetroSpritesVehicleImage(EngineID engine, Direction direction, SpriteID &sprite, CargoType cargo)
 {
 	if (_metro_sprite_images.empty() || engine.base() >= _engine_mngr.mappings.size()) return false;
 	const EngineIDMapping &eid = _engine_mngr.mappings[engine];
-	MetroSpriteId id;
+	uint dir = to_underlying(direction) & 7;
 	if (eid.grfid == METRO_TRAIN_GRFID && eid.internal_id < 2 * std::size(_metro_trains)) {
-		id = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::TrainFirst) + eid.internal_id);
-	} else if (eid.grfid == METRO_TRAM_GRFID && eid.internal_id < std::size(_metro_trams)) {
-		id = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::TramFirst) + eid.internal_id);
-	} else {
+		MetroSpriteId id = static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::TrainFirst) + eid.internal_id);
+		bool is_car = (eid.internal_id % 2) != 0;
+		if (is_car && IsValidCargoType(cargo) && !IsCargoInClass(cargo, CargoClass::Passengers)) {
+			MetroSpriteId wagon = MetroSpriteId::WagonCovered;
+			if (IsCargoInClass(cargo, CargoClass::Mail)) {
+				wagon = MetroSpriteId::WagonMail;
+			} else if (CargoSpec::Get(cargo)->label == CT_COAL) {
+				wagon = MetroSpriteId::WagonCoal;
+			}
+			if (VehicleView(wagon, dir, true, sprite)) return true;
+		}
+		if (VehicleView(id, dir, true, sprite)) return true;
+		if (is_car) return VehicleView(static_cast<MetroSpriteId>(to_underlying(id) - 1), dir, true, sprite);
 		return false;
 	}
-	if (!MetroHasSprite(id)) return false;
-	sprite = MetroSprite(id, 0, to_underlying(direction) & 7);
-	return true;
+	if (eid.grfid == METRO_TRAM_GRFID && eid.internal_id < std::size(_metro_trams)) {
+		return VehicleView(static_cast<MetroSpriteId>(to_underlying(MetroSpriteId::TramFirst) + eid.internal_id), dir, false, sprite);
+	}
+	return false;
+}
+
+/**
+ * Draw a vanilla landmark house with an own sprite: stadiums (one picture over their 2x2 area, drawn from the north
+ * tile) and parks. The ground is already drawn.
+ * @return False to draw the vanilla house.
+ */
+bool MetroSpritesDrawHouse(const TileInfo *ti, HouseID house)
+{
+	if (_metro_sprite_images.empty() || house >= NEW_HOUSE_OFFSET || !IsHouseCompleted(ti->tile)) return false;
+	StringID name = HouseSpec::Get(house)->building_name;
+	if (name == STR_TOWN_BUILDING_NAME_PARK_1) {
+		if (!MetroHasSprite(MetroSpriteId::Park)) return false;
+		AddSortableSpriteToDraw(MetroSprite(MetroSpriteId::Park, 0), PAL_NONE, *ti, SpriteBounds({0, 0, 0}, {TILE_SIZE, TILE_SIZE, 16}, {}), IsTransparencySet(TransparencyOption::Houses));
+		return true;
+	}
+	if (name == STR_TOWN_BUILDING_NAME_STADIUM_1 || name == STR_TOWN_BUILDING_NAME_STADIUM_2) {
+		if (!MetroHasSprite(MetroSpriteId::Stadium)) return false;
+		HouseID north = house;
+		if (GetHouseNorthPart(north) != 0) return true; // The other tiles show only their ground.
+		AddSortableSpriteToDraw(MetroSprite(MetroSpriteId::Stadium, 0), PAL_NONE, *ti, SpriteBounds({0, 0, 0}, {2 * TILE_SIZE, 2 * TILE_SIZE, 24}, {}), IsTransparencySet(TransparencyOption::Houses));
+		return true;
+	}
+	return false;
 }
 
 /** Own sprite of a tile of a mod object (services, power grid, metro entrance), or 0 to draw the vanilla one. */
@@ -332,7 +406,10 @@ SpriteID MetroSpritesObjectImage(TileIndex tile)
 		case OBJECT_METRO_SOLAR_PLANT: id = MetroSpriteId::SolarPlant; break;
 		case OBJECT_METRO_WIND_PLANT: id = MetroSpriteId::WindTurbine; break;
 		case OBJECT_METRO_VENT_SHAFT: id = MetroSpriteId::VentShaft; break;
-		case OBJECT_METRO_ENTRANCE: id = MetroSpriteId::Entrance; break;
+		case OBJECT_METRO_ENTRANCE:
+			/* Interchange and megahub stations get the big pavilion. */
+			id = MetroHasSprite(MetroSpriteId::EntranceBig) && MetroEntranceStationLevel(tile) >= METRO_STATION_LEVEL_INTERCHANGE ? MetroSpriteId::EntranceBig : MetroSpriteId::Entrance;
+			break;
 		default: return 0;
 	}
 	if (!MetroHasSprite(id)) return 0;
@@ -365,7 +442,13 @@ bool ConMetroSprites(std::span<std::string_view> argv)
 			_metro_sprite_images.size() - walkers, _metro_sprite_dir, _metro_sprite_first, walkers, _metro_walker_base);
 	for (uint i = 0; i < std::size(_metro_sprite_specs); i++) {
 		const MetroSpriteSpec &spec = _metro_sprite_specs[i];
-		IConsolePrint(_metro_sprite_base[i] != 0 ? CC_INFO : CC_DEFAULT, "  {}/{}: {}", spec.section, spec.name, _metro_sprite_base[i] != 0 ? fmt::format("sprite {}", _metro_sprite_base[i]) : std::string("vanilla"));
+		std::string state = "vanilla";
+		if (_metro_sprite_base[i] != 0) {
+			uint have = 0, total = ImageCount(spec.kind);
+			for (uint k = 0; k < total; k++) have += HasImage(_metro_sprite_base[i], k) ? 1 : 0;
+			state = have == total ? fmt::format("sprite {}", _metro_sprite_base[i]) : fmt::format("sprite {}, {} of {} views (others vanilla)", _metro_sprite_base[i], have, total);
+		}
+		IConsolePrint(_metro_sprite_base[i] != 0 ? CC_INFO : CC_DEFAULT, "  {}/{}: {}", spec.section, spec.name, state);
 	}
 	return true;
 }

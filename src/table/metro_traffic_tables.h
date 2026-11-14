@@ -46,6 +46,8 @@ static const MetroCarSprite _metro_car_sprites[] = {
 	{ 1965, 0xD94 }, ///< Van.
 	{ 1990, 0xCE4 }, ///< Modern bus.
 	{ 1990, 0xDCC }, ///< Modern van.
+	{ 1980, 0xCDC }, ///< Car of the eighties (own sprite; vanilla bus body as the fallback).
+	{ 2010, 0xCE4 }, ///< Modern car (own sprite; vanilla modern bus body as the fallback).
 };
 
 /** Colours of the cars (recolour palettes of the companies). */

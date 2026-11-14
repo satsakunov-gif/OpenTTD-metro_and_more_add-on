@@ -43,6 +43,7 @@
 #include "viewport_func.h"
 #include "window_func.h"
 #include "sprite.h"
+#include "metro_sprites.h"
 #include "tile_cmd.h"
 #include "core/enum_type.hpp"
 #include "table/strings.h"
@@ -294,12 +295,31 @@ CommandCost CmdMetroBuildExtraEntrance(DoCommandFlags flags, TileIndex tile, boo
 	return CommandCost(ExpensesType::Construction, price);
 }
 
-/** Draw an entrance on a road or in a house (a vanilla post in the company colour for now). */
+/** Highest level of the stations served by an entrance (for its look). */
+uint8_t MetroEntranceStationLevel(TileIndex entrance)
+{
+	uint8_t best = 0;
+	for (const auto &[station, level] : _metro_station_levels) {
+		if (level <= best) continue;
+		const Station *st = Station::GetIfValid(station);
+		if (st == nullptr || st->train_station.tile == INVALID_TILE) continue;
+		bool found = false;
+		MetroForEachEntranceNear(st->train_station, METRO_ENTRANCE_PLATFORM_RADIUS, st->owner, [&](TileIndex t) { if (t == entrance) found = true; });
+		if (found) best = level;
+	}
+	return best;
+}
+
+/** Draw an entrance on a road or in a house (own sign on the sidewalk, else a vanilla post in the company colour). */
 void MetroStationsDrawTile(const TileInfo *ti)
 {
 	if (_metro_extra_entrances.empty()) return;
 	auto it = _metro_extra_entrances.find(ti->tile.base());
 	if (it == _metro_extra_entrances.end() || !IsExtraEntranceValid(ti->tile, it->second)) return;
+	if (it->second.kind == MetroEntranceKind::Sidewalk && MetroHasSprite(MetroSpriteId::EntranceSidewalk)) {
+		AddSortableSpriteToDraw(MetroSprite(MetroSpriteId::EntranceSidewalk, SPR_TRANSMITTER), PAL_NONE, ti->x + 2, ti->y + 2, ti->z, {{0, 0, 0}, {2, 2, 24}, {}});
+		return;
+	}
 	int8_t x = it->second.kind == MetroEntranceKind::Sidewalk ? 1 : 12;
 	AddSortableSpriteToDraw(SPR_TRANSMITTER, GetCompanyPalette(static_cast<Owner>(it->second.owner)), ti->x, ti->y, ti->z, {{x, 1, 0}, {2, 2, 70}, {}});
 }

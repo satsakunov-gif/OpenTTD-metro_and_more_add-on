@@ -27,6 +27,7 @@ enum class MetroSpriteKind : uint8_t {
 /** Where the sprite is attached: decides its offsets. */
 enum class MetroSpriteAnchor : uint8_t {
 	Building, ///< Bottom centre on the south corner of the tile.
+	Building2x2, ///< Bottom centre on the south corner of a 2x2 area drawn from its north tile.
 	Ground,   ///< A flat ground tile (64 x 31 at 1x).
 	Vehicle,  ///< Centre of the vehicle, a quarter above its bottom.
 	Walker,   ///< Feet on the point.
@@ -90,7 +91,16 @@ static const MetroSpriteSpec _metro_sprite_specs[] = {
 	{ "city",        "van_1965",            MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
 	{ "city",        "car_1990",            MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
 	{ "city",        "van_1990",            MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
+	{ "city",        "car_1980",            MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
+	{ "city",        "car_2010",            MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
 	{ "people",      "pedestrian",          MetroSpriteKind::Diag4x4, MetroSpriteAnchor::Walker },
+	{ "metro",       "entrance_big",        MetroSpriteKind::Single,  MetroSpriteAnchor::Building },
+	{ "metro",       "entrance_sidewalk",   MetroSpriteKind::Single,  MetroSpriteAnchor::Walker },
+	{ "metro",       "wagon_coal",          MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
+	{ "metro",       "wagon_covered",       MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
+	{ "metro",       "wagon_mail",          MetroSpriteKind::Dir8,    MetroSpriteAnchor::Vehicle },
+	{ "city",        "stadium",             MetroSpriteKind::Single,  MetroSpriteAnchor::Building2x2 },
+	{ "city",        "park",                MetroSpriteKind::Single,  MetroSpriteAnchor::Building },
 };
 static_assert(std::size(_metro_sprite_specs) == to_underlying(MetroSpriteId::End));
 
@@ -102,5 +112,6 @@ static const char * const _metro_sprite_diag4[] = { "NE", "SE", "SW", "NW" };
 static const char * const _metro_sprite_dirs[] = { "mod-sprites/game", "../mod-sprites/game", "metro_sprites" };
 
 static constexpr int METRO_SPRITE_TILE_BOTTOM = 31; ///< The south corner of a flat tile is this far below its north corner at 1x.
+static constexpr int METRO_SPRITE_2X2_BOTTOM = 63; ///< The same for a 2x2 area.
 
 #endif /* METRO_SPRITE_TABLES_H */

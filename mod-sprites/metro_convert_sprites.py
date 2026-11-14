@@ -194,6 +194,17 @@ def clean(img, opts, name="", debug_dir=None):
                 background = ndimage.binary_propagation(background, mask=background | cand | (shade & outside))
         keep = ~background
 
+    if opts.hull and keep.any():
+        # Everything inside the convex outline of the object is the object (white walls on a white background).
+        from scipy.spatial import ConvexHull
+        from PIL import ImageDraw
+        pts = np.argwhere(ndimage.binary_opening(keep, iterations=1) if keep.sum() > 64 else keep)[:, ::-1]
+        if len(pts) >= 3:
+            hull = ConvexHull(pts)
+            mask_img = Image.new("L", (w, h), 0)
+            ImageDraw.Draw(mask_img).polygon([tuple(p) for p in pts[hull.vertices]], fill=1, outline=1)
+            keep = np.array(mask_img, dtype=bool)
+
     # Drop specks: pieces much smaller than the largest one.
     labels, count = ndimage.label(keep, structure=np.ones((3, 3)))
     if count == 0:
@@ -274,7 +285,7 @@ def fit(arr, box_w, box_h, anchor, opts):
     pad = 2 * opts.outline
     inner_w, inner_h = max(1, box_w - pad), max(1, box_h - pad)
     h, w = arr.shape[:2]
-    if anchor == "building":
+    if anchor in ("building", "building2"):
         scale = inner_w / w
         if h * scale > inner_h:
             scale = inner_h / h
@@ -295,11 +306,29 @@ def fit(arr, box_w, box_h, anchor, opts):
 # Commands
 # ------------------------------------------------------------------------------------------------
 
-def convert(specs, opts):
+def load_overrides(parser, opts):
+    """Per-sprite cleaning options from raw/options.txt: lines "<name>: <options>" (# starts a comment)."""
+    overrides = {}
+    path = opts.raw / "options.txt"
+    if not path.exists():
+        return overrides
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        name, args = (part.strip() for part in line.split(":", 1))
+        overrides[name] = parser.parse_args(args.split(), namespace=argparse.Namespace(**vars(opts)))
+    return overrides
+
+
+def convert(specs, base_opts, overrides):
     done, missing, mirrored, failed = 0, [], 0, []
-    debug_dir = opts.out / "_debug" if opts.debug else None
+    debug_dir = base_opts.out / "_debug" if base_opts.debug else None
     for spec in specs:
-        if opts.only and opts.only not in spec["name"]:
+        opts = overrides.get(spec["name"], base_opts)
+        if opts is not base_opts:
+            print(f"     {spec['name']}: own options from raw/options.txt")
+        if base_opts.only and base_opts.only not in spec["name"]:
             continue
         section = spec["section"]
         names = image_names(spec)
@@ -316,18 +345,22 @@ def convert(specs, opts):
                 print(f"empty after cleaning: {section}/{p.name}")
                 continue
             pictures[n] = cleaned
+        # Mirror the missing views only when at least 4 are drawn (a vehicle with fewer views keeps only those,
+        # the game draws the others vanilla).
+        drawn = len(pictures)
         for n in names:
-            if n in pictures:
+            if n in pictures or (spec["kind"] == "dir8" and drawn < 4):
                 continue
             partner = mirror_source(spec, n)
             if partner is not None and partner in pictures:
                 pictures[n] = pictures[partner][:, ::-1].copy()
                 mirrored += 1
         lacking = [n for n in names if n not in pictures]
-        if lacking:
+        if lacking and spec["kind"] != "dir8":
             missing.extend(f"{section}/{n}" for n in lacking)
             print(f"skip {section}/{spec['name']}: missing {', '.join(lacking)}")
             continue
+        names = [n for n in names if n in pictures]
         (opts.out / section).mkdir(parents=True, exist_ok=True)
         box_w, box_h = int(spec["width"]), int(spec["height"])
         for n in names:
@@ -335,7 +368,8 @@ def convert(specs, opts):
                 arr = fit(pictures[n], box_w * z, box_h * z, spec["anchor"], opts)
                 Image.fromarray(arr, "RGBA").save(opts.out / section / f"{n}_{z}x.png")
         done += 1
-        print(f"ok   {section}/{spec['name']}: {len(names)} image(s) x {len(ZOOMS)} zooms")
+        partial = f" (only {', '.join(n[len(spec['name']) + 1:] for n in names)}; other views vanilla)" if lacking else ""
+        print(f"ok   {section}/{spec['name']}: {len(names)} image(s) x {len(ZOOMS)} zooms{partial}")
     print(f"\nconverted sprites: {done}, mirrored views: {mirrored}, missing files: {len(missing)}, failed: {len(failed)}")
     return 0 if not missing and not failed else 1
 
@@ -413,6 +447,7 @@ def main():
     parser.add_argument("--no-shadow", dest="shadow", action="store_false", help="keep soft shadows")
     parser.add_argument("--shadow-tolerance", type=int, default=32, help="how colourful a shadow pixel may be (max - min channel, default 32)")
     parser.add_argument("--shadow-min-luminance", type=int, default=40, help="darker pixels are never a shadow (default 40)")
+    parser.add_argument("--hull", action="store_true", help="keep everything inside the convex outline of the object (white objects on white)")
     parser.add_argument("--speck", type=float, default=0.02, help="drop pieces smaller than this share of the largest one (default 0.02)")
     parser.add_argument("--outline", type=int, default=1, help="outline width in pixels at every zoom (default 1, 0 = none)")
     parser.add_argument("--outline-colour", default="auto", help="outline colour, e.g. 202020; 'auto' = darkened neighbour colour (default)")
@@ -429,7 +464,10 @@ def main():
         return assign(specs, *opts.assign)
     if opts.clean and opts.out.exists():
         shutil.rmtree(opts.out)
-    return convert(specs, opts)
+    overrides = load_overrides(parser, opts)
+    for o in overrides.values():
+        o.outline_colour = parse_colour(o.outline_colour) if isinstance(o.outline_colour, str) else o.outline_colour
+    return convert(specs, opts, overrides)
 
 
 if __name__ == "__main__":

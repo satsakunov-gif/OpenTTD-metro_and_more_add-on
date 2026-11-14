@@ -13,6 +13,8 @@
 #include "gfx_type.h"
 #include "direction_type.h"
 #include "engine_type.h"
+#include "cargo_type.h"
+#include "house_type.h"
 #include "tile_type.h"
 
 #include <span>
@@ -29,8 +31,13 @@ enum class MetroSpriteId : uint16_t {
 	TramLast = TramFirst + 3,
 	School, Hospital, University,
 	CarFirst, ///< Cars and vans by years, in the order of the car sprite table.
-	CarLast = CarFirst + 5,
+	CarLast = CarFirst + 7,
 	Pedestrian,
+	EntranceBig,      ///< Pavilion of an interchange or megahub station.
+	EntranceSidewalk, ///< Sign of an entrance on the sidewalk.
+	WagonCoal, WagonCovered, WagonMail, ///< Metro cars carrying coal, other freight, mail.
+	Stadium,          ///< Vanilla stadiums (2x2, one picture).
+	Park,             ///< Vanilla park.
 	End,
 };
 
@@ -38,7 +45,8 @@ SpriteID MetroSprite(MetroSpriteId id, SpriteID fallback, uint index = 0);
 SpriteID MetroWalkerSprite(uint index);
 bool MetroHasSprite(MetroSpriteId id);
 void MetroSpritesLoad();
-bool MetroSpritesVehicleImage(EngineID engine, Direction direction, SpriteID &sprite);
+bool MetroSpritesVehicleImage(EngineID engine, Direction direction, SpriteID &sprite, CargoType cargo = INVALID_CARGO);
+bool MetroSpritesDrawHouse(const struct TileInfo *ti, HouseID house);
 SpriteID MetroSpritesObjectImage(TileIndex tile);
 bool ConMetroSprites(std::span<std::string_view> argv);
 
